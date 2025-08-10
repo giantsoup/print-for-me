@@ -31,7 +31,7 @@ class MagicLinkController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'email' => ['required', 'email:rfc,dns'],
+            'email' => ['required', 'email:rfc'],
         ]);
 
         $email = strtolower($validated['email']);

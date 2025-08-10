@@ -12,6 +12,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('print-requests/{print_request}', [PrintRequestController::class, 'update'])->name('print-requests.update');
     Route::delete('print-requests/{print_request}', [PrintRequestController::class, 'destroy'])->name('print-requests.destroy');
 
+    // Permanent delete for owner's soft-deleted pending request
+    Route::delete('print-requests/{id}/force', [PrintRequestController::class, 'forceDestroy'])->name('print-requests.force-destroy');
+
     // Secure file download
     Route::get('print-requests/{print_request}/files/{file}/download', [PrintRequestFileController::class, 'download'])
         ->name('print-requests.files.download');
