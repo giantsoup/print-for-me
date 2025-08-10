@@ -108,6 +108,42 @@ class PrintRequestController extends Controller
         return redirect()->route('print-requests.index')->with('status', 'Print request deleted.');
     }
 
+    public function forceDestroy(Request $request, $id)
+    {
+        // Find including soft-deleted rows
+        $print_request = PrintRequest::withTrashed()->findOrFail($id);
+
+        // Must be owner or admin
+        $this->authorizeOwnerOrAdmin($print_request);
+
+        $user = $request->user();
+        $isAdmin = (bool) ($user->is_admin ?? false);
+
+        // If not admin, only allow force delete of own soft-deleted pending request
+        if (! $isAdmin) {
+            if (! $print_request->trashed() || $print_request->status !== PrintRequestStatus::PENDING) {
+                abort(403, 'Only your soft-deleted pending request can be permanently removed.');
+            }
+        }
+
+        // Remove associated files from storage if present
+        $files = $print_request->files()->get();
+        foreach ($files as $file) {
+            if ($file->disk && $file->path) {
+                Storage::disk($file->disk)->delete($file->path);
+            }
+        }
+
+        // Permanently delete the record
+        $print_request->forceDelete();
+
+        if ($request->wantsJson()) {
+            return response()->json(['status' => 'force-deleted']);
+        }
+
+        return redirect()->route('print-requests.index')->with('status', 'Print request permanently deleted.');
+    }
+
     private function attachFiles(PrintRequest $printRequest, array $files): void
     {
         foreach ($files as $file) {
