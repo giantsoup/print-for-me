@@ -36,7 +36,7 @@ class PrintRequestController extends Controller
 
     public function show(Request $request, PrintRequest $print_request)
     {
-        $this->authorizeOwnerOrAdmin($print_request);
+        $this->authorize('view', $print_request);
 
         $print_request->load('files');
 
@@ -72,8 +72,7 @@ class PrintRequestController extends Controller
 
     public function update(UpdatePrintRequestRequest $request, PrintRequest $print_request)
     {
-        $this->authorizeOwnerOrAdmin($print_request);
-        $this->ensureEditableByUser($print_request, $request->user());
+        $this->authorize('update', $print_request);
 
         $print_request->fill([
             'source_url' => $request->input('source_url', $print_request->source_url),
@@ -105,8 +104,7 @@ class PrintRequestController extends Controller
 
     public function destroy(Request $request, PrintRequest $print_request)
     {
-        $this->authorizeOwnerOrAdmin($print_request);
-        $this->ensureEditableByUser($print_request, $request->user());
+        $this->authorize('delete', $print_request);
 
         $user = $request->user();
         $isAdmin = (bool) ($user->is_admin ?? false);
@@ -134,18 +132,8 @@ class PrintRequestController extends Controller
         // Find including soft-deleted rows
         $print_request = PrintRequest::withTrashed()->findOrFail($id);
 
-        // Must be owner or admin
-        $this->authorizeOwnerOrAdmin($print_request);
-
-        $user = $request->user();
-        $isAdmin = (bool) ($user->is_admin ?? false);
-
-        // If not admin, only allow force delete of own soft-deleted pending request
-        if (! $isAdmin) {
-            if (! $print_request->trashed() || $print_request->status !== PrintRequestStatus::PENDING) {
-                abort(403, 'Only your soft-deleted pending request can be permanently removed.');
-            }
-        }
+        // Authorize per policy
+        $this->authorize('forceDelete', $print_request);
 
         // Remove associated files from storage if present
         $files = $print_request->files()->get();
