@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\PrintRequest;
+use App\Support\MailSubject;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -24,8 +25,7 @@ class PendingRequestCanceledByUserNotification extends Notification implements S
 
     public function toMail(object $notifiable): MailMessage
     {
-        $appName = config('app.name', "Taylor's Print Services");
-        $subject = "[{$appName}] Pending request canceled by user";
+        $subject = MailSubject::make('Pending request canceled by user');
 
         return (new MailMessage)
             ->subject($subject)

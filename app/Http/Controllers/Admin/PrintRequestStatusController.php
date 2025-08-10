@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\PrintRequestStatus;
 use App\Http\Controllers\Controller;
 use App\Models\PrintRequest;
+use App\Notifications\PrintRequestAcceptedNotification;
+use App\Notifications\PrintRequestCompletedNotification;
+use App\Notifications\PrintRequestRevertedToPendingNotification;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -21,6 +24,11 @@ class PrintRequestStatusController extends Controller
         $print_request->status = PrintRequestStatus::ACCEPTED;
         $print_request->accepted_at = now();
         $print_request->save();
+
+        // Notify requester (queued)
+        if ($print_request->user) {
+            $print_request->user->notify(new PrintRequestAcceptedNotification($print_request));
+        }
 
         return response()->json($print_request);
     }
@@ -51,6 +59,11 @@ class PrintRequestStatusController extends Controller
         $print_request->completed_at = now();
         $print_request->save();
 
+        // Notify requester (queued)
+        if ($print_request->user) {
+            $print_request->user->notify(new PrintRequestCompletedNotification($print_request));
+        }
+
         return response()->json($print_request);
     }
 
@@ -65,6 +78,11 @@ class PrintRequestStatusController extends Controller
         $print_request->status = PrintRequestStatus::PENDING;
         $print_request->reverted_at = now();
         $print_request->save();
+
+        // Notify requester (queued)
+        if ($print_request->user) {
+            $print_request->user->notify(new PrintRequestRevertedToPendingNotification($print_request));
+        }
 
         return response()->json($print_request);
     }

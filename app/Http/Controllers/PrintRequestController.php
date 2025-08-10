@@ -7,10 +7,13 @@ use App\Http\Requests\StorePrintRequestRequest;
 use App\Http\Requests\UpdatePrintRequestRequest;
 use App\Models\PrintRequest;
 use App\Models\PrintRequestFile;
+use App\Notifications\NewPrintRequestNotification;
+use App\Notifications\PendingRequestCanceledByUserNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -53,6 +56,12 @@ class PrintRequestController extends Controller
         $printRequest->save();
 
         $this->attachFiles($printRequest, $request->file('files', []));
+
+        // Notify admin of new print request (queued mail)
+        $adminEmail = (string) config('prints.admin_email');
+        if ($adminEmail) {
+            Notification::route('mail', $adminEmail)->notify(new NewPrintRequestNotification($printRequest));
+        }
 
         if ($request->wantsJson()) {
             return response()->json($printRequest->load('files'), 201);
@@ -99,7 +108,19 @@ class PrintRequestController extends Controller
         $this->authorizeOwnerOrAdmin($print_request);
         $this->ensureEditableByUser($print_request, $request->user());
 
+        $user = $request->user();
+        $isAdmin = (bool) ($user->is_admin ?? false);
+        $wasPending = $print_request->status === PrintRequestStatus::PENDING;
+
         $print_request->delete();
+
+        // Notify admin only when a user (non-admin) cancels their pending request
+        if (! $isAdmin && $wasPending) {
+            $adminEmail = (string) config('prints.admin_email');
+            if ($adminEmail) {
+                Notification::route('mail', $adminEmail)->notify(new PendingRequestCanceledByUserNotification($print_request));
+            }
+        }
 
         if ($request->wantsJson()) {
             return response()->json(['status' => 'deleted']);

@@ -9,7 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class NewPrintRequestNotification extends Notification implements ShouldQueue
+class PrintRequestCompletedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -25,15 +25,10 @@ class NewPrintRequestNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $subject = MailSubject::make('New print request');
-
         return (new MailMessage)
-            ->subject($subject)
-            ->greeting('New print request received')
-            ->line('A new print request has been submitted.')
-            ->line('Request ID: '.$this->printRequest->id)
-            ->line('User ID: '.$this->printRequest->user_id)
-            ->line('Status: '.$this->printRequest->status)
-            ->line('Source URL: '.($this->printRequest->source_url ?: '(none)'));
+            ->subject(MailSubject::make('Your print request is complete'))
+            ->greeting('Your request is complete')
+            ->line('Your print request has been completed.')
+            ->line('Request ID: ' . $this->printRequest->id);
     }
 }
