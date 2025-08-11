@@ -4,7 +4,14 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    $user = request()->user();
+
+    // Redirect only if the user is authenticated AND not an admin
+    if ($user && ! (bool) ($user->is_admin ?? false)) {
+        return redirect()->route('dashboard');
+    }
+
+    return Inertia::render('Home');
 })->name('home');
 
 Route::get('dashboard', function () {
