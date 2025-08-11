@@ -30,6 +30,7 @@
             }
         </style>
 
+        <!--suppress HtmlUnknownAttribute -->
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
         <link rel="icon" type="image/png" href="{{ Vite::asset('resources/images/website-logo.png') }}">
