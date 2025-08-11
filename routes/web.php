@@ -8,7 +8,19 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('dashboard', function () {
-    return Inertia::render('Dashboard');
+    $user = request()->user();
+
+    $query = \App\Models\PrintRequest::query()->latest()->limit(5);
+    if (!($user->is_admin ?? false)) {
+        $query->where('user_id', $user->id);
+    }
+
+    $recent = $query->get(['id', 'status', 'created_at']);
+
+    return Inertia::render('Dashboard', [
+        'recentRequests' => $recent,
+        'isAdmin' => (bool) ($user->is_admin ?? false),
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 require __DIR__.'/settings.php';

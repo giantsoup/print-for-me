@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class PrintRequestController extends Controller
 {
@@ -26,12 +27,38 @@ class PrintRequestController extends Controller
 
         if (!($user->is_admin ?? false)) {
             $query->where('user_id', $user->id);
+        } else {
+            $status = (string) $request->query('status', '');
+            if (in_array($status, PrintRequestStatus::all(), true)) {
+                $query->where('status', $status);
+            }
         }
 
-        $data = $query->paginate(20);
+        $data = $query->paginate(20)->withQueryString();
 
-        // Always respond with JSON for now (UI will be added later)
-        return response()->json($data);
+        if ($request->wantsJson()) {
+            return response()->json($data);
+        }
+
+        return Inertia::render('prints/Index', [
+            'items' => $data,
+            'isAdmin' => (bool) ($user->is_admin ?? false),
+            'filters' => [
+                'status' => (string) $request->query('status', ''),
+            ],
+            'statuses' => PrintRequestStatus::all(),
+        ]);
+    }
+
+    public function create(Request $request)
+    {
+        return Inertia::render('prints/Create', [
+            'constraints' => [
+                'maxFiles' => 10,
+                'maxTotalBytes' => 50 * 1024 * 1024,
+                'allowedExtensions' => ['stl','3mf','obj','f3d','f3z','step','stp','iges','igs'],
+            ],
+        ]);
     }
 
     public function show(Request $request, PrintRequest $print_request)
@@ -40,8 +67,25 @@ class PrintRequestController extends Controller
 
         $print_request->load('files');
 
-        // Always respond with JSON for now (UI will be added later)
-        return response()->json($print_request);
+        if ($request->wantsJson()) {
+            return response()->json($print_request);
+        }
+
+        $user = $request->user();
+
+        return Inertia::render('prints/Show', [
+            'printRequest' => $print_request,
+            'can' => [
+                'update' => $user ? $user->can('update', $print_request) : false,
+                'delete' => $user ? $user->can('delete', $print_request) : false,
+                'isAdmin' => (bool) ($user->is_admin ?? false),
+            ],
+            'constraints' => [
+                'maxFiles' => 10,
+                'maxTotalBytes' => 50 * 1024 * 1024,
+                'allowedExtensions' => ['stl','3mf','obj','f3d','f3z','step','stp','iges','igs'],
+            ],
+        ]);
     }
 
     public function store(StorePrintRequestRequest $request)

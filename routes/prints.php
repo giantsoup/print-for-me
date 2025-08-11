@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth')->group(function () {
     // Print Request CRUD
     Route::get('print-requests', [PrintRequestController::class, 'index'])->name('print-requests.index');
+    Route::get('print-requests/create', [PrintRequestController::class, 'create'])->name('print-requests.create');
     Route::post('print-requests', [PrintRequestController::class, 'store'])->name('print-requests.store');
     Route::get('print-requests/{print_request}', [PrintRequestController::class, 'show'])->middleware('can:view,print_request')->name('print-requests.show');
     Route::patch('print-requests/{print_request}', [PrintRequestController::class, 'update'])->middleware('can:update,print_request')->name('print-requests.update');

@@ -46,6 +46,9 @@ Route::middleware('guest')->group(function () {
     Route::get('magic-login', [MagicLinkController::class, 'login'])
         ->middleware(['signed', 'throttle:6,1'])
         ->name('magic.login');
+
+    Route::get('magic-login/result', [MagicLinkController::class, 'result'])
+        ->name('magic.result');
 });
 
 Route::middleware('auth')->group(function () {

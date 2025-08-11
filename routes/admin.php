@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->middleware('admin')->group(function () {
     // Invite a user by email (creates/updates and sends magic link)
+    Route::get('admin/invite', [InviteController::class, 'create'])->name('admin.invite.create');
     Route::post('admin/invite', [InviteController::class, 'store'])->name('admin.invite.store');
 
     // Print Request status transitions

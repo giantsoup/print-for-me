@@ -72,48 +72,60 @@ class MagicLinkController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $request->validate([
-            'email' => ['required', 'email'],
-            'token' => ['required', 'string', 'size:64'],
+        try {
+            $request->validate([
+                'email' => ['required', 'email'],
+                'token' => ['required', 'string', 'size:64'],
+            ]);
+
+            $email = strtolower((string) $request->string('email'));
+            $rawToken = (string) $request->string('token');
+            $hash = hash('sha256', $rawToken);
+
+            $token = MagicLoginToken::where('email', $email)
+                ->where('token_hash', $hash)
+                ->whereNull('used_at')
+                ->where('expires_at', '>', now())
+                ->first();
+
+            if (! $token) {
+                throw ValidationException::withMessages([
+                    'token' => 'This magic link is invalid or has expired.',
+                ]);
+            }
+
+            $user = User::where('email', $email)->first();
+
+            if (! $user) {
+                throw ValidationException::withMessages([
+                    'email' => 'This account does not exist.',
+                ]);
+            }
+
+            // Mark token used
+            $token->forceFill(['used_at' => now()])->save();
+
+            // Login user and update timestamps
+            if (! $user->email_verified_at) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
+
+            $user->forceFill(['last_login_at' => now()])->save();
+
+            Auth::login($user);
+            $request->session()->regenerate();
+
+            return redirect()->intended(route('dashboard'));
+        } catch (ValidationException $e) {
+            return redirect()->route('magic.result')->withErrors($e->errors());
+        }
+    }
+
+    public function result(Request $request): InertiaResponse
+    {
+        return Inertia::render('auth/MagicLinkResult', [
+            'status' => session('status'),
+            'errors' => session('errors') ? session('errors')->getBag('default')->getMessages() : [],
         ]);
-
-        $email = strtolower($request->string('email'));
-        $rawToken = $request->string('token');
-        $hash = hash('sha256', $rawToken);
-
-        $token = MagicLoginToken::where('email', $email)
-            ->where('token_hash', $hash)
-            ->whereNull('used_at')
-            ->where('expires_at', '>', now())
-            ->first();
-
-        if (! $token) {
-            throw ValidationException::withMessages([
-                'token' => 'This magic link is invalid or has expired.',
-            ]);
-        }
-
-        $user = User::where('email', $email)->first();
-
-        if (! $user) {
-            throw ValidationException::withMessages([
-                'email' => 'This account does not exist.',
-            ]);
-        }
-
-        // Mark token used
-        $token->forceFill(['used_at' => now()])->save();
-
-        // Login user and update timestamps
-        if (! $user->email_verified_at) {
-            $user->forceFill(['email_verified_at' => now()])->save();
-        }
-
-        $user->forceFill(['last_login_at' => now()])->save();
-
-        Auth::login($user);
-        $request->session()->regenerate();
-
-        return redirect()->intended(route('dashboard'));
     }
 }

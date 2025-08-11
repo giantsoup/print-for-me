@@ -10,9 +10,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class InviteController extends Controller
 {
+    public function create(Request $request)
+    {
+        return Inertia::render('admin/Invite');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -51,6 +57,10 @@ class InviteController extends Controller
         // Notify user via email (logged locally)
         $user->notify(new MagicLoginLinkNotification($loginUrl));
 
-        return response()->json(['status' => 'invited', 'email' => $email]);
+        if ($request->wantsJson()) {
+            return response()->json(['status' => 'invited', 'email' => $email]);
+        }
+
+        return back()->with('status', 'Invitation sent to ' . $email);
     }
 }

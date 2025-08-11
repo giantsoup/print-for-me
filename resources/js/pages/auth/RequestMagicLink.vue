@@ -25,6 +25,9 @@ function submit() {
         <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
           Invite-first access. Your email must be whitelisted. The link expires in 10 minutes and can only be used once.
         </p>
+        <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          Rate-limited: up to 5 requests per hour per email and IP address.
+        </p>
       </header>
 
       <form @submit.prevent="submit" class="space-y-4">
