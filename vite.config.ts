@@ -2,6 +2,7 @@ import vue from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig({
     plugins: [
@@ -18,6 +19,25 @@ export default defineConfig({
                     includeAbsolute: false,
                 },
             },
+        }),
+        viteStaticCopy({
+            targets: [
+                {
+                    src: 'resources/images/website-logo.png',
+                    dest: '../',
+                    rename: 'favicon.png',
+                },
+                {
+                    src: 'resources/images/website-logo.png',
+                    dest: '../',
+                    rename: 'apple-touch-icon.png',
+                },
+                {
+                    src: 'resources/images/website-logo.png',
+                    dest: '../',
+                    rename: 'website-logo.png',
+                },
+            ],
         }),
     ],
 });

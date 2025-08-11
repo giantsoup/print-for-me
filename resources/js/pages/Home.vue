@@ -8,6 +8,7 @@ type PageProps = {
 
 const page = usePage<PageProps>();
 const isAuthed = computed(() => Boolean(page.props.auth && (page.props.auth as any).user));
+const logoUrl = new URL('../../images/website-logo.png', import.meta.url).href;
 </script>
 
 <template>
@@ -24,15 +25,12 @@ const isAuthed = computed(() => Boolean(page.props.auth && (page.props.auth as a
     <!-- Top navigation -->
     <header class="relative z-10 flex items-center justify-between px-6 py-4">
       <div class="flex items-center gap-3">
-        <span class="inline-flex h-8 w-8 items-center justify-center rounded bg-black/40 ring-1 ring-white/10">
-          <span class="h-3 w-3 rounded-full bg-[#ff00e6] shadow-[0_0_12px_#ff00e6]" />
-        </span>
+        <img :src="logoUrl" alt="Taylor's Print Services logo" class="h-8 w-8 rounded-md object-contain ring-1 ring-white/10 bg-black/40 md:h-10 md:w-10" height="40" width="40" loading="eager" decoding="async" />
         <span class="text-sm font-semibold tracking-wider text-white/80">Taylor's Print Services</span>
       </div>
       <nav class="flex items-center gap-3 text-sm">
         <Link v-if="isAuthed" :href="route('dashboard')" class="text-white/80 hover:text-white">Dashboard</Link>
         <template v-else>
-          <Link :href="route('magic.request')" class="rounded-md bg-white/10 px-3 py-1.5 text-white backdrop-blur hover:bg-white/20">Request magic link</Link>
           <Link :href="route('login')" class="text-white/80 hover:text-white">Log in</Link>
         </template>
       </nav>
@@ -45,26 +43,29 @@ const isAuthed = computed(() => Boolean(page.props.auth && (page.props.auth as a
           class="text-balance bg-clip-text text-5xl font-extrabold tracking-tight text-transparent sm:text-6xl [text-shadow:0_0_40px_rgba(255,0,204,.35)]"
           style="background-image: linear-gradient(135deg,#22d3ee,#a78bfa,#f472b6);"
         >
-          Taylor’s Print Services
+          Get your 3D parts printed—fast and private
         </h1>
         <p class="mt-4 max-w-2xl text-pretty text-white/80">
-          Synthwave UI. Serious backend. Your models, our printers, zero passwords.
+          Upload your CAD files, track progress, and get notified at every step. Passwordless magic‑link sign‑in—no passwords to remember.
         </p>
 
         <div class="mt-14 grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
           <div class="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur">
-            <p class="text-sm font-semibold">Queued notifications</p>
-            <p class="mt-1 text-xs text-white/60">All the right emails at the right time.</p>
+            <p class="text-sm font-semibold">Private uploads</p>
+            <p class="mt-1 text-xs text-white/60">Your files stay private with secure, owner‑only access.</p>
           </div>
           <div class="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur">
-            <p class="text-sm font-semibold">Admin controls</p>
-            <p class="mt-1 text-xs text-white/60">Revert, accept, print, complete—tightly scoped.</p>
+            <p class="text-sm font-semibold">Track progress</p>
+            <p class="mt-1 text-xs text-white/60">See status move from Pending → Accepted → Printing → Complete.</p>
           </div>
           <div class="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur">
-            <p class="text-sm font-semibold">Retention</p>
-            <p class="mt-1 text-xs text-white/60">Automatic cleanups and warnings at 83/90 days.</p>
+            <p class="text-sm font-semibold">Email updates</p>
+            <p class="mt-1 text-xs text-white/60">We’ll email when it’s accepted, if we need info, and when it’s complete.</p>
           </div>
         </div>
+        <p class="mt-6 max-w-2xl text-center text-xs text-white/60">
+          Supported formats: STL, 3MF, OBJ, F3D/F3Z, STEP/STP, IGES/IGS. Up to 10 files, total 50&nbsp;MB per request.
+        </p>
       </section>
     </main>
   </div>
