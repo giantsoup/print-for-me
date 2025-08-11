@@ -21,7 +21,7 @@ Route::get('dashboard', function () {
         'recentRequests' => $recent,
         'isAdmin' => (bool) ($user->is_admin ?? false),
     ]);
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'absolute', 'verified'])->name('dashboard');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

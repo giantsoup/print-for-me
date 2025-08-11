@@ -65,6 +65,12 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
+        ],
+        "lint:php": [
+            "@php vendor/bin/pint -v --test"
+        ],
+        "lint:php:fix": [
+            "@php vendor/bin/pint -v"
         ]
     },
     "extra": {

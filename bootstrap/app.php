@@ -21,13 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // Route middleware aliases
         $middleware->alias([
             'admin' => EnsureAdmin::class,
+            'absolute' => EnforceAbsoluteSession::class,
         ]);
 
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
-            EnforceAbsoluteSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
