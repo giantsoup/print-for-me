@@ -25,18 +25,77 @@ function close() {
     </div>
 
     <!-- Desktop nav -->
-    <nav class="hidden items-center gap-3 text-sm md:flex">
-      <template v-if="isAuthed">
-        <Link :href="route('dashboard')" class="text-white/80 hover:text-white">Dashboard</Link>
-        <Link :href="route('print-requests.index')" class="text-white/80 hover:text-white">My requests</Link>
-        <Link :href="route('print-requests.create')" class="inline-flex items-center rounded-md bg-fuchsia-600/90 px-3 py-1.5 font-semibold text-white shadow hover:bg-fuchsia-500/90">New request</Link>
-        <Link :href="route('profile.edit')" class="text-white/80 hover:text-white">Profile</Link>
-        <Link method="post" :href="route('logout')" as="button" class="text-white/70 hover:text-white/90">Log out</Link>
-      </template>
-      <template v-else>
-        <Link :href="route('home')" class="text-white/80 hover:text-white">Home</Link>
-        <Link :href="route('login')" class="inline-flex items-center rounded-md bg-fuchsia-600/90 px-3 py-1.5 font-semibold text-white shadow hover:bg-fuchsia-500/90">Log in</Link>
-      </template>
+    <nav class="hidden md:flex" aria-label="Primary">
+      <ul class="flex items-center gap-3 text-sm">
+        <template v-if="isAuthed">
+          <li>
+            <Link
+              :href="route('dashboard')"
+              :aria-current="route().current('dashboard') ? 'page' : undefined"
+              class="rounded-md px-2 py-1 text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
+            >
+              Dashboard
+            </Link>
+          </li>
+          <li>
+            <Link
+              :href="route('print-requests.index')"
+              :aria-current="route().current(['print-requests.index','print-requests.show']) ? 'page' : undefined"
+              class="rounded-md px-2 py-1 text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
+            >
+              My requests
+            </Link>
+          </li>
+          <li class="ml-1">
+            <Link
+              :href="route('print-requests.create')"
+              :aria-current="route().current('print-requests.create') ? 'page' : undefined"
+              class="inline-flex items-center rounded-md bg-fuchsia-600/90 px-3 py-1.5 font-semibold text-white shadow hover:bg-fuchsia-500/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
+            >
+              New request
+            </Link>
+          </li>
+          <li>
+            <Link
+              :href="route('profile.edit')"
+              :aria-current="route().current('profile.edit') ? 'page' : undefined"
+              class="rounded-md px-2 py-1 text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
+            >
+              Profile
+            </Link>
+          </li>
+          <li>
+            <Link
+              method="post"
+              :href="route('logout')"
+              as="button"
+              class="rounded-md px-2 py-1 text-white/70 hover:text-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
+            >
+              Log out
+            </Link>
+          </li>
+        </template>
+        <template v-else>
+          <li>
+            <Link
+              :href="route('home')"
+              :aria-current="route().current('home') ? 'page' : undefined"
+              class="rounded-md px-2 py-1 text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
+            >
+              Home
+            </Link>
+          </li>
+          <li class="ml-1">
+            <Link
+              :href="route('login')"
+              :aria-current="route().current('login') ? 'page' : undefined"
+              class="inline-flex items-center rounded-md bg-fuchsia-600/90 px-3 py-1.5 font-semibold text-white shadow hover:bg-fuchsia-500/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
+            >
+              Log in
+            </Link>
+          </li>
+        </template>
+      </ul>
     </nav>
 
     <!-- Mobile actions: primary CTA + hamburger -->
