@@ -33,14 +33,17 @@
         <!--suppress HtmlUnknownAttribute -->
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <link rel="icon" type="image/png" href="{{ Vite::asset('resources/images/website-logo.png') }}">
-        <link rel="apple-touch-icon" href="{{ Vite::asset('resources/images/website-logo.png') }}">
+        <link rel="icon" type="image/png" href="{{ asset('website-logo.png') }}">
+        <link rel="apple-touch-icon" href="{{ asset('website-logo.png') }}">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 
         @routes
-        @vite(['resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
+        @vite('resources/js/app.ts')
+        @if (!app()->environment('testing'))
+            @vite(["resources/js/pages/{$page['component']}.vue"])
+        @endif
         @inertiaHead
     </head>
     <body class="font-sans antialiased">
