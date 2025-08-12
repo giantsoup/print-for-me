@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/AppLayout.vue';
+import TopNav from '@/components/TopNav.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 
 interface PrintRequestFile {
@@ -33,22 +33,19 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const breadcrumbs = [
-  { title: 'Print Requests', href: '/print-requests' },
-];
 
 function statusClass(status: string) {
   switch (status) {
     case 'pending':
-      return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200';
+      return 'bg-amber-400/20 text-amber-200 ring-1 ring-inset ring-amber-300/30';
     case 'accepted':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200';
+      return 'bg-sky-400/20 text-sky-200 ring-1 ring-inset ring-sky-300/30';
     case 'printing':
-      return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-200';
+      return 'bg-indigo-400/20 text-indigo-200 ring-1 ring-inset ring-indigo-300/30';
     case 'complete':
-      return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200';
+      return 'bg-emerald-400/20 text-emerald-200 ring-1 ring-inset ring-emerald-300/30';
     default:
-      return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-200';
+      return 'bg-zinc-400/20 text-zinc-200 ring-1 ring-inset ring-zinc-300/30';
   }
 }
 
@@ -84,63 +81,77 @@ function adminAction(action: 'accept' | 'printing' | 'complete' | 'revert', id: 
 
 <template>
   <Head title="Print Requests" />
-  <AppLayout :breadcrumbs="breadcrumbs">
-    <div class="p-4 space-y-4">
-      <div class="flex items-center justify-between gap-3">
+
+  <div class="relative min-h-screen overflow-hidden text-white">
+    <!-- Synthwave background -->
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
+      <div class="absolute inset-0 bg-gradient-to-br from-[#0b002b] via-[#12002f] to-[#340058]" />
+      <div class="absolute inset-x-0 bottom-0 h-1/2 [background:radial-gradient(80%_50%_at_50%_120%,rgba(255,0,204,0.6),transparent_70%)]" />
+      <div class="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.09)_1px,transparent_1px)]; [background-size:40px_40px]; [background-position:center]" />
+    </div>
+
+    <!-- Top navigation -->
+    <TopNav />
+
+    <!-- Content -->
+    <main class="relative z-10 mx-auto max-w-6xl px-6 pb-24 pt-6">
+      <div class="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h1 class="text-xl font-semibold">Print Requests</h1>
         <Link :href="route('print-requests.create')"
-              class="inline-flex items-center rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">
+              class="inline-flex items-center rounded-md bg-fuchsia-600/90 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-fuchsia-500/90">
           New Request
         </Link>
       </div>
 
-      <div v-if="props.isAdmin" class="flex items-center gap-2">
-        <label class="text-sm">Filter by status</label>
-        <select class="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900" :value="props.filters.status || ''" @change="(e:any) => filterByStatus(e.target.value || null)">
+      <div v-if="props.isAdmin" class="mb-4 flex flex-wrap items-center gap-2">
+        <label class="text-sm text-white/80">Filter by status</label>
+        <select class="rounded-md border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white outline-none transition focus:border-white/40" :value="props.filters.status || ''" @change="(e:any) => filterByStatus(e.target.value || null)">
           <option value="">All</option>
           <option v-for="s in props.statuses" :key="s" :value="s">{{ s }}</option>
         </select>
       </div>
 
-      <div class="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-        <table class="min-w-full text-sm">
-          <thead class="bg-zinc-50 dark:bg-zinc-900/50">
-            <tr>
-              <th class="px-3 py-2 text-left">ID</th>
-              <th class="px-3 py-2 text-left">Status</th>
-              <th class="px-3 py-2 text-left">Files</th>
-              <th class="px-3 py-2 text-left">Created</th>
-              <th class="px-3 py-2 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in props.items.data" :key="item.id" class="border-t border-zinc-100 dark:border-zinc-800">
-              <td class="px-3 py-2">#{{ item.id }}</td>
-              <td class="px-3 py-2">
-                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" :class="statusClass(item.status)">{{ item.status }}</span>
-              </td>
-              <td class="px-3 py-2">{{ item.files?.length || 0 }}</td>
-              <td class="px-3 py-2">{{ item.created_at }}</td>
-              <td class="px-3 py-2 space-x-2">
-                <Link :href="route('print-requests.show', { print_request: item.id })" class="text-zinc-900 underline dark:text-zinc-100">View</Link>
-                <template v-if="props.isAdmin">
-                  <button class="text-blue-700 underline disabled:opacity-50" @click="adminAction('accept', item.id)" :disabled="item.status !== 'pending'">Accept</button>
-                  <button class="text-indigo-700 underline disabled:opacity-50" @click="adminAction('printing', item.id)" :disabled="item.status !== 'accepted'">Set Printing</button>
-                  <button class="text-emerald-700 underline disabled:opacity-50" @click="adminAction('complete', item.id)" :disabled="item.status !== 'printing'">Complete</button>
-                  <button class="text-amber-700 underline disabled:opacity-50" @click="adminAction('revert', item.id)" :disabled="!(item.status === 'accepted' || item.status === 'printing')">Revert to Pending</button>
-                </template>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <section class="rounded-lg border border-white/10 bg-white/5 p-0 backdrop-blur">
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="border-b border-white/10 text-left text-white/80">
+                <th class="px-3 py-2">ID</th>
+                <th class="px-3 py-2">Status</th>
+                <th class="px-3 py-2">Files</th>
+                <th class="px-3 py-2">Created</th>
+                <th class="px-3 py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in props.items.data" :key="item.id" class="border-t border-white/10">
+                <td class="px-3 py-2">#{{ item.id }}</td>
+                <td class="px-3 py-2">
+                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" :class="statusClass(item.status)">{{ item.status }}</span>
+                </td>
+                <td class="px-3 py-2">{{ item.files?.length || 0 }}</td>
+                <td class="px-3 py-2">{{ item.created_at }}</td>
+                <td class="px-3 py-2 space-x-2">
+                  <Link :href="route('print-requests.show', { print_request: item.id })" class="text-white/90 underline hover:text-white">View</Link>
+                  <template v-if="props.isAdmin">
+                    <button class="text-sky-300 underline disabled:opacity-50" @click="adminAction('accept', item.id)" :disabled="item.status !== 'pending'">Accept</button>
+                    <button class="text-indigo-300 underline disabled:opacity-50" @click="adminAction('printing', item.id)" :disabled="item.status !== 'accepted'">Set Printing</button>
+                    <button class="text-emerald-300 underline disabled:opacity-50" @click="adminAction('complete', item.id)" :disabled="item.status !== 'printing'">Complete</button>
+                    <button class="text-amber-300 underline disabled:opacity-50" @click="adminAction('revert', item.id)" :disabled="!(item.status === 'accepted' || item.status === 'printing')">Revert</button>
+                  </template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-      <nav v-if="props.items.links?.length" class="flex items-center gap-1">
-        <Link v-for="l in props.items.links" :key="l.label + l.url" :href="l.url || '#'" class="px-2 py-1 rounded-md text-sm"
-              :class="l.active ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' : 'text-zinc-700 dark:text-zinc-300'">
+      <nav v-if="props.items.links?.length" class="mt-4 flex flex-wrap items-center gap-1">
+        <Link v-for="l in props.items.links" :key="l.label + l.url" :href="l.url || '#'" class="rounded-md px-2 py-1 text-sm"
+              :class="l.active ? 'bg-white/10 text-white' : 'text-white/80 hover:text-white'">
           <span v-html="l.label"></span>
         </Link>
       </nav>
-    </div>
-  </AppLayout>
+    </main>
+  </div>
 </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
+import TopNav from '@/components/TopNav.vue';
 import { LoaderCircle } from 'lucide-vue-next';
 import { onMounted } from 'vue';
 
@@ -25,7 +26,6 @@ onMounted(() => {
   form.form_started_at = String(Date.now());
 });
 
-const logoUrl = new URL('../../images/website-logo.png', import.meta.url).href;
 </script>
 
 <template>
@@ -40,15 +40,7 @@ const logoUrl = new URL('../../images/website-logo.png', import.meta.url).href;
     </div>
 
     <!-- Top navigation -->
-    <header class="relative z-10 flex items-center justify-between px-6 py-4">
-      <div class="flex items-center gap-3">
-        <img :src="logoUrl" alt="Taylor's Print Services logo" class="h-8 w-8 rounded-md object-contain ring-1 ring-white/10 bg-black/40 md:h-10 md:w-10" height="40" width="40" loading="eager" decoding="async" />
-        <span class="text-sm font-semibold tracking-wider text-white/80">Taylor's Print Services</span>
-      </div>
-      <nav class="flex items-center gap-3 text-sm">
-        <Link :href="route('home')" class="text-white/80 hover:text-white">Home</Link>
-      </nav>
-    </header>
+    <TopNav />
 
     <!-- Content -->
     <main class="relative z-10 mx-auto max-w-lg px-6 pb-24 pt-10">
