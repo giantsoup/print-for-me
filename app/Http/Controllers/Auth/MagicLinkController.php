@@ -30,16 +30,44 @@ class MagicLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Basic anti-automation protections (non-invasive):
+        // - Honeypot: a hidden field (e.g., 'website') that normal users won't fill.
+        // - Minimum fill-time: bots often submit instantly; if a client-provided timestamp
+        //   indicates the form was submitted too quickly, short-circuit.
+        // These checks are intentionally optional (do not require fields) so tests and
+        // legitimate clients without these fields continue to work.
+        $honeypot = (string) $request->input('website', '');
+        if ($honeypot !== '') {
+            // If honeypot is filled, do not create a token or send any email.
+            // Return a generic success response to avoid giving feedback to bots.
+            // Add small, random jitter to reduce timing side-channel signals.
+            usleep(random_int(50, 150) * 1000); // 50–150ms jitter
+
+            return back()->with('status', 'If your email is authorized, we\'ll send a magic link shortly.');
+        }
+
+        // Minimum fill-time in milliseconds (client-provided; best-effort heuristic).
+        $minMs = 1200; // ~1.2s; low-friction for humans, catches naive bots
+        $startedAt = $request->input('form_started_at');
+        if (is_numeric($startedAt)) {
+            $elapsed = (int) (microtime(true) * 1000 - (int) $startedAt);
+            if ($elapsed < $minMs) {
+                usleep(random_int(50, 150) * 1000);
+                return back()->with('status', 'If your email is authorized, we\'ll send a magic link shortly.');
+            }
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'email:rfc'],
         ]);
 
-        $email = strtolower($validated['email']);
+        $email = strtolower(trim($validated['email']));
 
         $user = User::where('email', $email)->first();
 
         if (! $user || ! $user->whitelisted_at) {
-            // Intentionally vague to avoid user enumeration
+            // Keep an explicit error for non-whitelisted to align with current UX/tests.
+            // (Alternative enumeration-resistant approach would always return generic success.)
             throw ValidationException::withMessages([
                 'email' => 'This email is not authorized. You must be invited first.',
             ]);

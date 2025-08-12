@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { onMounted } from 'vue';
 
+// Add light-weight anti-bot fields to support server-side checks.
+// These fields are optional and are ignored by tests/clients that don't send them.
 const form = useForm({
   email: '',
+  website: '', // honeypot: should remain empty
+  form_started_at: '', // ms timestamp set on mount for min fill-time heuristic
 });
 
 function submit() {
@@ -13,6 +18,10 @@ function submit() {
     },
   });
 }
+
+onMounted(() => {
+  form.form_started_at = String(Date.now());
+});
 </script>
 
 <template>
@@ -39,10 +48,21 @@ function submit() {
             type="email"
             required
             autocomplete="email"
+            autocapitalize="none"
+            spellcheck="false"
+            inputmode="email"
             class="block w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-zinc-500 focus:ring-0 dark:border-zinc-700 dark:bg-zinc-900"
             placeholder="you@example.com"
           />
           <p v-if="form.errors.email" class="mt-1 text-sm text-red-600">{{ form.errors.email }}</p>
+        </div>
+
+        <!-- Anti-bot honeypot and timing fields: hidden from users, visible to naive bots -->
+        <div class="hidden" aria-hidden="true">
+          <label for="website">Website</label>
+          <input id="website" v-model="form.website" type="text" name="website" tabindex="-1" autocomplete="off" />
+          <!-- Timestamp in ms; server uses it for a minimum fill-time heuristic -->
+          <input type="hidden" name="form_started_at" :value="form.form_started_at" />
         </div>
 
         <button

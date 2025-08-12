@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
-type PageProps = {
+type HomePageProps = InertiaPageProps & {
   auth?: { user?: any };
 };
 
-const page = usePage<PageProps>();
+const page = usePage<HomePageProps>();
 const isAuthed = computed(() => Boolean(page.props.auth && (page.props.auth as any).user));
 const logoUrl = new URL('../../images/website-logo.png', import.meta.url).href;
 </script>

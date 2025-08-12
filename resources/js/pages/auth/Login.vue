@@ -1,93 +1,109 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AuthBase from '@/layouts/AuthLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
+import { onMounted } from 'vue';
 
-defineProps<{
-    status?: string;
-    canResetPassword: boolean;
-}>();
-
+// We include two anti-bot fields alongside the email so the server can
+// cheaply filter obvious automation without affecting legitimate users.
+// - website: honeypot input that humans won't fill; bots often will.
+// - form_started_at: client timestamp to enforce a minimum fill-time.
 const form = useForm({
-    email: '',
-    password: '',
-    remember: false,
+  email: '',
+  website: '', // honeypot: must remain empty; filled => treat as bot (see controller)
+  form_started_at: '', // timestamp (ms) set on mount to detect instant submissions
 });
 
-const submit = () => {
-    form.post(route('login'), {
-        onFinish: () => form.reset('password'),
-    });
-};
+function submit() {
+  form.post(route('magic.send'), {
+    preserveScroll: true,
+    onSuccess: () => form.reset('email'),
+  });
+}
+
+onMounted(() => {
+  // Capture when the form became interactable (ms). Bots often post immediately.
+  form.form_started_at = String(Date.now());
+});
+
+const logoUrl = new URL('../../images/website-logo.png', import.meta.url).href;
 </script>
 
 <template>
-    <AuthBase title="Log in to your account" description="Enter your email and password below to log in">
-        <Head title="Log in" />
+  <Head title="Log in" />
 
-        <div v-if="status" class="mb-4 text-center text-sm font-medium text-green-600">
-            {{ status }}
-        </div>
+  <div class="relative min-h-screen overflow-hidden text-white">
+    <!-- Synthwave background -->
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
+      <div class="absolute inset-0 bg-gradient-to-br from-[#0b002b] via-[#12002f] to-[#340058]" />
+      <div class="absolute inset-x-0 bottom-0 h-1/2 [background:radial-gradient(80%_50%_at_50%_120%,rgba(255,0,204,0.6),transparent_70%)]" />
+      <div class="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.09)_1px,transparent_1px)]; [background-size:40px_40px]; [background-position:center]" />
+    </div>
 
-        <form @submit.prevent="submit" class="flex flex-col gap-6">
-            <div class="grid gap-6">
-                <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        required
-                        autofocus
-                        :tabindex="1"
-                        autocomplete="email"
-                        v-model="form.email"
-                        placeholder="email@example.com"
-                    />
-                    <InputError :message="form.errors.email" />
-                </div>
+    <!-- Top navigation -->
+    <header class="relative z-10 flex items-center justify-between px-6 py-4">
+      <div class="flex items-center gap-3">
+        <img :src="logoUrl" alt="Taylor's Print Services logo" class="h-8 w-8 rounded-md object-contain ring-1 ring-white/10 bg-black/40 md:h-10 md:w-10" height="40" width="40" loading="eager" decoding="async" />
+        <span class="text-sm font-semibold tracking-wider text-white/80">Taylor's Print Services</span>
+      </div>
+      <nav class="flex items-center gap-3 text-sm">
+        <Link :href="route('home')" class="text-white/80 hover:text-white">Home</Link>
+      </nav>
+    </header>
 
-                <div class="grid gap-2">
-                    <div class="flex items-center justify-between">
-                        <Label for="password">Password</Label>
-                        <TextLink v-if="canResetPassword" :href="route('password.request')" class="text-sm" :tabindex="5">
-                            Forgot password?
-                        </TextLink>
-                    </div>
-                    <Input
-                        id="password"
-                        type="password"
-                        required
-                        :tabindex="2"
-                        autocomplete="current-password"
-                        v-model="form.password"
-                        placeholder="Password"
-                    />
-                    <InputError :message="form.errors.password" />
-                </div>
+    <!-- Content -->
+    <main class="relative z-10 mx-auto max-w-lg px-6 pb-24 pt-10">
+      <section class="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur">
+        <h1 class="text-xl font-semibold">Sign in with a magic link</h1>
+        <p class="mt-2 text-sm text-white/80">
+          Invite-first access. Enter your email and we’ll send a one‑time sign‑in link. It expires in 10 minutes.
+        </p>
+        <p class="mt-1 text-xs text-white/60">
+          Rate-limited for security.
+        </p>
 
-                <div class="flex items-center justify-between">
-                    <Label for="remember" class="flex items-center space-x-3">
-                        <Checkbox id="remember" v-model="form.remember" :tabindex="3" />
-                        <span>Remember me</span>
-                    </Label>
-                </div>
+        <form @submit.prevent="submit" class="mt-6 space-y-4">
+          <div>
+            <label for="email" class="mb-1 block text-sm font-medium text-white/90">Email address</label>
+            <input
+              id="email"
+              v-model="form.email"
+              type="email"
+              required
+              autofocus
+              autocomplete="email"
+              autocapitalize="none"
+              spellcheck="false"
+              inputmode="email"
+              placeholder="you@example.com"
+              class="block w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 outline-none ring-0 transition focus:border-white/40"
+            />
+            <p v-if="form.errors.email" class="mt-1 text-sm text-pink-300">{{ form.errors.email }}</p>
+          </div>
 
-                <Button type="submit" class="mt-4 w-full" :tabindex="4" :disabled="form.processing">
-                    <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Log in
-                </Button>
-            </div>
+          <!-- Anti-bot honeypot and timing fields: hidden from users, visible to naive bots -->
+          <div class="hidden" aria-hidden="true">
+            <label for="website">Website</label>
+            <input id="website" v-model="form.website" type="text" name="website" tabindex="-1" autocomplete="off" />
+            <!-- Timestamp in ms; server uses it for a minimum fill-time heuristic -->
+            <input type="hidden" name="form_started_at" :value="form.form_started_at" />
+          </div>
 
-            <div class="text-center text-sm text-muted-foreground">
-                Don't have an account?
-                <TextLink :href="route('register')" :tabindex="5">Sign up</TextLink>
-            </div>
+          <button
+            type="submit"
+            :disabled="form.processing"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-fuchsia-600/90 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-fuchsia-500/90 disabled:opacity-60"
+          >
+            <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
+            <span>{{ form.processing ? 'Sending…' : 'Send magic link' }}</span>
+          </button>
+
+          <p v-if="$page.props.flash?.status" class="text-sm text-emerald-300">{{ $page.props.flash?.status }}</p>
         </form>
-    </AuthBase>
+      </section>
+
+      <p class="mt-4 text-center text-xs text-white/70">
+        Having trouble? Contact the admin for an invite.
+      </p>
+    </main>
+  </div>
 </template>
