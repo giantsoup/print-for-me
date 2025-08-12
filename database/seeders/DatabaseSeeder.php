@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
                     ['email' => 'admin@example.com'],
                     [
                         'name' => 'Taylor Oyer',
-                        'password' => Str::random(40),
+                        'password' => 'password',
                         'is_admin' => true,
                         'whitelisted_at' => now(),
                         'email_verified_at' => now(),
