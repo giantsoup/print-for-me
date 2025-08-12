@@ -1,83 +1,88 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AuthBase from '@/layouts/AuthLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
 
 const form = useForm({
-    name: '',
-    email: '',
-    password: '',
-    password_confirmation: '',
+  name: '',
+  email: '',
+  password: '',
+  password_confirmation: '',
 });
 
-const submit = () => {
-    form.post(route('register'), {
-        onFinish: () => form.reset('password', 'password_confirmation'),
-    });
-};
+function submit() {
+  form.post(route('register'), {
+    onFinish: () => form.reset('password', 'password_confirmation'),
+  });
+}
+
+const logoUrl = new URL('../../images/website-logo.png', import.meta.url).href;
 </script>
 
 <template>
-    <AuthBase title="Create an account" description="Enter your details below to create your account">
-        <Head title="Register" />
+  <Head title="Register" />
 
-        <form @submit.prevent="submit" class="flex flex-col gap-6">
-            <div class="grid gap-6">
-                <div class="grid gap-2">
-                    <Label for="name">Name</Label>
-                    <Input id="name" type="text" required autofocus :tabindex="1" autocomplete="name" v-model="form.name" placeholder="Full name" />
-                    <InputError :message="form.errors.name" />
-                </div>
+  <div class="relative min-h-screen overflow-hidden text-white">
+    <!-- Synthwave background -->
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
+      <div class="absolute inset-0 bg-gradient-to-br from-[#0b002b] via-[#12002f] to-[#340058]" />
+      <div class="absolute inset-x-0 bottom-0 h-1/2 [background:radial-gradient(80%_50%_at_50%_120%,rgba(255,0,204,0.6),transparent_70%)]" />
+      <div class="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.09)_1px,transparent_1px)]; [background-size:40px_40px]; [background-position:center]" />
+    </div>
 
-                <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
-                    <Input id="email" type="email" required :tabindex="2" autocomplete="email" v-model="form.email" placeholder="email@example.com" />
-                    <InputError :message="form.errors.email" />
-                </div>
+    <!-- Top navigation -->
+    <header class="relative z-10 flex items-center justify-between px-6 py-4">
+      <div class="flex items-center gap-3">
+        <img :src="logoUrl" alt="Taylor's Print Services logo" class="h-8 w-8 rounded-md object-contain ring-1 ring-white/10 bg-black/40 md:h-10 md:w-10" height="40" width="40" loading="eager" decoding="async" />
+        <span class="text-sm font-semibold tracking-wider text-white/80">Taylor's Print Services</span>
+      </div>
+      <nav class="flex items-center gap-3 text-sm">
+        <Link :href="route('home')" class="text-white/80 hover:text-white">Home</Link>
+        <Link :href="route('login')" class="text-white/80 hover:text-white">Log in</Link>
+      </nav>
+    </header>
 
-                <div class="grid gap-2">
-                    <Label for="password">Password</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        required
-                        :tabindex="3"
-                        autocomplete="new-password"
-                        v-model="form.password"
-                        placeholder="Password"
-                    />
-                    <InputError :message="form.errors.password" />
-                </div>
+    <!-- Content -->
+    <main class="relative z-10 mx-auto max-w-lg px-6 pb-24 pt-10">
+      <section class="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur">
+        <h1 class="text-xl font-semibold">Create an account</h1>
+        <p class="mt-2 text-sm text-white/80">Enter your details below to create your account.</p>
 
-                <div class="grid gap-2">
-                    <Label for="password_confirmation">Confirm password</Label>
-                    <Input
-                        id="password_confirmation"
-                        type="password"
-                        required
-                        :tabindex="4"
-                        autocomplete="new-password"
-                        v-model="form.password_confirmation"
-                        placeholder="Confirm password"
-                    />
-                    <InputError :message="form.errors.password_confirmation" />
-                </div>
+        <form @submit.prevent="submit" class="mt-6 space-y-4">
+          <div>
+            <label for="name" class="mb-1 block text-sm font-medium text-white/90">Name</label>
+            <input id="name" v-model="form.name" type="text" required autocomplete="name" autofocus placeholder="Full name" class="block w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 outline-none ring-0 transition focus:border-white/40" />
+            <p v-if="form.errors.name" class="mt-1 text-sm text-pink-300">{{ form.errors.name }}</p>
+          </div>
 
-                <Button type="submit" class="mt-2 w-full" tabindex="5" :disabled="form.processing">
-                    <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Create account
-                </Button>
-            </div>
+          <div>
+            <label for="email" class="mb-1 block text-sm font-medium text-white/90">Email address</label>
+            <input id="email" v-model="form.email" type="email" required autocomplete="email" placeholder="email@example.com" class="block w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 outline-none ring-0 transition focus:border-white/40" />
+            <p v-if="form.errors.email" class="mt-1 text-sm text-pink-300">{{ form.errors.email }}</p>
+          </div>
 
-            <div class="text-center text-sm text-muted-foreground">
-                Already have an account?
-                <TextLink :href="route('login')" class="underline underline-offset-4" :tabindex="6">Log in</TextLink>
-            </div>
+          <div>
+            <label for="password" class="mb-1 block text-sm font-medium text-white/90">Password</label>
+            <input id="password" v-model="form.password" type="password" required autocomplete="new-password" placeholder="Password" class="block w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 outline-none ring-0 transition focus:border-white/40" />
+            <p v-if="form.errors.password" class="mt-1 text-sm text-pink-300">{{ form.errors.password }}</p>
+          </div>
+
+          <div>
+            <label for="password_confirmation" class="mb-1 block text-sm font-medium text-white/90">Confirm password</label>
+            <input id="password_confirmation" v-model="form.password_confirmation" type="password" required autocomplete="new-password" placeholder="Confirm password" class="block w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 outline-none ring-0 transition focus:border-white/40" />
+            <p v-if="form.errors.password_confirmation" class="mt-1 text-sm text-pink-300">{{ form.errors.password_confirmation }}</p>
+          </div>
+
+          <button type="submit" :disabled="form.processing" class="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md bg-fuchsia-600/90 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-fuchsia-500/90 disabled:opacity-60">
+            <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
+            <span>Create account</span>
+          </button>
+
+          <p class="text-center text-sm text-white/70">
+            Already have an account?
+            <Link :href="route('login')" class="text-white/80 underline underline-offset-4 hover:text-white">Log in</Link>
+          </p>
         </form>
-    </AuthBase>
+      </section>
+    </main>
+  </div>
 </template>
