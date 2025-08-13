@@ -40,7 +40,7 @@ function close() {
           <li>
             <Link
               :href="route('print-requests.index')"
-              :aria-current="route().current(['print-requests.index','print-requests.show']) ? 'page' : undefined"
+              :aria-current="(route().current('print-requests.index') || route().current('print-requests.show')) ? 'page' : undefined"
               class="rounded-md px-2 py-1 text-white/80 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
             >
               My requests
