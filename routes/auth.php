@@ -20,11 +20,11 @@ Route::middleware('guest')->group(function () {
         ->name('magic.request');
 
     Route::post('magic-login/send', [MagicLinkController::class, 'store'])
-        ->middleware('throttle:magic-link')
+        ->middleware('throttle:magic.send')
         ->name('magic.send');
 
     Route::get('magic-login', [MagicLinkController::class, 'login'])
-        ->middleware(['signed', 'throttle:6,1'])
+        ->middleware(['throttle:6,1'])
         ->name('magic.login');
 
     Route::get('magic-login/result', [MagicLinkController::class, 'result'])

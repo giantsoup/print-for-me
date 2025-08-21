@@ -184,6 +184,10 @@ What gets seeded (summary)
 - Absolute session window
   - Middleware checks last_login_at against the absolute lifetime in minutes (session.lifetime)
   - When expired, the user is logged out and redirected to the magic link request page
+- Rate limiting
+  - Magic link requests are limited to 5 per hour per email and IP address. If you exceed the limit, the server responds with HTTP 429 and the UI shows a friendly, non‑enumerating message.
+- Session version invalidation ("Log out of all devices")
+  - On successful login we record a per‑user session version in the session. Using the profile page action to log out of all devices increments the session version and forces all existing sessions (including the current one) to be logged out on the next request.
 
 Routes used in this flow include the “request magic link” page and the signed login handler (e.g., magic.request and magic.login).
 

@@ -106,6 +106,28 @@ const submit = () => {
                 </Transition>
               </div>
             </form>
+
+            <div class="rounded-md border border-white/10 bg-white/5 p-4 text-sm">
+              <p class="mb-2 text-white/80">Last login</p>
+              <dl class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div>
+                  <dt class="text-white/60">IP address</dt>
+                  <dd class="font-mono text-white/80">{{ user.last_login_ip ?? '—' }}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                  <dt class="text-white/60">Device</dt>
+                  <dd class="truncate text-white/80">{{ user.last_login_user_agent ?? '—' }}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="rounded-md border border-rose-500/30 bg-rose-500/10 p-4 text-sm">
+              <p class="mb-2 font-medium text-rose-200">Session security</p>
+              <p class="mb-3 text-white/80">If you suspect your session is compromised, you can log out of all devices. This will invalidate your active sessions everywhere.</p>
+              <Link :href="route('sessions.invalidate')" method="post" as="button">
+                <Button variant="destructive">Log out of all devices</Button>
+              </Link>
+            </div>
           </div>
 
         </SettingsLayout>

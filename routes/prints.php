@@ -4,7 +4,7 @@ use App\Http\Controllers\PrintRequestController;
 use App\Http\Controllers\PrintRequestFileController;
 use Illuminate\Support\Facades\Route;
 
-Route::group(['middleware' => ['auth', 'absolute']], function () {
+Route::group(['middleware' => ['auth', 'absolute', 'session_version']], function () {
     // Print Request CRUD
     Route::get('print-requests', [PrintRequestController::class, 'index'])->name('print-requests.index');
     Route::get('print-requests/create', [PrintRequestController::class, 'create'])->name('print-requests.create');

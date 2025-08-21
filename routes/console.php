@@ -46,7 +46,6 @@ Artisan::command('auth:invite {email}', function (string $email) {
     $this->line($loginUrl);
 })->purpose('Invite a user by email, whitelist them, and send a magic login link.');
 
-
 Artisan::command('prints:purge-completed-files', function () {
     $threshold = now()->subDays(90);
 
@@ -148,12 +147,14 @@ Artisan::command('prints:warn-soft-deleted', function () {
                 $user = $pr->user;
                 if (! $user) {
                     $skipped++;
+
                     continue;
                 }
 
-                $cacheKey = 'prints:warn-soft:' . $pr->id . ':' . $day->format('Ymd');
+                $cacheKey = 'prints:warn-soft:'.$pr->id.':'.$day->format('Ymd');
                 if (! \Illuminate\Support\Facades\Cache::add($cacheKey, 1, now()->addDay())) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -176,3 +177,11 @@ Artisan::command('auth:cleanup-magic-tokens', function () {
 
     $this->info("Magic login tokens deleted: {$deleted}");
 })->purpose('Cleanup expired or used magic login tokens.');
+
+Artisan::command('auth:purge-stale-magic-tokens', function () {
+    // Safety net: remove tokens older than 24 hours past their expiry time.
+    $threshold = now()->subDay();
+    $deleted = \App\Models\MagicLoginToken::where('expires_at', '<=', $threshold)->delete();
+
+    $this->info("Stale magic login tokens deleted: {$deleted}");
+})->purpose('Purge magic login tokens older than 24 hours past expiry.');

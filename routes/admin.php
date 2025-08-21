@@ -4,7 +4,7 @@ use App\Http\Controllers\Admin\InviteController;
 use App\Http\Controllers\Admin\PrintRequestStatusController;
 use Illuminate\Support\Facades\Route;
 
-Route::group(['middleware' => ['auth', 'absolute', 'admin']], function () {
+Route::group(['middleware' => ['auth', 'absolute', 'session_version', 'admin']], function () {
     // Invite a user by email (creates/updates and sends magic link)
     Route::get('admin/invite', [InviteController::class, 'create'])->name('admin.invite.create');
     Route::post('admin/invite', [InviteController::class, 'store'])->name('admin.invite.store');

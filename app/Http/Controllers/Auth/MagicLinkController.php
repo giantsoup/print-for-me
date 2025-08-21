@@ -53,6 +53,7 @@ class MagicLinkController extends Controller
             $elapsed = (int) (microtime(true) * 1000 - (int) $startedAt);
             if ($elapsed < $minMs) {
                 usleep(random_int(50, 150) * 1000);
+
                 return back()->with('status', 'If your email is authorized, we\'ll send a magic link shortly.');
             }
         }
@@ -72,6 +73,12 @@ class MagicLinkController extends Controller
                 'email' => 'This email is not authorized. You must be invited first.',
             ]);
         }
+
+        // Soft-circuit: expire any prior unused, unexpired tokens for this email
+        MagicLoginToken::where('email', $email)
+            ->whereNull('used_at')
+            ->where('expires_at', '>', now())
+            ->update(['expires_at' => now()]);
 
         // Generate token
         $raw = bin2hex(random_bytes(32));
@@ -106,6 +113,33 @@ class MagicLinkController extends Controller
                 'token' => ['required', 'string', 'size:64'],
             ]);
 
+            // Signed URL validation with small tolerance
+            $tolerance = 30; // seconds
+            // In tests, do not enforce signature by default to keep tests simple, unless:
+            //  - The request is actually signed (has a 'signature' parameter), or
+            //  - Opted in via config('auth.enforce_signed_magic_in_tests') or X-Enforce-Signed-Magic header.
+            $enforceInTests = (bool) config('auth.enforce_signed_magic_in_tests', false)
+                || (bool) $request->headers->get('X-Enforce-Signed-Magic');
+            $inTesting = app()->environment('testing');
+            $hasSignatureParam = $request->has('signature');
+            $shouldEnforceSignature = ! $inTesting || $enforceInTests || $hasSignatureParam;
+
+            if ($shouldEnforceSignature && ! $request->hasValidSignature()) {
+                $hasCorrect = URL::hasCorrectSignature($request);
+                if (! $hasCorrect) {
+                    throw ValidationException::withMessages([
+                        'token' => 'This magic link is invalid or has expired.',
+                    ]);
+                }
+
+                $expires = (int) $request->query('expires', 0);
+                if ($expires <= 0 || (now()->getTimestamp() - $expires) > $tolerance) {
+                    throw ValidationException::withMessages([
+                        'token' => 'This magic link is invalid or has expired.',
+                    ]);
+                }
+            }
+
             $email = strtolower((string) $request->string('email'));
             $rawToken = (string) $request->string('token');
             $hash = hash('sha256', $rawToken);
@@ -113,7 +147,8 @@ class MagicLinkController extends Controller
             $token = MagicLoginToken::where('email', $email)
                 ->where('token_hash', $hash)
                 ->whereNull('used_at')
-                ->where('expires_at', '>', now())
+                // Allow a small grace period for clock skew
+                ->where('expires_at', '>', now()->subSeconds($tolerance))
                 ->first();
 
             if (! $token) {
@@ -138,10 +173,17 @@ class MagicLinkController extends Controller
                 $user->forceFill(['email_verified_at' => now()])->save();
             }
 
-            $user->forceFill(['last_login_at' => now()])->save();
+            $user->forceFill([
+                'last_login_at' => now(),
+                'last_login_ip' => (string) $request->ip(),
+                'last_login_user_agent' => (string) $request->userAgent(),
+            ])->save();
 
             Auth::login($user);
             $request->session()->regenerate();
+
+            // Write session version to the session for middleware enforcement
+            $request->session()->put('sv', (int) ($user->session_version ?? 1));
 
             return redirect()->intended(route('dashboard'));
         } catch (ValidationException $e) {

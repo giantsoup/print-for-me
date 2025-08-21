@@ -33,6 +33,8 @@ export interface User {
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;
+    last_login_ip?: string | null;
+    last_login_user_agent?: string | null;
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;
