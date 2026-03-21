@@ -1,21 +1,20 @@
 <?php
 
 use App\Enums\PrintRequestStatus;
+use App\Http\Middleware\EnforceAbsoluteSession;
 use App\Models\PrintRequest;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\actingAs;
-use function Pest\Laravel\delete;
 use function Pest\Laravel\assertDatabaseMissing;
+use function Pest\Laravel\delete;
 
 beforeEach(function () {
     // Disable absolute session enforcement and CSRF for simplicity in tests
-    $this->withoutMiddleware([\App\Http\Middleware\EnforceAbsoluteSession::class]);
-    $this->withoutMiddleware([
-        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
-        \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
-    ]);
+    $this->withoutMiddleware([EnforceAbsoluteSession::class]);
+    $this->withoutMiddleware([PreventRequestForgery::class]);
 });
 
 it('allows owner to permanently delete their soft-deleted pending request and removes associated files', function () {

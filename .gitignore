@@ -22,3 +22,35 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+Icon?
+
+# AI / local agent tooling
+/.mcp.json
+/boost.json
+/.claude
+/.claude/
+/CLAUDE.md
+/.continue
+/.continue/
+/.cursor
+/.cursor/
+/.cursorrules
+/.gemini
+/.gemini/
+/GEMINI.md
+/.roo
+/.roo/
+/.windsurf
+/.windsurf/
+/.aider*
+/.codex
+/.codex/

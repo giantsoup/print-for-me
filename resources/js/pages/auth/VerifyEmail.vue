@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
+import logoUrl from '../../../images/website-logo.png';
 
 defineProps<{
   status?: string;
@@ -12,7 +13,6 @@ function submit() {
   form.post(route('verification.send'));
 }
 
-const logoUrl = new URL('../../images/website-logo.png', import.meta.url).href;
 </script>
 
 <template>

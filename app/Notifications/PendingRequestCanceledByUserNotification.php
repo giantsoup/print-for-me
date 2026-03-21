@@ -15,8 +15,7 @@ class PendingRequestCanceledByUserNotification extends Notification implements S
 
     public function __construct(
         protected PrintRequest $printRequest
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {

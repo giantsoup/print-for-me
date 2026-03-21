@@ -1,6 +1,6 @@
 # Taylor's Print Services
 
-Passwordless magic‑link authentication, private 3D print file uploads, and a strict request lifecycle built with Laravel 12 + Inertia/Vue 3. Notifications are queued, access is policy‑based, and retention is handled by artisan commands.
+Passwordless magic‑link authentication, private 3D print file uploads, and a strict request lifecycle built with Laravel 13 + Inertia/Vue 3. Notifications are queued, access is policy‑based, and retention is handled by artisan commands.
 
 This README is developer‑focused. It explains what the project does, how it is structured, and how to get it running locally with accurate, copy‑pasteable commands.
 
@@ -34,7 +34,7 @@ This README is developer‑focused. It explains what the project does, how it is
 - Retention commands to purge old data and warn users before purges.
 
 ## Tech stack and architecture
-- Backend: Laravel 12 (PHP 8.4)
+- Backend: Laravel 13 (PHP 8.4)
 - Frontend: Inertia.js + Vue 3, built with Vite
 - DB: SQLite for local/test by default
 - Testing: Pest
@@ -58,6 +58,10 @@ Steps
    ```bash
    composer install
    npm install
+   ```
+   Or use the combined bootstrap script:
+   ```bash
+   composer run setup
    ```
 2. Create and configure .env for local
    ```dotenv
@@ -184,6 +188,10 @@ What gets seeded (summary)
 - Absolute session window
   - Middleware checks last_login_at against the absolute lifetime in minutes (session.lifetime)
   - When expired, the user is logged out and redirected to the magic link request page
+- Rate limiting
+  - Magic link requests are limited to 5 per hour per email and IP address. If you exceed the limit, the server responds with HTTP 429 and the UI shows a friendly, non‑enumerating message.
+- Session version invalidation ("Log out of all devices")
+  - On successful login we record a per‑user session version in the session. Using the profile page action to log out of all devices increments the session version and forces all existing sessions (including the current one) to be logged out on the next request.
 
 Routes used in this flow include the “request magic link” page and the signed login handler (e.g., magic.request and magic.login).
 

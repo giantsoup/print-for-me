@@ -16,11 +16,12 @@ class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
+     *
      * @throws Throwable
      */
     public function run(): void
     {
-        $this->logInfo("Starting DatabaseSeeder: creating users and demo data...");
+        $this->logInfo('Starting DatabaseSeeder: creating users and demo data...');
 
         try {
             DB::transaction(function () {
@@ -204,12 +205,13 @@ class DatabaseSeeder extends Seeder
             // Skip if a file with same sha256 already attached to this request
             if ($pr->files()->where('sha256', $hash)->exists()) {
                 $this->logInfo("File already attached (sha256) to request #{$pr->id}: $original");
+
                 return;
             }
 
-            $dir = 'prints/' . now()->format('Y') . '/' . now()->format('m');
-            $filename = (string) Str::uuid() . '.' . pathinfo($original, PATHINFO_EXTENSION);
-            $path = $dir . '/' . $filename;
+            $dir = 'prints/'.now()->format('Y').'/'.now()->format('m');
+            $filename = (string) Str::uuid().'.'.pathinfo($original, PATHINFO_EXTENSION);
+            $path = $dir.'/'.$filename;
 
             $disk = Storage::disk('local');
             if (! $disk->exists($dir)) {

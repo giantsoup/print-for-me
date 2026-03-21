@@ -6,12 +6,9 @@ use App\Enums\PrintRequestStatus;
 use App\Http\Requests\StorePrintRequestRequest;
 use App\Http\Requests\UpdatePrintRequestRequest;
 use App\Models\PrintRequest;
-use App\Models\PrintRequestFile;
 use App\Notifications\NewPrintRequestNotification;
 use App\Notifications\PendingRequestCanceledByUserNotification;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -25,7 +22,7 @@ class PrintRequestController extends Controller
         $user = $request->user();
         $query = PrintRequest::query()->with('files')->latest();
 
-        if (!($user->is_admin ?? false)) {
+        if (! ($user->is_admin ?? false)) {
             $query->where('user_id', $user->id);
         } else {
             $status = (string) $request->query('status', '');
@@ -56,7 +53,7 @@ class PrintRequestController extends Controller
             'constraints' => [
                 'maxFiles' => 10,
                 'maxTotalBytes' => 50 * 1024 * 1024,
-                'allowedExtensions' => ['stl','3mf','obj','f3d','f3z','step','stp','iges','igs'],
+                'allowedExtensions' => ['stl', '3mf', 'obj', 'f3d', 'f3z', 'step', 'stp', 'iges', 'igs'],
             ],
         ]);
     }
@@ -83,7 +80,7 @@ class PrintRequestController extends Controller
             'constraints' => [
                 'maxFiles' => 10,
                 'maxTotalBytes' => 50 * 1024 * 1024,
-                'allowedExtensions' => ['stl','3mf','obj','f3d','f3z','step','stp','iges','igs'],
+                'allowedExtensions' => ['stl', '3mf', 'obj', 'f3d', 'f3z', 'step', 'stp', 'iges', 'igs'],
             ],
         ]);
     }
@@ -92,7 +89,7 @@ class PrintRequestController extends Controller
     {
         $user = $request->user();
 
-        $printRequest = new PrintRequest();
+        $printRequest = new PrintRequest;
         $printRequest->user_id = $user->id;
         $printRequest->status = PrintRequestStatus::PENDING;
         $printRequest->source_url = $request->input('source_url');
@@ -126,7 +123,7 @@ class PrintRequestController extends Controller
 
         // Remove selected files
         $removeIds = collect($request->input('remove_file_ids', []))->filter()->all();
-        if (!empty($removeIds)) {
+        if (! empty($removeIds)) {
             $files = $print_request->files()->whereIn('id', $removeIds)->get();
             foreach ($files as $file) {
                 if ($file->disk && $file->path) {
@@ -200,7 +197,7 @@ class PrintRequestController extends Controller
     private function attachFiles(PrintRequest $printRequest, array $files): void
     {
         foreach ($files as $file) {
-            if (!$file) {
+            if (! $file) {
                 continue;
             }
             // Compute SHA-256 before moving the file
@@ -212,8 +209,8 @@ class PrintRequestController extends Controller
             }
 
             $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
-            $dir = 'prints/' . now()->format('Y') . '/' . now()->format('m');
-            $filename = (string) Str::uuid() . '.' . $ext;
+            $dir = 'prints/'.now()->format('Y').'/'.now()->format('m');
+            $filename = (string) Str::uuid().'.'.$ext;
 
             // Store on private local disk
             $storedPath = $file->storeAs($dir, $filename, 'local');
@@ -232,10 +229,10 @@ class PrintRequestController extends Controller
     private function authorizeOwnerOrAdmin(PrintRequest $printRequest): void
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             abort(401);
         }
-        if ($user->id !== $printRequest->user_id && !($user->is_admin ?? false)) {
+        if ($user->id !== $printRequest->user_id && ! ($user->is_admin ?? false)) {
             abort(403);
         }
     }

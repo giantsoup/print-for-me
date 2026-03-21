@@ -1,19 +1,18 @@
 <?php
 
 use App\Enums\PrintRequestStatus;
+use App\Http\Middleware\EnforceAbsoluteSession;
 use App\Models\PrintRequest;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\patch;
 
 beforeEach(function () {
     // Disable absolute session enforcement and CSRF for simplicity in tests
-    $this->withoutMiddleware([\App\Http\Middleware\EnforceAbsoluteSession::class]);
-    $this->withoutMiddleware([
-        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
-        \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
-    ]);
+    $this->withoutMiddleware([EnforceAbsoluteSession::class]);
+    $this->withoutMiddleware([PreventRequestForgery::class]);
 });
 
 it('blocks non-admins from admin status routes', function () {

@@ -15,8 +15,7 @@ class PrintRequestAcceptedNotification extends Notification implements ShouldQue
 
     public function __construct(
         protected PrintRequest $printRequest
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -29,6 +28,6 @@ class PrintRequestAcceptedNotification extends Notification implements ShouldQue
             ->subject(MailSubject::make('Your print request was accepted'))
             ->greeting('Your request was accepted')
             ->line('Your print request has been accepted and will move to printing soon.')
-            ->line('Request ID: ' . $this->printRequest->id);
+            ->line('Request ID: '.$this->printRequest->id);
     }
 }

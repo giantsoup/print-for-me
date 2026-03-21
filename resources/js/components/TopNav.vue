@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
 import { Menu, X } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
+import logoUrl from '../../images/website-logo.png';
 
 const page = usePage();
 const isAuthed = computed(() => Boolean((page.props as any).auth && (page.props as any).auth.user));
-const logoUrl = new URL('../../images/website-logo.png', import.meta.url).href;
 const open = ref(false);
 
 function toggle() {

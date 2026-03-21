@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnforceAbsoluteSession;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -11,7 +12,7 @@ it('forces re-login when last_login_at exceeds session lifetime', function () {
     $user->forceFill(['last_login_at' => now()->subMinutes(120)])->save();
 
     // Invoke the middleware directly with a forced header in testing
-    $middleware = new \App\Http\Middleware\EnforceAbsoluteSession();
+    $middleware = new EnforceAbsoluteSession;
 
     $server = ['HTTP_X-Force-Absolute' => '1'];
     $request = Request::create('/abs-direct', 'GET', server: $server);
