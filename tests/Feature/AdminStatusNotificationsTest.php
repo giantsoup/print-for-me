@@ -1,11 +1,13 @@
 <?php
 
 use App\Enums\PrintRequestStatus;
+use App\Http\Middleware\EnforceAbsoluteSession;
 use App\Models\PrintRequest;
 use App\Models\User;
 use App\Notifications\PrintRequestAcceptedNotification;
 use App\Notifications\PrintRequestCompletedNotification;
 use App\Notifications\PrintRequestRevertedToPendingNotification;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Notification;
 
 use function Pest\Laravel\actingAs;
@@ -13,11 +15,8 @@ use function Pest\Laravel\patch;
 
 beforeEach(function () {
     // Disable absolute session enforcement and CSRF for simplicity in tests
-    $this->withoutMiddleware([\App\Http\Middleware\EnforceAbsoluteSession::class]);
-    $this->withoutMiddleware([
-        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
-        \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
-    ]);
+    $this->withoutMiddleware([EnforceAbsoluteSession::class]);
+    $this->withoutMiddleware([PreventRequestForgery::class]);
 });
 
 it('sends notification to requester when admin accepts the request', function () {

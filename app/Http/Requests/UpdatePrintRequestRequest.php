@@ -41,7 +41,7 @@ class UpdatePrintRequestRequest extends FormRequest
             }
 
             $removeIds = collect($this->input('remove_file_ids', []))->filter()->all();
-            if (!empty($removeIds) && $printRequest) {
+            if (! empty($removeIds) && $printRequest) {
                 $removing = $printRequest->files()->whereIn('id', $removeIds)->get();
                 $existingCount -= $removing->count();
                 $existingSize -= $removing->sum('size_bytes');

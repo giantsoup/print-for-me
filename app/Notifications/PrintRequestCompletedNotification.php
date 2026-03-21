@@ -15,8 +15,7 @@ class PrintRequestCompletedNotification extends Notification implements ShouldQu
 
     public function __construct(
         protected PrintRequest $printRequest
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -29,6 +28,6 @@ class PrintRequestCompletedNotification extends Notification implements ShouldQu
             ->subject(MailSubject::make('Your print request is complete'))
             ->greeting('Your request is complete')
             ->line('Your print request has been completed.')
-            ->line('Request ID: ' . $this->printRequest->id);
+            ->line('Request ID: '.$this->printRequest->id);
     }
 }

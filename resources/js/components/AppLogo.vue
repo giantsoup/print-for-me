@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const logoUrl = new URL('../../images/website-logo.png', import.meta.url).href;
+import logoUrl from '../../images/website-logo.png';
 </script>
 
 <template>

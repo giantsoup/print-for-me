@@ -15,8 +15,7 @@ class NewPrintRequestNotification extends Notification implements ShouldQueue
 
     public function __construct(
         protected PrintRequest $printRequest
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {

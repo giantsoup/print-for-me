@@ -31,4 +31,3 @@ it('redirects authenticated non-admin users to dashboard', function () {
 
     $response->assertRedirect(route('dashboard'));
 });
-

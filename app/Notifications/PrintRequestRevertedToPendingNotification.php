@@ -15,8 +15,7 @@ class PrintRequestRevertedToPendingNotification extends Notification implements 
 
     public function __construct(
         protected PrintRequest $printRequest
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -29,6 +28,6 @@ class PrintRequestRevertedToPendingNotification extends Notification implements 
             ->subject(MailSubject::make('Your print request was reverted to pending'))
             ->greeting('Reverted to pending')
             ->line('The status of your print request has been reverted to pending.')
-            ->line('Request ID: ' . $this->printRequest->id);
+            ->line('Request ID: '.$this->printRequest->id);
     }
 }

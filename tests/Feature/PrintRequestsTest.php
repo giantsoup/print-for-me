@@ -1,28 +1,25 @@
 <?php
 
 use App\Enums\PrintRequestStatus;
+use App\Http\Middleware\EnforceAbsoluteSession;
 use App\Models\PrintRequest;
-use App\Models\PrintRequestFile;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\actingAs;
+use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\delete;
 use function Pest\Laravel\get;
 use function Pest\Laravel\patch;
 use function Pest\Laravel\post;
-use function Pest\Laravel\assertDatabaseHas;
-use function Pest\Laravel\assertDatabaseMissing;
 
 beforeEach(function () {
     // Disable the absolute session middleware to avoid forced re-login in tests
-    $this->withoutMiddleware([\App\Http\Middleware\EnforceAbsoluteSession::class]);
-    // CSRF is not relevant in tests (disable both classes used by the framework)
-    $this->withoutMiddleware([
-        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
-        \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
-    ]);
+    $this->withoutMiddleware([EnforceAbsoluteSession::class]);
+    // CSRF is not relevant in tests.
+    $this->withoutMiddleware([PreventRequestForgery::class]);
 });
 
 it('creates a print request with only a source URL', function () {

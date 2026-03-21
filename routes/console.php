@@ -1,10 +1,14 @@
 <?php
 
 use App\Models\MagicLoginToken;
+use App\Models\PrintRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginLinkNotification;
+use App\Notifications\PrintRequestSoftDeletedPurgeWarningNotification;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
@@ -54,7 +58,7 @@ Artisan::command('prints:purge-completed-files', function () {
     $missingFiles = 0;
     $errors = 0;
 
-    \App\Models\PrintRequest::whereNotNull('completed_at')
+    PrintRequest::whereNotNull('completed_at')
         ->where('completed_at', '<=', $threshold)
         ->with('files:id,print_request_id,disk,path')
         ->chunkById(100, function ($chunk) use (&$totalRequests, &$deletedFiles, &$missingFiles, &$errors) {
@@ -65,8 +69,8 @@ Artisan::command('prints:purge-completed-files', function () {
                     try {
                         $disk = $file->disk;
                         $path = $file->path;
-                        if (\Illuminate\Support\Facades\Storage::disk($disk)->exists($path)) {
-                            if (\Illuminate\Support\Facades\Storage::disk($disk)->delete($path)) {
+                        if (Storage::disk($disk)->exists($path)) {
+                            if (Storage::disk($disk)->delete($path)) {
                                 $deletedFiles++;
                             } else {
                                 $errors++;
@@ -74,7 +78,7 @@ Artisan::command('prints:purge-completed-files', function () {
                         } else {
                             $missingFiles++;
                         }
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         $errors++;
                     }
                 }
@@ -96,7 +100,7 @@ Artisan::command('prints:purge-soft-deleted', function () {
     $filesMissing = 0;
     $errors = 0;
 
-    \App\Models\PrintRequest::onlyTrashed()
+    PrintRequest::onlyTrashed()
         ->where('deleted_at', '<=', $threshold)
         ->with('files:id,print_request_id,disk,path')
         ->chunkById(100, function ($chunk) use (&$totalRequests, &$filesDeleted, &$filesMissing, &$errors) {
@@ -107,8 +111,8 @@ Artisan::command('prints:purge-soft-deleted', function () {
                     try {
                         $disk = $file->disk;
                         $path = $file->path;
-                        if (\Illuminate\Support\Facades\Storage::disk($disk)->exists($path)) {
-                            if (\Illuminate\Support\Facades\Storage::disk($disk)->delete($path)) {
+                        if (Storage::disk($disk)->exists($path)) {
+                            if (Storage::disk($disk)->delete($path)) {
                                 $filesDeleted++;
                             } else {
                                 $errors++;
@@ -116,7 +120,7 @@ Artisan::command('prints:purge-soft-deleted', function () {
                         } else {
                             $filesMissing++;
                         }
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         $errors++;
                     }
                 }
@@ -139,7 +143,7 @@ Artisan::command('prints:warn-soft-deleted', function () {
     $sent = 0;
     $skipped = 0;
 
-    \App\Models\PrintRequest::onlyTrashed()
+    PrintRequest::onlyTrashed()
         ->whereBetween('deleted_at', [$start, $end])
         ->with('user')
         ->chunkById(100, function ($chunk) use (&$sent, &$skipped, $day) {
@@ -152,16 +156,16 @@ Artisan::command('prints:warn-soft-deleted', function () {
                 }
 
                 $cacheKey = 'prints:warn-soft:'.$pr->id.':'.$day->format('Ymd');
-                if (! \Illuminate\Support\Facades\Cache::add($cacheKey, 1, now()->addDay())) {
+                if (! Cache::add($cacheKey, 1, now()->addDay())) {
                     $skipped++;
 
                     continue;
                 }
 
                 try {
-                    $user->notify(new \App\Notifications\PrintRequestSoftDeletedPurgeWarningNotification($pr));
+                    $user->notify(new PrintRequestSoftDeletedPurgeWarningNotification($pr));
                     $sent++;
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $skipped++;
                 }
             }
@@ -171,7 +175,7 @@ Artisan::command('prints:warn-soft-deleted', function () {
 })->purpose('Warn owners 7 days before permanent purge of soft-deleted requests.');
 
 Artisan::command('auth:cleanup-magic-tokens', function () {
-    $deleted = \App\Models\MagicLoginToken::where('expires_at', '<', now())
+    $deleted = MagicLoginToken::where('expires_at', '<', now())
         ->orWhereNotNull('used_at')
         ->delete();
 
@@ -181,7 +185,7 @@ Artisan::command('auth:cleanup-magic-tokens', function () {
 Artisan::command('auth:purge-stale-magic-tokens', function () {
     // Safety net: remove tokens older than 24 hours past their expiry time.
     $threshold = now()->subDay();
-    $deleted = \App\Models\MagicLoginToken::where('expires_at', '<=', $threshold)->delete();
+    $deleted = MagicLoginToken::where('expires_at', '<=', $threshold)->delete();
 
     $this->info("Stale magic login tokens deleted: {$deleted}");
 })->purpose('Purge magic login tokens older than 24 hours past expiry.');

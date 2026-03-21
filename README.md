@@ -1,6 +1,6 @@
 # Taylor's Print Services
 
-Passwordless magic‑link authentication, private 3D print file uploads, and a strict request lifecycle built with Laravel 12 + Inertia/Vue 3. Notifications are queued, access is policy‑based, and retention is handled by artisan commands.
+Passwordless magic‑link authentication, private 3D print file uploads, and a strict request lifecycle built with Laravel 13 + Inertia/Vue 3. Notifications are queued, access is policy‑based, and retention is handled by artisan commands.
 
 This README is developer‑focused. It explains what the project does, how it is structured, and how to get it running locally with accurate, copy‑pasteable commands.
 
@@ -34,7 +34,7 @@ This README is developer‑focused. It explains what the project does, how it is
 - Retention commands to purge old data and warn users before purges.
 
 ## Tech stack and architecture
-- Backend: Laravel 12 (PHP 8.4)
+- Backend: Laravel 13 (PHP 8.4)
 - Frontend: Inertia.js + Vue 3, built with Vite
 - DB: SQLite for local/test by default
 - Testing: Pest
@@ -58,6 +58,10 @@ Steps
    ```bash
    composer install
    npm install
+   ```
+   Or use the combined bootstrap script:
+   ```bash
+   composer run setup
    ```
 2. Create and configure .env for local
    ```dotenv
