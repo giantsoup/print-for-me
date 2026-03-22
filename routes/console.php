@@ -8,6 +8,7 @@ use App\Notifications\PrintRequestSoftDeletedPurgeWarningNotification;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -189,3 +190,5 @@ Artisan::command('auth:purge-stale-magic-tokens', function () {
 
     $this->info("Stale magic login tokens deleted: {$deleted}");
 })->purpose('Purge magic login tokens older than 24 hours past expiry.');
+
+Schedule::command('horizon:snapshot')->everyFiveMinutes();
