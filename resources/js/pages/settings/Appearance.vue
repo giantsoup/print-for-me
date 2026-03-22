@@ -1,36 +1,133 @@
 <script setup lang="ts">
+import { useInterfacePreferences, type MotionPreference } from '@/composables/useInterfacePreferences';
+import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { Head } from '@inertiajs/vue3';
+import { Gauge, Sparkles } from 'lucide-vue-next';
 
-import AppearanceTabs from '@/components/AppearanceTabs.vue';
-import HeadingSmall from '@/components/HeadingSmall.vue';
-import SettingsLayout from '@/layouts/settings/Layout.vue';
-import TopNav from '@/components/TopNav.vue';
+const { motionPreference, updateMotionPreference } = useInterfacePreferences();
+
+const options: Array<{ value: MotionPreference; title: string; description: string }> = [
+    {
+        value: 'standard',
+        title: 'Standard motion',
+        description: 'Keep the full Luminous transitions, hover states, and ambient movement.',
+    },
+    {
+        value: 'reduced',
+        title: 'Reduced motion',
+        description: 'Tone down transitions and animation while keeping the same dark visual system.',
+    },
+];
 </script>
 
 <template>
-  <Head title="Appearance settings" />
+    <Head title="Interface preferences" />
 
-  <div class="relative min-h-screen overflow-hidden text-white">
-    <!-- Synthwave background -->
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
-      <div class="absolute inset-0 bg-gradient-to-br from-[#0b002b] via-[#12002f] to-[#340058]" />
-      <div class="absolute inset-x-0 bottom-0 h-1/2 [background:radial-gradient(80%_50%_at_50%_120%,rgba(255,0,204,0.6),transparent_70%)]" />
-      <div class="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.09)_1px,transparent_1px)]; [background-size:40px_40px]; [background-position:center]" />
-    </div>
+    <LuminousAppLayout
+        active-nav="settings"
+        eyebrow="Interface Preferences"
+        title="Dark-only visuals, with motion tuned to your comfort."
+        intro="The redesign stays on one dark visual system. This screen now controls motion intensity instead of light and dark themes."
+        :show-dock="false"
+    >
+        <div class="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+            <section class="space-y-6">
+                <article class="luminous-panel px-5 py-5">
+                    <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Motion Preference</p>
+                    <div class="mt-6 space-y-3">
+                        <button
+                            v-for="option in options"
+                            :key="option.value"
+                            type="button"
+                            class="w-full rounded-[1.45rem] px-4 py-4 text-left transition-colors"
+                            :class="
+                                motionPreference === option.value
+                                    ? 'bg-primary/10 text-white'
+                                    : 'bg-white/[0.04] text-white/78 hover:bg-white/[0.06]'
+                            "
+                            @click="updateMotionPreference(option.value)"
+                        >
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p class="font-display text-xl font-semibold tracking-tight">{{ option.title }}</p>
+                                    <p class="mt-2 text-sm leading-6 text-muted-soft">{{ option.description }}</p>
+                                </div>
+                                <span
+                                    class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full border"
+                                    :class="motionPreference === option.value ? 'border-primary bg-primary' : 'border-white/18'"
+                                >
+                                    <span class="h-2 w-2 rounded-full bg-[#072714]" />
+                                </span>
+                            </div>
+                        </button>
+                    </div>
+                </article>
 
-    <!-- Top navigation -->
-    <TopNav />
+                <article class="luminous-panel px-5 py-5">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary/12 text-secondary">
+                            <Gauge class="h-4 w-4" />
+                        </div>
+                        <div>
+                            <h2 class="font-display text-xl font-semibold tracking-tight text-white">What changed</h2>
+                            <p class="mt-3 text-sm leading-6 text-muted-soft">
+                                The app no longer switches between light, dark, and system themes. The visual system is fixed so every screen stays consistent with the new mobile-first redesign.
+                            </p>
+                        </div>
+                    </div>
+                </article>
+            </section>
 
-    <!-- Content -->
-    <main class="relative z-10 mx-auto max-w-5xl px-6 pb-24 pt-6">
-      <section class="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur">
-        <SettingsLayout>
-          <div class="space-y-6">
-            <HeadingSmall title="Appearance settings" description="Update your account's appearance settings" />
-            <AppearanceTabs />
-          </div>
-        </SettingsLayout>
-      </section>
-    </main>
-  </div>
+            <section class="luminous-panel px-5 py-5">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Live Preview</p>
+                        <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">See the interface feel in context.</h2>
+                    </div>
+                    <Sparkles class="h-5 w-5 text-primary" />
+                </div>
+
+                <div class="mt-6 space-y-4">
+                    <div class="relative overflow-hidden rounded-[1.7rem] bg-white/[0.04] px-5 py-6">
+                        <div
+                            class="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/18 blur-3xl"
+                            :class="motionPreference === 'standard' ? 'animate-pulse' : ''"
+                        />
+                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Primary Action</p>
+                        <button class="pill-button pill-button-primary mt-5">
+                            Submit request
+                        </button>
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="rounded-[1.45rem] bg-white/[0.04] px-4 py-4">
+                            <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-white/42">Card motion</p>
+                            <div
+                                class="mt-4 rounded-[1.3rem] bg-white/[0.05] px-4 py-5"
+                                :class="motionPreference === 'standard' ? 'transition-transform duration-500 hover:-translate-y-1' : ''"
+                            >
+                                <p class="font-display text-xl font-semibold tracking-tight text-white">Queue card</p>
+                                <p class="mt-2 text-sm leading-6 text-muted-soft">Hover and tap feedback scale back automatically in reduced motion mode.</p>
+                            </div>
+                        </div>
+
+                        <div class="rounded-[1.45rem] bg-white/[0.04] px-4 py-4">
+                            <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-white/42">Ambient effects</p>
+                            <div class="mt-4 rounded-[1.3rem] bg-white/[0.05] px-4 py-5">
+                                <div
+                                    class="h-2 rounded-full bg-primary/25"
+                                >
+                                    <div
+                                        class="h-2 rounded-full bg-primary"
+                                        :class="motionPreference === 'standard' ? 'w-2/3 transition-all duration-700' : 'w-2/3'"
+                                    />
+                                </div>
+                                <p class="mt-3 text-sm leading-6 text-muted-soft">Reduced motion keeps the same layout and styling while minimizing animated transitions.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </LuminousAppLayout>
 </template>

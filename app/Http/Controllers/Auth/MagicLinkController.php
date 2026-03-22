@@ -173,17 +173,16 @@ class MagicLinkController extends Controller
                 $user->forceFill(['email_verified_at' => now()])->save();
             }
 
-            $user->forceFill([
-                'last_login_at' => now(),
-                'last_login_ip' => (string) $request->ip(),
-                'last_login_user_agent' => (string) $request->userAgent(),
-            ])->save();
+            $user->recordLoginContext(
+                $request->ip(),
+                $request->userAgent(),
+            );
 
             Auth::login($user);
             $request->session()->regenerate();
 
             // Write session version to the session for middleware enforcement
-            $request->session()->put('sv', (int) ($user->session_version ?? 1));
+            $request->session()->put('sv', $user->currentSessionVersion());
 
             return redirect()->intended(route('dashboard'));
         } catch (ValidationException $e) {

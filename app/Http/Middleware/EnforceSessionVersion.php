@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,7 +26,11 @@ class EnforceSessionVersion
         $user = $request->user();
 
         if ($user) {
-            $sessionVersion = (int) $user->session_version;
+            if (! User::hasDatabaseColumn('session_version')) {
+                return $next($request);
+            }
+
+            $sessionVersion = $user->currentSessionVersion();
             $sv = (int) $request->session()->get('sv', 0);
 
             // In tests, allow forcing an immediate mismatch via header

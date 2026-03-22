@@ -1,15 +1,8 @@
 <script setup lang="ts">
+import type { User } from '@/types';
+import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-
-// DeleteUser UI hidden for passwordless setup
-import HeadingSmall from '@/components/HeadingSmall.vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import SettingsLayout from '@/layouts/settings/Layout.vue';
-import TopNav from '@/components/TopNav.vue';
-import { type User } from '@/types';
+import { ShieldAlert } from 'lucide-vue-next';
 
 interface Props {
     mustVerifyEmail: boolean;
@@ -26,112 +19,92 @@ const form = useForm({
     email: user.email,
 });
 
-const submit = () => {
+function submit() {
     form.patch(route('profile.update'), {
         preserveScroll: true,
     });
-};
+}
 </script>
 
 <template>
-  <Head title="Profile settings" />
+    <Head title="Profile settings" />
 
-  <div class="relative min-h-screen overflow-hidden text-white">
-    <!-- Synthwave background -->
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
-      <div class="absolute inset-0 bg-gradient-to-br from-[#0b002b] via-[#12002f] to-[#340058]" />
-      <div class="absolute inset-x-0 bottom-0 h-1/2 [background:radial-gradient(80%_50%_at_50%_120%,rgba(255,0,204,0.6),transparent_70%)]" />
-      <div class="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.09)_1px,transparent_1px)]; [background-size:40px_40px]; [background-position:center]" />
-    </div>
+    <LuminousAppLayout
+        active-nav="settings"
+        eyebrow="Settings"
+        title="Profile and session controls."
+        intro="Keep your contact details current and use the security actions here if a session ever looks wrong."
+        :show-dock="false"
+    >
+        <form class="grid gap-6 xl:grid-cols-[1fr_0.78fr]" @submit.prevent="submit">
+            <section class="space-y-6">
+                <article class="luminous-panel px-5 py-5">
+                    <label for="name" class="field-label">Name</label>
+                    <input id="name" v-model="form.name" type="text" required autocomplete="name" class="luminous-input" />
+                    <p v-if="form.errors.name" class="mt-2 text-sm text-rose-300">{{ form.errors.name }}</p>
 
-    <!-- Top navigation -->
-    <TopNav />
+                    <div class="mt-6">
+                        <label for="email" class="field-label">Email Address</label>
+                        <input id="email" v-model="form.email" type="email" required autocomplete="email" class="luminous-input" />
+                        <p v-if="form.errors.email" class="mt-2 text-sm text-rose-300">{{ form.errors.email }}</p>
+                    </div>
 
-    <!-- Content -->
-    <main class="relative z-10 mx-auto max-w-5xl px-6 pb-24 pt-6">
-      <section class="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur">
-        <SettingsLayout>
-          <div class="flex flex-col space-y-6">
-            <HeadingSmall title="Profile information" description="Update your name and email address" />
+                    <div v-if="mustVerifyEmail && !user.email_verified_at" class="mt-6 rounded-[1.3rem] bg-white/[0.04] px-4 py-4 text-sm leading-6 text-muted-soft">
+                        Your email is unverified.
+                        <Link :href="route('verification.send')" method="post" as="button" class="font-medium text-primary">
+                            Resend verification email
+                        </Link>
+                    </div>
 
-            <form @submit.prevent="submit" class="space-y-6">
-              <div class="grid gap-2">
-                <Label for="name">Name</Label>
-                <Input id="name" class="mt-1 block w-full" v-model="form.name" required autocomplete="name" placeholder="Full name" />
-                <InputError class="mt-2" :message="form.errors.name" />
-              </div>
+                    <p
+                        v-if="status === 'verification-link-sent'"
+                        class="mt-4 rounded-[1.2rem] bg-primary/10 px-4 py-3 text-sm text-primary"
+                    >
+                        A new verification link has been sent.
+                    </p>
+                </article>
 
-              <div class="grid gap-2">
-                <Label for="email">Email address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  class="mt-1 block w-full"
-                  v-model="form.email"
-                  required
-                  autocomplete="email"
-                  placeholder="Email address"
-                />
-                <InputError class="mt-2" :message="form.errors.email" />
-              </div>
+                <article class="luminous-panel px-5 py-5">
+                    <button type="submit" :disabled="form.processing" class="pill-button pill-button-primary w-full disabled:cursor-not-allowed disabled:opacity-45">
+                        {{ form.processing ? 'Saving profile' : 'Save profile' }}
+                    </button>
+                    <p v-if="form.recentlySuccessful" class="mt-3 text-center text-sm text-primary">Saved.</p>
+                </article>
+            </section>
 
-              <div v-if="mustVerifyEmail && !user.email_verified_at">
-                <p class="-mt-4 text-sm text-white/80">
-                  Your email address is unverified.
-                  <Link
-                    :href="route('verification.send')"
-                    method="post"
-                    as="button"
-                    class="text-white underline decoration-neutral-300/70 underline-offset-4 hover:decoration-white"
-                  >
-                    Click here to resend the verification email.
-                  </Link>
-                </p>
+            <aside class="space-y-6">
+                <article class="luminous-panel px-5 py-5">
+                    <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Last Session</p>
+                    <dl class="mt-6 space-y-4 text-sm">
+                        <div class="rounded-[1.3rem] bg-white/[0.04] px-4 py-4">
+                            <dt class="text-white/45">IP address</dt>
+                            <dd class="mt-2 font-medium text-white">{{ user.last_login_ip ?? 'Unavailable' }}</dd>
+                        </div>
+                        <div class="rounded-[1.3rem] bg-white/[0.04] px-4 py-4">
+                            <dt class="text-white/45">Device</dt>
+                            <dd class="mt-2 break-words text-white/78">{{ user.last_login_user_agent ?? 'Unavailable' }}</dd>
+                        </div>
+                    </dl>
+                </article>
 
-                <div v-if="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-emerald-300">
-                  A new verification link has been sent to your email address.
-                </div>
-              </div>
+                <article class="luminous-panel px-5 py-5">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-500/12 text-rose-300">
+                            <ShieldAlert class="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-rose-200/80">Session Security</p>
+                            <p class="mt-3 text-sm leading-6 text-muted-soft">
+                                If a session looks compromised, invalidate every active session attached to this account.
+                            </p>
+                        </div>
+                    </div>
 
-              <div class="flex items-center gap-4">
-                <Button :disabled="form.processing">Save</Button>
-
-                <Transition
-                  enter-active-class="transition ease-in-out"
-                  enter-from-class="opacity-0"
-                  leave-active-class="transition ease-in-out"
-                  leave-to-class="opacity-0"
-                >
-                  <p v-show="form.recentlySuccessful" class="text-sm text-white/70">Saved.</p>
-                </Transition>
-              </div>
-            </form>
-
-            <div class="rounded-md border border-white/10 bg-white/5 p-4 text-sm">
-              <p class="mb-2 text-white/80">Last login</p>
-              <dl class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div>
-                  <dt class="text-white/60">IP address</dt>
-                  <dd class="font-mono text-white/80">{{ user.last_login_ip ?? '—' }}</dd>
-                </div>
-                <div class="sm:col-span-2">
-                  <dt class="text-white/60">Device</dt>
-                  <dd class="truncate text-white/80">{{ user.last_login_user_agent ?? '—' }}</dd>
-                </div>
-              </dl>
-            </div>
-
-            <div class="rounded-md border border-rose-500/30 bg-rose-500/10 p-4 text-sm">
-              <p class="mb-2 font-medium text-rose-200">Session security</p>
-              <p class="mb-3 text-white/80">If you suspect your session is compromised, you can log out of all devices. This will invalidate your active sessions everywhere.</p>
-              <Link :href="route('sessions.invalidate')" method="post" as="button">
-                <Button variant="destructive">Log out of all devices</Button>
-              </Link>
-            </div>
-          </div>
-
-        </SettingsLayout>
-      </section>
-    </main>
-  </div>
+                    <Link :href="route('sessions.invalidate')" method="post" as="button" class="pill-button mt-6 w-full justify-center bg-rose-500/12 text-rose-300">
+                        Log out of all devices
+                    </Link>
+                </article>
+            </aside>
+        </form>
+    </LuminousAppLayout>
 </template>

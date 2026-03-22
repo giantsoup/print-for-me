@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\PrintRequest;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -15,21 +15,9 @@ Route::get('/', function () {
     return Inertia::render('Home');
 })->name('home');
 
-Route::get('dashboard', function () {
-    $user = request()->user();
-
-    $query = PrintRequest::query()->latest()->limit(5);
-    if (! ($user->is_admin ?? false)) {
-        $query->where('user_id', $user->id);
-    }
-
-    $recent = $query->get(['id', 'status', 'created_at']);
-
-    return Inertia::render('Dashboard', [
-        'recentRequests' => $recent,
-        'isAdmin' => (bool) ($user->is_admin ?? false),
-    ]);
-})->middleware(['auth', 'absolute', 'session_version', 'verified'])->name('dashboard');
+Route::get('dashboard', DashboardController::class)
+    ->middleware(['auth', 'absolute', 'session_version', 'verified'])
+    ->name('dashboard');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

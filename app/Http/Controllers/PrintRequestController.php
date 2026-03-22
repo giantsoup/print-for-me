@@ -20,15 +20,27 @@ class PrintRequestController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $query = PrintRequest::query()->with('files')->latest();
+        $isAdmin = (bool) ($user->is_admin ?? false);
+        $status = (string) $request->query('status', '');
+        $baseQuery = PrintRequest::query();
 
-        if (! ($user->is_admin ?? false)) {
-            $query->where('user_id', $user->id);
-        } else {
-            $status = (string) $request->query('status', '');
-            if (in_array($status, PrintRequestStatus::all(), true)) {
-                $query->where('status', $status);
-            }
+        if (! $isAdmin) {
+            $baseQuery->where('user_id', $user->id);
+        }
+
+        $statusCounts = ['all' => (clone $baseQuery)->count()];
+
+        foreach (PrintRequestStatus::all() as $value) {
+            $statusCounts[$value] = (clone $baseQuery)->where('status', $value)->count();
+        }
+
+        $query = (clone $baseQuery)
+            ->with(['files', 'user:id,name,email'])
+            ->withCount('files')
+            ->latest();
+
+        if (in_array($status, PrintRequestStatus::all(), true)) {
+            $query->where('status', $status);
         }
 
         $data = $query->paginate(20)->withQueryString();
@@ -39,11 +51,12 @@ class PrintRequestController extends Controller
 
         return Inertia::render('prints/Index', [
             'items' => $data,
-            'isAdmin' => (bool) ($user->is_admin ?? false),
+            'isAdmin' => $isAdmin,
             'filters' => [
-                'status' => (string) $request->query('status', ''),
+                'status' => $status,
             ],
             'statuses' => PrintRequestStatus::all(),
+            'statusCounts' => $statusCounts,
         ]);
     }
 
@@ -62,7 +75,34 @@ class PrintRequestController extends Controller
     {
         $this->authorize('view', $print_request);
 
-        $print_request->load('files');
+        $print_request->load(['files', 'user:id,name,email']);
+
+        $timeline = collect([
+            [
+                'key' => 'created',
+                'label' => 'Submitted',
+                'description' => 'Your request entered the print queue.',
+                'at' => $print_request->created_at?->toIso8601String(),
+            ],
+            [
+                'key' => 'accepted',
+                'label' => 'Accepted',
+                'description' => 'The print has been approved for production.',
+                'at' => $print_request->accepted_at?->toIso8601String(),
+            ],
+            [
+                'key' => 'reverted',
+                'label' => 'Returned to queue',
+                'description' => 'The request was sent back to pending for another pass.',
+                'at' => $print_request->reverted_at?->toIso8601String(),
+            ],
+            [
+                'key' => 'completed',
+                'label' => 'Completed',
+                'description' => 'The print is finished and ready.',
+                'at' => $print_request->completed_at?->toIso8601String(),
+            ],
+        ])->filter(fn (array $item) => filled($item['at']))->values();
 
         if ($request->wantsJson()) {
             return response()->json($print_request);
@@ -77,6 +117,7 @@ class PrintRequestController extends Controller
                 'delete' => $user ? $user->can('delete', $print_request) : false,
                 'isAdmin' => (bool) ($user->is_admin ?? false),
             ],
+            'timeline' => $timeline,
             'constraints' => [
                 'maxFiles' => 10,
                 'maxTotalBytes' => 50 * 1024 * 1024,

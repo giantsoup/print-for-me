@@ -1,62 +1,64 @@
 <script setup lang="ts">
+import LuminousFocusedLayout from '@/layouts/LuminousFocusedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
-import logoUrl from '../../../images/website-logo.png';
+import { LoaderCircle, MailCheck } from 'lucide-vue-next';
 
 defineProps<{
-  status?: string;
+    status?: string;
 }>();
 
 const form = useForm({});
 
 function submit() {
-  form.post(route('verification.send'));
+    form.post(route('verification.send'));
 }
-
 </script>
 
 <template>
-  <Head title="Email verification" />
+    <Head title="Email verification" />
 
-  <div class="relative min-h-screen overflow-hidden text-white">
-    <!-- Synthwave background -->
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
-      <div class="absolute inset-0 bg-gradient-to-br from-[#0b002b] via-[#12002f] to-[#340058]" />
-      <div class="absolute inset-x-0 bottom-0 h-1/2 [background:radial-gradient(80%_50%_at_50%_120%,rgba(255,0,204,0.6),transparent_70%)]" />
-      <div class="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.09)_1px,transparent_1px)]; [background-size:40px_40px]; [background-position:center]" />
-    </div>
+    <LuminousFocusedLayout
+        eyebrow="Verify Email"
+        title="Confirm this email before using the queue."
+        intro="Click the link from your inbox to finish verification. You can request another email from this screen if you need one."
+        :back-href="route('home')"
+        back-label="Back home"
+    >
+        <div class="flex flex-col items-center text-center">
+            <div class="flex h-18 w-18 items-center justify-center rounded-full bg-primary/12 text-primary">
+                <MailCheck class="h-7 w-7" />
+            </div>
 
-    <!-- Top navigation -->
-    <header class="relative z-10 flex items-center justify-between px-6 py-4">
-      <div class="flex items-center gap-3">
-        <img :src="logoUrl" alt="Taylor's Print Services logo" class="h-8 w-8 rounded-md object-contain ring-1 ring-white/10 bg-black/40 md:h-10 md:w-10" height="40" width="40" loading="eager" decoding="async" />
-        <span class="text-sm font-semibold tracking-wider text-white/80">Taylor's Print Services</span>
-      </div>
-      <nav class="flex items-center gap-3 text-sm">
-        <Link :href="route('home')" class="text-white/80 hover:text-white">Home</Link>
-        <Link :href="route('logout')" method="post" as="button" class="text-white/80 hover:text-white">Log out</Link>
-      </nav>
-    </header>
+            <p class="mt-6 max-w-md text-sm leading-6 text-muted-soft">
+                A verification link has been sent to your email address. Open it from your inbox to activate the account attached to this magic-link session.
+            </p>
 
-    <!-- Content -->
-    <main class="relative z-10 mx-auto max-w-lg px-6 pb-24 pt-10">
-      <section class="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur">
-        <h1 class="text-xl font-semibold">Verify email</h1>
-        <p class="mt-2 text-sm text-white/80">Please verify your email address by clicking on the link we just emailed to you.</p>
+            <p
+                v-if="status === 'verification-link-sent'"
+                class="mt-5 rounded-[1.2rem] bg-primary/10 px-4 py-3 text-sm text-primary"
+            >
+                A new verification link has been sent.
+            </p>
 
-        <div v-if="status === 'verification-link-sent'" class="mb-4 text-center text-sm font-medium text-emerald-300">
-          A new verification link has been sent to the email address you provided during registration.
+            <form class="mt-6 w-full max-w-sm space-y-3" @submit.prevent="submit">
+                <button
+                    type="submit"
+                    :disabled="form.processing"
+                    class="pill-button pill-button-primary w-full disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                    <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
+                    Resend verification email
+                </button>
+
+                <Link
+                    :href="route('logout')"
+                    method="post"
+                    as="button"
+                    class="pill-button pill-button-secondary w-full"
+                >
+                    Log out
+                </Link>
+            </form>
         </div>
-
-        <form @submit.prevent="submit" class="mt-6 space-y-4 text-center">
-          <button type="submit" :disabled="form.processing" class="inline-flex items-center justify-center gap-2 rounded-md bg-fuchsia-600/90 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-fuchsia-500/90 disabled:opacity-60">
-            <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-            <span>Resend verification email</span>
-          </button>
-
-          <Link :href="route('logout')" method="post" as="button" class="mx-auto block text-sm text-white/80 hover:text-white">Log out</Link>
-        </form>
-      </section>
-    </main>
-  </div>
+    </LuminousFocusedLayout>
 </template>

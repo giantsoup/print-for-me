@@ -1,84 +1,301 @@
 <script setup lang="ts">
+import StatusBadge from '@/components/luminous/StatusBadge.vue';
+import { formatDateTime, formatRelative } from '@/lib/prints';
+import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
-import TopNav from '@/components/TopNav.vue';
+import { ArrowRight, Clock3, FolderOpen, Layers3, Sparkles, UserPlus2 } from 'lucide-vue-next';
+import { computed } from 'vue';
 
-interface RecentRequest {
-  id: number
-  status: string
-  created_at: string
+interface DashboardRequest {
+    id: number;
+    user_id: number;
+    status: string;
+    source_url?: string | null;
+    instructions?: string | null;
+    created_at: string;
+    accepted_at?: string | null;
+    completed_at?: string | null;
+    reverted_at?: string | null;
+    files_count: number;
+    user?: {
+        name: string;
+        email: string;
+    } | null;
+}
+
+interface ActivityItem {
+    id: string;
+    kind: string;
+    title: string;
+    description: string;
+    at: string;
+    request_id: number;
 }
 
 interface Props {
-  recentRequests: RecentRequest[]
-  isAdmin: boolean
+    isAdmin: boolean;
+    statusCounts: Record<string, number>;
+    recentRequests: DashboardRequest[];
+    recentActivity: ActivityItem[];
 }
 
 const props = defineProps<Props>();
 
-function statusClass(status: string) {
-  // Dark-friendly, glassy badges similar to the overall aesthetic
-  switch (status) {
-    case 'pending':
-      return 'bg-amber-400/20 text-amber-200 ring-1 ring-inset ring-amber-300/30';
-    case 'accepted':
-      return 'bg-sky-400/20 text-sky-200 ring-1 ring-inset ring-sky-300/30';
-    case 'printing':
-      return 'bg-indigo-400/20 text-indigo-200 ring-1 ring-inset ring-indigo-300/30';
-    case 'complete':
-      return 'bg-emerald-400/20 text-emerald-200 ring-1 ring-inset ring-emerald-300/30';
-    default:
-      return 'bg-zinc-400/20 text-zinc-200 ring-1 ring-inset ring-zinc-300/30';
-  }
-}
+const activeCount = computed(() => (props.statusCounts.accepted ?? 0) + (props.statusCounts.printing ?? 0));
+
+const metricCards = computed(() => {
+    if (props.isAdmin) {
+        return [
+            { label: 'Total requests', value: props.statusCounts.all ?? 0, tone: 'text-white' },
+            { label: 'Active production', value: activeCount.value, tone: 'text-primary' },
+            { label: 'Pending review', value: props.statusCounts.pending ?? 0, tone: 'text-secondary' },
+            { label: 'Completed', value: props.statusCounts.complete ?? 0, tone: 'text-emerald-300' },
+        ];
+    }
+
+    return [
+        { label: 'Open requests', value: activeCount.value + (props.statusCounts.pending ?? 0), tone: 'text-primary' },
+        { label: 'Pending', value: props.statusCounts.pending ?? 0, tone: 'text-white' },
+        { label: 'Printing', value: props.statusCounts.printing ?? 0, tone: 'text-secondary' },
+        { label: 'Completed', value: props.statusCounts.complete ?? 0, tone: 'text-emerald-300' },
+    ];
+});
 </script>
 
 <template>
-  <Head title="Dashboard" />
+    <Head title="Dashboard" />
 
-  <div class="relative min-h-screen overflow-hidden text-white">
-    <!-- Synthwave background -->
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
-      <div class="absolute inset-0 bg-gradient-to-br from-[#0b002b] via-[#12002f] to-[#340058]" />
-      <div class="absolute inset-x-0 bottom-0 h-1/2 [background:radial-gradient(80%_50%_at_50%_120%,rgba(255,0,204,0.6),transparent_70%)]" />
-      <div class="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.09)_1px,transparent_1px)]; [background-size:40px_40px]; [background-position:center]" />
-    </div>
+    <LuminousAppLayout
+        active-nav="dashboard"
+        :eyebrow="props.isAdmin ? 'Workshop Overview' : 'My Queue'"
+        :title="props.isAdmin ? 'Request operations at a glance' : 'Your print queue, optimized for mobile.'"
+        :intro="
+            props.isAdmin
+                ? 'Monitor pending work, jump into the request board, and send new invites without leaving the main dashboard.'
+                : 'Start a new request quickly, then follow each print as it moves from review to production.'
+        "
+    >
+        <template #pageActions>
+            <Link
+                v-if="props.isAdmin"
+                :href="route('print-requests.index')"
+                class="pill-button pill-button-secondary"
+            >
+                View request board
+            </Link>
+            <Link
+                v-if="props.isAdmin"
+                :href="route('admin.invite.create')"
+                class="pill-button pill-button-primary"
+            >
+                Invite user
+                <UserPlus2 class="h-4 w-4" />
+            </Link>
 
-    <!-- Top navigation -->
-    <TopNav />
+            <Link
+                v-if="!props.isAdmin"
+                :href="route('print-requests.index')"
+                class="pill-button pill-button-secondary"
+            >
+                My requests
+            </Link>
+            <Link
+                v-if="!props.isAdmin"
+                :href="route('print-requests.create')"
+                class="pill-button pill-button-primary"
+            >
+                New request
+                <ArrowRight class="h-4 w-4" />
+            </Link>
+        </template>
 
-    <!-- Content -->
-    <main class="relative z-10 mx-auto max-w-5xl px-6 pb-24 pt-6">
-      <!-- Actions -->
-      <div class="mb-4 flex flex-wrap items-center gap-3">
-        <Link :href="route('print-requests.index')" class="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white/90 backdrop-blur hover:bg-white/15 hover:text-white">
-          My Print Requests
-        </Link>
-        <Link :href="route('print-requests.create')" class="inline-flex items-center rounded-md bg-fuchsia-600/90 px-3 py-2 text-sm font-semibold text-white shadow hover:bg-fuchsia-500/90">
-          New Request
-        </Link>
-      </div>
-
-      <!-- Recent Requests -->
-      <section class="rounded-lg border border-white/10 bg-white/5 p-4 backdrop-blur">
-        <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-sm font-semibold text-white">Recent Requests</h2>
-          <Link :href="route('print-requests.index')" class="text-sm text-white/80 hover:text-white">View all</Link>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <article
+                v-for="card in metricCards"
+                :key="card.label"
+                class="luminous-panel px-5 py-5"
+            >
+                <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-white/42">{{ card.label }}</p>
+                <p class="mt-4 font-display text-4xl font-semibold tracking-tight" :class="card.tone">{{ card.value }}</p>
+            </article>
         </div>
-        <div v-if="props.recentRequests?.length">
-          <ul class="divide-y divide-white/10">
-            <li v-for="r in props.recentRequests" :key="r.id" class="flex items-center justify-between py-2">
-              <div class="min-w-0 flex items-center gap-3">
-                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium" :class="statusClass(r.status)">{{ r.status }}</span>
-                <Link :href="route('print-requests.show', { print_request: r.id })" class="truncate text-sm text-white/90 hover:text-white">Request #{{ r.id }}</Link>
-              </div>
-              <div class="text-xs text-white/70">
-                {{ new Date(r.created_at).toLocaleString() }}
-              </div>
-            </li>
-          </ul>
-        </div>
-        <p v-else class="text-sm text-white/80">No recent requests yet. Create your first one.</p>
-      </section>
-    </main>
-  </div>
+
+        <section
+            v-if="!props.isAdmin"
+            class="mt-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]"
+        >
+            <article class="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,rgba(161,255,194,0.96),rgba(0,252,154,0.82))] px-6 py-6 text-[#06341c] filament-glow">
+                <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/25 blur-3xl" />
+                <p class="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[#0f4f2c]/70">Ready To Start</p>
+                <h2 class="mt-3 font-display text-3xl font-semibold tracking-tight">Drop in files, add notes, send it.</h2>
+                <p class="mt-3 max-w-xl text-sm leading-6 text-[#0d4a28]/80">
+                    The new request flow keeps uploads front and center, with file limits and instructions visible before you submit.
+                </p>
+                <Link
+                    :href="route('print-requests.create')"
+                    class="mt-6 inline-flex min-h-12 items-center gap-2 rounded-full bg-[#082c18] px-5 text-sm font-semibold text-white"
+                >
+                    Start a new request
+                    <ArrowRight class="h-4 w-4" />
+                </Link>
+            </article>
+
+            <article class="luminous-panel px-5 py-5">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-display text-2xl font-semibold tracking-tight text-white">Queue health</h2>
+                    <Sparkles class="h-4 w-4 text-primary" />
+                </div>
+                <dl class="mt-6 space-y-4">
+                    <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
+                        <dt class="text-sm text-muted-soft">Pending review</dt>
+                        <dd class="font-display text-2xl text-white">{{ props.statusCounts.pending ?? 0 }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
+                        <dt class="text-sm text-muted-soft">In production</dt>
+                        <dd class="font-display text-2xl text-primary">{{ activeCount }}</dd>
+                    </div>
+                    <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
+                        <dt class="text-sm text-muted-soft">Finished prints</dt>
+                        <dd class="font-display text-2xl text-emerald-300">{{ props.statusCounts.complete ?? 0 }}</dd>
+                    </div>
+                </dl>
+            </article>
+        </section>
+
+        <section
+            v-if="props.isAdmin"
+            class="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]"
+        >
+            <article class="luminous-panel px-5 py-5">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Workflow Snapshot</p>
+                        <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Move faster through the queue.</h2>
+                    </div>
+                    <Layers3 class="h-5 w-5 text-primary" />
+                </div>
+                <div class="mt-6 grid gap-3 sm:grid-cols-3">
+                    <div class="rounded-3xl bg-white/[0.04] px-4 py-4">
+                        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">Pending</p>
+                        <p class="mt-2 font-display text-3xl text-white">{{ props.statusCounts.pending ?? 0 }}</p>
+                    </div>
+                    <div class="rounded-3xl bg-white/[0.04] px-4 py-4">
+                        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">Accepted</p>
+                        <p class="mt-2 font-display text-3xl text-secondary">{{ props.statusCounts.accepted ?? 0 }}</p>
+                    </div>
+                    <div class="rounded-3xl bg-white/[0.04] px-4 py-4">
+                        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">Printing</p>
+                        <p class="mt-2 font-display text-3xl text-primary">{{ props.statusCounts.printing ?? 0 }}</p>
+                    </div>
+                </div>
+            </article>
+
+            <article class="luminous-panel px-5 py-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Admin Actions</p>
+                        <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Keep the workflow moving.</h2>
+                    </div>
+                    <FolderOpen class="h-5 w-5 text-secondary" />
+                </div>
+                <div class="mt-6 grid gap-3">
+                    <Link :href="route('print-requests.index')" class="pill-button pill-button-secondary justify-between">
+                        Review all requests
+                        <ArrowRight class="h-4 w-4" />
+                    </Link>
+                    <Link :href="route('admin.invite.create')" class="pill-button pill-button-secondary justify-between">
+                        Send a new invite
+                        <ArrowRight class="h-4 w-4" />
+                    </Link>
+                </div>
+            </article>
+        </section>
+
+        <section class="mt-6 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <article class="luminous-panel px-5 py-5">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">
+                            {{ props.isAdmin ? 'Latest Requests' : 'Recent Requests' }}
+                        </p>
+                        <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">
+                            {{ props.isAdmin ? 'Fresh work entering the board.' : 'Your current and recent prints.' }}
+                        </h2>
+                    </div>
+                    <Link :href="route('print-requests.index')" class="text-sm font-medium text-white/65 hover:text-white">
+                        View all
+                    </Link>
+                </div>
+
+                <div class="mt-6 grid gap-3">
+                    <Link
+                        v-for="requestItem in props.recentRequests"
+                        :key="requestItem.id"
+                        :href="route('print-requests.show', { print_request: requestItem.id })"
+                        class="rounded-[1.45rem] bg-white/[0.04] px-4 py-4 transition-transform hover:-translate-y-0.5"
+                    >
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <p class="font-display text-xl font-semibold tracking-tight text-white">Request #{{ requestItem.id }}</p>
+                                    <StatusBadge :status="requestItem.status" />
+                                </div>
+                                <p class="mt-2 text-sm leading-6 text-muted-soft">
+                                    {{ requestItem.instructions || requestItem.source_url || 'No extra notes were added to this request.' }}
+                                </p>
+                                <div class="mt-3 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.18em] text-white/42">
+                                    <span>{{ requestItem.files_count }} {{ requestItem.files_count === 1 ? 'file' : 'files' }}</span>
+                                    <span>{{ formatDateTime(requestItem.created_at) }}</span>
+                                    <span v-if="props.isAdmin && requestItem.user">{{ requestItem.user.name }}</span>
+                                </div>
+                            </div>
+
+                            <ArrowRight class="mt-1 hidden h-4 w-4 shrink-0 text-white/35 sm:block" />
+                        </div>
+                    </Link>
+
+                    <div v-if="!props.recentRequests.length" class="rounded-[1.45rem] bg-white/[0.04] px-4 py-8 text-sm text-muted-soft">
+                        No requests have been submitted yet.
+                    </div>
+                </div>
+            </article>
+
+            <article class="luminous-panel px-5 py-5">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Recent Activity</p>
+                        <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Queue events worth watching.</h2>
+                    </div>
+                    <Clock3 class="h-5 w-5 text-primary" />
+                </div>
+
+                <div class="mt-6 space-y-3">
+                    <div
+                        v-for="activity in props.recentActivity"
+                        :key="activity.id"
+                        class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4"
+                    >
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="font-display text-lg font-semibold tracking-tight text-white">{{ activity.title }}</p>
+                            <span class="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white/40">
+                                {{ formatRelative(activity.at) }}
+                            </span>
+                        </div>
+                        <p class="mt-2 text-sm leading-6 text-muted-soft">{{ activity.description }}</p>
+                        <Link
+                            :href="route('print-requests.show', { print_request: activity.request_id })"
+                            class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary"
+                        >
+                            Open request
+                            <ArrowRight class="h-4 w-4" />
+                        </Link>
+                    </div>
+
+                    <div v-if="!props.recentActivity.length" class="rounded-[1.35rem] bg-white/[0.04] px-4 py-8 text-sm text-muted-soft">
+                        Activity will appear here as requests move through the workflow.
+                    </div>
+                </div>
+            </article>
+        </section>
+    </LuminousAppLayout>
 </template>

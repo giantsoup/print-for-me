@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import BrandMark from '@/components/luminous/BrandMark.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 
 const page = usePage();
@@ -13,28 +13,44 @@ defineProps<{
 </script>
 
 <template>
-    <div class="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">
-        <div class="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex dark:border-r">
-            <div class="absolute inset-0 bg-zinc-900" />
-            <Link :href="route('home')" class="relative z-20 flex items-center text-lg font-medium">
-                <AppLogoIcon class="mr-2 size-8 fill-current text-white" />
-                {{ name }}
-            </Link>
-            <div v-if="quote" class="relative z-20 mt-auto">
-                <blockquote class="space-y-2">
-                    <p class="text-lg">&ldquo;{{ quote.message }}&rdquo;</p>
-                    <footer class="text-sm text-neutral-300">{{ quote.author }}</footer>
-                </blockquote>
-            </div>
-        </div>
-        <div class="lg:p-8">
-            <div class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
-                <div class="flex flex-col space-y-2 text-center">
-                    <h1 class="text-xl font-medium tracking-tight" v-if="title">{{ title }}</h1>
-                    <p class="text-sm text-muted-foreground" v-if="description">{{ description }}</p>
+    <div class="luminous-shell">
+        <div class="relative z-10 grid min-h-screen lg:grid-cols-2">
+            <aside class="hidden border-r border-white/6 px-10 py-10 lg:flex lg:flex-col">
+                <Link :href="route('home')" class="self-start">
+                    <BrandMark />
+                </Link>
+
+                <div class="mt-auto luminous-panel px-6 py-6">
+                    <p class="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-primary/75">{{ name }}</p>
+                    <blockquote v-if="quote" class="mt-4 space-y-3">
+                        <p class="font-display text-3xl font-semibold tracking-tight text-white">&ldquo;{{ quote.message }}&rdquo;</p>
+                        <footer class="text-sm text-muted-soft">{{ quote.author }}</footer>
+                    </blockquote>
                 </div>
-                <slot />
-            </div>
+            </aside>
+
+            <main class="flex items-center px-6 py-10">
+                <div class="mx-auto w-full max-w-md">
+                    <div class="mb-8 lg:hidden">
+                        <Link :href="route('home')">
+                            <BrandMark />
+                        </Link>
+                    </div>
+
+                    <div class="luminous-panel px-6 py-8 sm:px-8">
+                        <div v-if="title || description" class="mb-8 text-center">
+                            <h1 v-if="title" class="font-display text-3xl font-semibold tracking-tight text-gradient-filament">
+                                {{ title }}
+                            </h1>
+                            <p v-if="description" class="mt-3 text-sm leading-6 text-muted-soft">
+                                {{ description }}
+                            </p>
+                        </div>
+
+                        <slot />
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 </template>

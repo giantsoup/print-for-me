@@ -1,141 +1,194 @@
 <script setup lang="ts">
+import { formatFileSize } from '@/lib/prints';
+import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { LoaderCircle, Upload, WandSparkles } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import TopNav from '@/components/TopNav.vue';
 
 interface Props {
-  constraints: {
-    maxFiles: number
-    maxTotalBytes: number
-    allowedExtensions: string[]
-  }
+    constraints: {
+        maxFiles: number;
+        maxTotalBytes: number;
+        allowedExtensions: string[];
+    };
 }
 
 const props = defineProps<Props>();
 
 const form = useForm<{ source_url: string | null; instructions: string | null; files: File[] | null }>({
-  source_url: '',
-  instructions: '',
-  files: [],
+    source_url: '',
+    instructions: '',
+    files: [],
 });
 
 const pickedFiles = ref<File[]>([]);
 
-function onPickFiles(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const list = input.files ? Array.from(input.files) : [];
-  pickedFiles.value = list;
-  form.files = list;
+function onPickFiles(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const list = input.files ? Array.from(input.files) : [];
+    pickedFiles.value = list;
+    form.files = list;
 }
 
 const fileCount = computed(() => pickedFiles.value.length);
-const totalBytes = computed(() => pickedFiles.value.reduce((acc, f) => acc + (f.size || 0), 0));
-const totalMB = computed(() => (totalBytes.value / (1024 * 1024)).toFixed(2));
-
-const hasUrl = computed(() => !!form.source_url && form.source_url.trim().length > 0);
+const totalBytes = computed(() => pickedFiles.value.reduce((sum, file) => sum + (file.size || 0), 0));
+const totalSize = computed(() => formatFileSize(totalBytes.value));
+const hasUrl = computed(() => Boolean(form.source_url?.trim()));
 const hasFiles = computed(() => fileCount.value > 0);
-
 const withinCount = computed(() => fileCount.value <= props.constraints.maxFiles);
 const withinTotal = computed(() => totalBytes.value <= props.constraints.maxTotalBytes);
 const hasSource = computed(() => hasUrl.value || hasFiles.value);
-
 const canSubmit = computed(() => withinCount.value && withinTotal.value && hasSource.value && !form.processing);
 
 function submit() {
-  if (!canSubmit.value) return;
-  form.post(route('print-requests.store'), {
-    forceFormData: true,
-    onSuccess: () => {
-      pickedFiles.value = [];
-      form.reset();
-    },
-  });
-}
+    if (!canSubmit.value) {
+        return;
+    }
 
+    form.post(route('print-requests.store'), {
+        forceFormData: true,
+        onSuccess: () => {
+            pickedFiles.value = [];
+            form.reset();
+        },
+    });
+}
 </script>
 
 <template>
-  <Head title="New Print Request" />
+    <Head title="New Print Request" />
 
-  <div class="relative min-h-screen overflow-hidden text-white">
-    <!-- Synthwave background -->
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
-      <div class="absolute inset-0 bg-gradient-to-br from-[#0b002b] via-[#12002f] to-[#340058]" />
-      <div class="absolute inset-x-0 bottom-0 h-1/2 [background:radial-gradient(80%_50%_at_50%_120%,rgba(255,0,204,0.6),transparent_70%)]" />
-      <div class="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.09)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.09)_1px,transparent_1px)]; [background-size:40px_40px]; [background-position:center]" />
-    </div>
+    <LuminousAppLayout
+        active-nav="new"
+        eyebrow="New Request"
+        title="Upload first, then dial in the details."
+        intro="This flow is built for mobile: source link, files, instructions, and limits all stay visible before you submit."
+        :show-dock="false"
+    >
+        <form class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]" @submit.prevent="submit">
+            <section class="space-y-6">
+                <article class="luminous-panel px-5 py-5">
+                    <label for="source_url" class="field-label">Source Link</label>
+                    <input
+                        id="source_url"
+                        v-model="form.source_url"
+                        type="url"
+                        placeholder="https://printables.com/model/..."
+                        class="luminous-input"
+                    />
+                    <p v-if="form.errors.source_url" class="mt-2 text-sm text-rose-300">{{ form.errors.source_url }}</p>
+                </article>
 
-    <!-- Top navigation -->
-    <TopNav />
+                <article class="luminous-panel px-5 py-5">
+                    <label for="files" class="field-label">Upload Files</label>
+                    <label
+                        for="files"
+                        class="block cursor-pointer rounded-[1.7rem] border border-dashed border-white/10 bg-white/[0.03] px-5 py-8 transition-colors hover:bg-white/[0.05]"
+                    >
+                        <div class="mx-auto flex max-w-sm flex-col items-center text-center">
+                            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                <Upload class="h-6 w-6" />
+                            </div>
+                            <h2 class="mt-5 font-display text-2xl font-semibold tracking-tight text-white">Drag, drop, or tap to browse.</h2>
+                            <p class="mt-3 text-sm leading-6 text-muted-soft">
+                                Upload STL, 3MF, OBJ, F3D, F3Z, STEP, STP, IGES, or IGS files. The request needs either files or a source link.
+                            </p>
+                            <div class="mt-5 flex flex-wrap items-center justify-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-white/45">
+                                <span class="rounded-full bg-white/[0.05] px-3 py-2">Max {{ props.constraints.maxFiles }} files</span>
+                                <span class="rounded-full bg-white/[0.05] px-3 py-2">50 MB total</span>
+                            </div>
+                        </div>
+                    </label>
+                    <input id="files" type="file" multiple class="sr-only" @change="onPickFiles" />
 
-    <!-- Content -->
-    <main class="relative z-10 mx-auto max-w-3xl px-6 pb-24 pt-10">
-      <section class="rounded-lg border border-white/10 bg-white/5 p-6 backdrop-blur">
-        <h1 class="text-xl font-semibold">New Print Request</h1>
-        <p class="mt-2 text-sm text-white/80">
-          At least one source is required: enter a source URL or upload files. Allowed extensions: {{ props.constraints.allowedExtensions.join(', ') }}.
-        </p>
-        <p class="mt-1 text-xs text-white/60">
-          Per-file size up to 50 MB. Max files {{ props.constraints.maxFiles }}. Total size ≤ 50 MB.
-        </p>
+                    <div class="mt-4 space-y-3">
+                        <div
+                            v-for="file in pickedFiles"
+                            :key="file.name + file.size"
+                            class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-3 text-sm"
+                        >
+                            <div class="min-w-0">
+                                <p class="truncate font-medium text-white">{{ file.name }}</p>
+                                <p class="mt-1 text-xs uppercase tracking-[0.16em] text-white/42">{{ formatFileSize(file.size) }}</p>
+                            </div>
+                        </div>
 
-        <form @submit.prevent="submit" class="mt-6 space-y-4">
-          <div>
-            <label for="source_url" class="mb-1 block text-sm font-medium text-white/90">Source URL</label>
-            <input
-              id="source_url"
-              v-model="form.source_url"
-              type="url"
-              placeholder="https://..."
-              class="block w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 outline-none ring-0 transition focus:border-white/40"
-            />
-            <p v-if="form.errors.source_url" class="mt-1 text-sm text-pink-300">{{ form.errors.source_url }}</p>
-          </div>
+                        <p v-if="form.errors.files" class="text-sm text-rose-300">{{ form.errors.files }}</p>
+                    </div>
+                </article>
 
-          <div>
-            <label for="files" class="mb-1 block text-sm font-medium text-white/90">Files</label>
-            <input
-              id="files"
-              type="file"
-              multiple
-              @change="onPickFiles"
-              class="block w-full cursor-pointer rounded-md border border-dashed border-white/20 bg-white/10 px-3 py-6 text-sm text-white outline-none transition focus:border-white/40"
-            />
-            <div class="mt-2 text-sm text-white/70">
-              <span>{{ fileCount }} files selected; Total {{ totalMB }} MB</span>
-              <span v-if="!withinCount" class="ml-2 text-pink-300">Max {{ props.constraints.maxFiles }} files.</span>
-              <span v-if="!withinTotal" class="ml-2 text-pink-300">Total exceeds 50 MB.</span>
-              <span v-if="!hasSource" class="ml-2 text-pink-300">Provide a URL or at least one file.</span>
-            </div>
-            <p v-if="form.errors.files" class="mt-1 text-sm text-pink-300">{{ form.errors.files }}</p>
-          </div>
+                <article class="luminous-panel px-5 py-5">
+                    <label for="instructions" class="field-label">Instructions</label>
+                    <textarea
+                        id="instructions"
+                        v-model="form.instructions"
+                        rows="6"
+                        placeholder="Material, infill, color, timing, tolerances, or anything else the print queue should know."
+                        class="luminous-textarea"
+                    />
+                    <p v-if="form.errors.instructions" class="mt-2 text-sm text-rose-300">{{ form.errors.instructions }}</p>
+                </article>
+            </section>
 
-          <div>
-            <label for="instructions" class="mb-1 block text-sm font-medium text-white/90">Instructions</label>
-            <textarea
-              id="instructions"
-              v-model="form.instructions"
-              rows="5"
-              class="block w-full rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 outline-none ring-0 transition focus:border-white/40"
-            />
-            <p v-if="form.errors.instructions" class="mt-1 text-sm text-pink-300">{{ form.errors.instructions }}</p>
-          </div>
+            <aside class="space-y-6">
+                <article class="luminous-panel px-5 py-5">
+                    <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Request Summary</p>
+                    <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Everything needed to submit.</h2>
 
-          <button
-            type="submit"
-            :disabled="!canSubmit"
-            class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-fuchsia-600/90 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-fuchsia-500/90 disabled:opacity-60"
-          >
-            <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-            <span>{{ form.processing ? 'Submitting…' : 'Submit Request' }}</span>
-          </button>
+                    <dl class="mt-6 space-y-3">
+                        <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
+                            <dt class="text-sm text-muted-soft">Files selected</dt>
+                            <dd class="font-display text-2xl text-white">{{ fileCount }}</dd>
+                        </div>
+                        <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
+                            <dt class="text-sm text-muted-soft">Current total</dt>
+                            <dd class="font-display text-2xl text-secondary">{{ totalSize }}</dd>
+                        </div>
+                        <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
+                            <dt class="text-sm text-muted-soft">Source provided</dt>
+                            <dd class="text-sm font-semibold uppercase tracking-[0.18em]" :class="hasSource ? 'text-primary' : 'text-white/45'">
+                                {{ hasSource ? 'Ready' : 'Required' }}
+                            </dd>
+                        </div>
+                    </dl>
+
+                    <div class="mt-6 space-y-2 text-sm leading-6 text-muted-soft">
+                        <p v-if="!withinCount">You have selected more than {{ props.constraints.maxFiles }} files.</p>
+                        <p v-if="!withinTotal">The total upload size is above 50 MB.</p>
+                        <p v-if="!hasSource">Add a source link or upload at least one file before submitting.</p>
+                    </div>
+                </article>
+
+                <article class="luminous-panel px-5 py-5">
+                    <div class="flex items-start gap-3">
+                        <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary/12 text-secondary">
+                            <WandSparkles class="h-4 w-4" />
+                        </div>
+                        <div>
+                            <h2 class="font-display text-xl font-semibold tracking-tight text-white">Helpful tips</h2>
+                            <ul class="mt-4 space-y-3 text-sm leading-6 text-muted-soft">
+                                <li>Use the instructions field for materials, finish, or support preferences.</li>
+                                <li>Keep the source link when the original model page has context worth preserving.</li>
+                                <li>Pending requests can still be edited after submission.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="luminous-panel px-5 py-5">
+                    <button
+                        type="submit"
+                        :disabled="!canSubmit"
+                        class="pill-button pill-button-primary w-full disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                        <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
+                        {{ form.processing ? 'Submitting request' : 'Submit request' }}
+                    </button>
+                    <p class="mt-3 text-center text-xs uppercase tracking-[0.18em] text-white/40">
+                        Files stay private to this request.
+                    </p>
+                </article>
+            </aside>
         </form>
-      </section>
-
-      <p class="mt-4 text-center text-xs text-white/70">
-        You can update or add files after creating the request while it's pending.
-      </p>
-    </main>
-  </div>
+    </LuminousAppLayout>
 </template>

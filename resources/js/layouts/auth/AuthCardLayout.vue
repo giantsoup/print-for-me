@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import BrandMark from '@/components/luminous/BrandMark.vue';
 import { Link } from '@inertiajs/vue3';
 
 defineProps<{
@@ -10,26 +9,27 @@ defineProps<{
 </script>
 
 <template>
-    <div class="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
-        <div class="flex w-full max-w-md flex-col gap-6">
-            <Link :href="route('home')" class="flex items-center gap-2 self-center font-medium">
-                <div class="flex h-9 w-9 items-center justify-center">
-                    <AppLogoIcon class="size-9 fill-current text-black dark:text-white" />
+    <div class="luminous-shell">
+        <div class="relative z-10 flex min-h-screen flex-col justify-center px-6 py-10">
+            <div class="mx-auto flex w-full max-w-lg flex-col gap-6">
+                <div class="flex justify-center">
+                    <Link :href="route('home')">
+                        <BrandMark />
+                    </Link>
                 </div>
-            </Link>
 
-            <div class="flex flex-col gap-6">
-                <Card class="rounded-xl">
-                    <CardHeader class="px-10 pt-8 pb-0 text-center">
-                        <CardTitle class="text-xl">{{ title }}</CardTitle>
-                        <CardDescription>
+                <div class="luminous-panel px-6 py-8 sm:px-8">
+                    <div v-if="title || description" class="mb-8 text-center">
+                        <h1 v-if="title" class="font-display text-3xl font-semibold tracking-tight text-gradient-filament">
+                            {{ title }}
+                        </h1>
+                        <p v-if="description" class="mt-3 text-sm leading-6 text-muted-soft">
                             {{ description }}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent class="px-10 py-8">
-                        <slot />
-                    </CardContent>
-                </Card>
+                        </p>
+                    </div>
+
+                    <slot />
+                </div>
             </div>
         </div>
     </div>
