@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Luminous Studio | Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-tertiary-fixed": "#002f3a",
+                        "tertiary": "#77dfff",
+                        "on-tertiary-fixed-variant": "#004e5f",
+                        "primary-fixed-dim": "#00ec90",
+                        "surface": "#0e0e0e",
+                        "inverse-primary": "#006d40",
+                        "on-primary-fixed-variant": "#00653b",
+                        "secondary-container": "#0058ca",
+                        "tertiary-fixed-dim": "#00c6ee",
+                        "surface-container-low": "#131313",
+                        "surface-container-highest": "#262626",
+                        "inverse-surface": "#fcf9f8",
+                        "surface-dim": "#0e0e0e",
+                        "on-secondary": "#001d4e",
+                        "error": "#ff716c",
+                        "tertiary-dim": "#00c6ee",
+                        "on-surface-variant": "#adaaaa",
+                        "inverse-on-surface": "#565555",
+                        "primary": "#a1ffc2",
+                        "surface-variant": "#262626",
+                        "on-primary-container": "#005b34",
+                        "on-tertiary-container": "#004554",
+                        "surface-container": "#1a1a1a",
+                        "secondary": "#6e9bff",
+                        "on-secondary-container": "#f7f7ff",
+                        "on-primary": "#00643a",
+                        "on-error-container": "#ffa8a3",
+                        "on-error": "#490006",
+                        "surface-container-lowest": "#000000",
+                        "error-container": "#9f0519",
+                        "surface-container-high": "#20201f",
+                        "outline": "#767575",
+                        "error-dim": "#d7383b",
+                        "primary-fixed": "#00fc9a",
+                        "tertiary-container": "#04d5ff",
+                        "on-background": "#ffffff",
+                        "on-surface": "#ffffff",
+                        "on-tertiary": "#004e5f",
+                        "outline-variant": "#484847",
+                        "on-secondary-fixed": "#003076",
+                        "secondary-fixed-dim": "#acc3ff",
+                        "surface-bright": "#2c2c2c",
+                        "surface-tint": "#a1ffc2",
+                        "background": "#0e0e0e",
+                        "on-primary-fixed": "#004627",
+                        "secondary-dim": "#0f6df3",
+                        "primary-container": "#00fc9a",
+                        "primary-dim": "#00ec90",
+                        "secondary-fixed": "#c0d1ff",
+                        "tertiary-fixed": "#04d5ff",
+                        "on-secondary-fixed-variant": "#004baf"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filament-gradient {
+            background: linear-gradient(135deg, #a1ffc2 0%, #00fc9a 100%);
+        }
+        .glass-card {
+            background: rgba(26, 26, 26, 0.7);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary">
+<!-- TopAppBar Shell -->
+<header class="w-full top-0 sticky bg-[#0e0e0e] z-50 shadow-[0_8px_32px_rgba(0,255,156,0.04)]">
+<div class="flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#00FF9C] text-2xl" data-icon="layers">layers</span>
+<h1 class="font-['Space_Grotesk'] font-bold tracking-tighter text-xl text-[#00FF9C]">Luminous Studio</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center hover:bg-[#20201f] transition-colors active:scale-95">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="notifications">notifications</span>
+</button>
+<div class="w-9 h-9 rounded-full overflow-hidden border border-outline-variant/30">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="Close up professional user profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFnnERXme-Nl_mxGi1gcMFkdjnUCathi3KzAqXjroaB1SdO0U7eozDoxf98qWhD--NhAGYiPtICZbDeqLYTOXt3XW0_mxYyvqRat7HD4bsKFawTdONj-jUHLn0SrKbjlgGun5d7GIi2ts5JSFtF_hzx7Bo7roXYuPaOUgkZpwJKCkEtkj-W8VnhIVGJgw2cg2W3rmXp-AKse5T0hEcOjSXtbygT4QiIbkeq7lTfe05bRhNhXUI_pQZ_aNHPAVcUmHXGPm7g75CXstS"/>
+</div>
+</div>
+</div>
+</header>
+<main class="px-6 pt-8 pb-32 space-y-10 max-w-5xl mx-auto">
+<!-- Header Section -->
+<section class="space-y-1">
+<p class="font-label text-xs uppercase tracking-[0.2em] text-on-surface-variant font-medium">System Overview</p>
+<h2 class="font-headline text-3xl font-bold tracking-tight">Workshop Dashboard</h2>
+</section>
+<!-- Metrics Section: Bento Style -->
+<section class="grid grid-cols-2 md:grid-cols-3 gap-4">
+<!-- Metric 1 -->
+<div class="col-span-1 bg-surface-container rounded-xl p-5 border-l-4 border-primary">
+<span class="material-symbols-outlined text-primary mb-3 block" data-icon="precision_manufacturing">precision_manufacturing</span>
+<p class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Active Prints</p>
+<p class="font-headline text-3xl font-bold">12</p>
+</div>
+<!-- Metric 2 -->
+<div class="col-span-1 bg-surface-container rounded-xl p-5 border-l-4 border-tertiary">
+<span class="material-symbols-outlined text-tertiary mb-3 block" data-icon="pending_actions">pending_actions</span>
+<p class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Pending Approvals</p>
+<p class="font-headline text-3xl font-bold">08</p>
+</div>
+<!-- Metric 3 -->
+<div class="col-span-2 md:col-span-1 bg-surface-container rounded-xl p-5 border-l-4 border-secondary">
+<div class="flex justify-between items-start">
+<div>
+<span class="material-symbols-outlined text-secondary mb-3 block" data-icon="weight">weight</span>
+<p class="font-label text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Total Volume</p>
+<p class="font-headline text-3xl font-bold">142.8<span class="text-sm font-normal text-on-surface-variant ml-1">kg</span></p>
+</div>
+<div class="bg-secondary/10 px-2 py-1 rounded text-[10px] text-secondary font-bold">+12%</div>
+</div>
+</div>
+</section>
+<!-- Printer Status Section -->
+<section class="space-y-6">
+<div class="flex items-center justify-between">
+<h3 class="font-headline text-xl font-semibold tracking-tight">Printer Fleet</h3>
+<button class="text-primary text-sm font-label flex items-center gap-1 hover:underline">
+                    View All <span class="material-symbols-outlined text-sm" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Printer Card 1: Busy -->
+<div class="glass-card rounded-xl p-6 relative overflow-hidden">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h4 class="font-headline font-bold text-lg">LUM-001</h4>
+<p class="text-xs text-on-surface-variant">Ultimaker S5 Pro Bundle</p>
+</div>
+<div class="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider">Busy 78%</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[10px] uppercase tracking-tighter text-on-surface-variant font-medium">
+<span>Progress</span>
+<span>04:12:00 left</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full filament-gradient w-[78%] relative">
+<div class="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full blur-[4px]"></div>
+</div>
+</div>
+</div>
+<div class="mt-6 flex items-center gap-4">
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border border-surface bg-surface-container-highest flex items-center justify-center text-[10px] font-bold">JD</div>
+</div>
+<p class="text-[11px] text-on-surface-variant">Printing: <span class="text-on-surface font-medium">Engine_Housing_V2.stl</span></p>
+</div>
+</div>
+<!-- Printer Card 2: Idle -->
+<div class="bg-surface-container-low rounded-xl p-6 border border-outline-variant/10">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h4 class="font-headline font-bold text-lg">LUM-002</h4>
+<p class="text-xs text-on-surface-variant">Formlabs Form 3B+</p>
+</div>
+<div class="px-3 py-1 bg-on-surface-variant/10 text-on-surface-variant rounded-full text-[10px] font-bold uppercase tracking-wider">Idle</div>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full"></div>
+<div class="mt-8">
+<button class="w-full py-3 bg-surface-container-high rounded-lg text-sm font-label font-bold text-on-surface hover:bg-surface-bright transition-colors">
+                            Assign New Task
+                        </button>
+</div>
+</div>
+<!-- Printer Card 3: Busy -->
+<div class="glass-card rounded-xl p-6 relative overflow-hidden">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h4 class="font-headline font-bold text-lg">LUM-003</h4>
+<p class="text-xs text-on-surface-variant">Prusa i3 MK3S+</p>
+</div>
+<div class="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider">Busy 32%</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[10px] uppercase tracking-tighter text-on-surface-variant font-medium">
+<span>Progress</span>
+<span>12:45:00 left</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full filament-gradient w-[32%] relative">
+<div class="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full blur-[4px]"></div>
+</div>
+</div>
+</div>
+<div class="mt-6 flex items-center gap-4">
+<div class="w-6 h-6 rounded-full border border-surface bg-tertiary-container/20 flex items-center justify-center text-[10px] font-bold text-tertiary">SA</div>
+<p class="text-[11px] text-on-surface-variant">Printing: <span class="text-on-surface font-medium">Architectural_Mesh.obj</span></p>
+</div>
+</div>
+</div>
+</section>
+<!-- Recent Activity Feed -->
+<section class="space-y-6">
+<h3 class="font-headline text-xl font-semibold tracking-tight">Recent Activity</h3>
+<div class="space-y-1">
+<!-- Activity Item 1 -->
+<div class="flex gap-4 p-4 hover:bg-surface-container/50 rounded-xl transition-colors group">
+<div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="check_circle">check_circle</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-0.5">
+<h5 class="font-headline font-medium text-sm">Print Completed</h5>
+<span class="text-[10px] text-on-surface-variant">2m ago</span>
+</div>
+<p class="text-sm text-on-surface-variant truncate">LUM-005 successfully finished <span class="text-on-surface font-medium">Dental_Bridge_V1</span>.</p>
+</div>
+</div>
+<!-- Activity Item 2 -->
+<div class="flex gap-4 p-4 hover:bg-surface-container/50 rounded-xl transition-colors group">
+<div class="flex-shrink-0 w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary text-xl" data-icon="person_add">person_add</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-0.5">
+<h5 class="font-headline font-medium text-sm">New User Request</h5>
+<span class="text-[10px] text-on-surface-variant">15m ago</span>
+</div>
+<p class="text-sm text-on-surface-variant truncate"><span class="text-on-surface font-medium">Marcus Chen</span> requested access to the SLA workshop.</p>
+</div>
+</div>
+<!-- Activity Item 3 -->
+<div class="flex gap-4 p-4 hover:bg-surface-container/50 rounded-xl transition-colors group">
+<div class="flex-shrink-0 w-10 h-10 rounded-full bg-error/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-xl" data-icon="report">report</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-0.5">
+<h5 class="font-headline font-medium text-sm text-error">Nozzle Clog Detected</h5>
+<span class="text-[10px] text-on-surface-variant">1h ago</span>
+</div>
+<p class="text-sm text-on-surface-variant truncate">Critical alert on <span class="text-on-surface font-medium">LUM-004</span>. Print paused automatically.</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#0e0e0e]/90 backdrop-blur-xl border-t border-[#484847]/15 md:hidden">
+<!-- Active Tab: Dashboard -->
+<a class="flex flex-col items-center justify-center text-[#00FF9C] bg-[#00FF9C]/10 rounded-full px-5 py-2 active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-['Manrope'] text-[10px] font-medium uppercase tracking-widest mt-1">Dashboard</span>
+</a>
+<!-- Inactive Tab: Requests -->
+<a class="flex flex-col items-center justify-center text-gray-500 hover:text-[#00FF9C] transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="view_in_ar">view_in_ar</span>
+<span class="font-['Manrope'] text-[10px] font-medium uppercase tracking-widest mt-1">Requests</span>
+</a>
+<!-- Inactive Tab: Settings -->
+<a class="flex flex-col items-center justify-center text-gray-500 hover:text-[#00FF9C] transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-['Manrope'] text-[10px] font-medium uppercase tracking-widest mt-1">Settings</span>
+</a>
+</nav>
+<!-- FAB (Suppressed on dashboard as per rules, but included if needed for tasks) -->
+<button class="fixed bottom-24 right-6 w-14 h-14 filament-gradient rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(161,255,194,0.3)] z-40 active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-on-primary font-bold text-2xl" data-icon="add">add</span>
+</button>
+</body></html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Luminous Layer | Access Request</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-dim": "#00ec90",
+                        "on-error": "#490006",
+                        "tertiary-container": "#04d5ff",
+                        "surface-container-low": "#131313",
+                        "primary": "#a1ffc2",
+                        "surface-container-highest": "#262626",
+                        "on-secondary-fixed": "#003076",
+                        "error": "#ff716c",
+                        "background": "#0e0e0e",
+                        "inverse-primary": "#006d40",
+                        "surface-bright": "#2c2c2c",
+                        "on-primary": "#00643a",
+                        "on-error-container": "#ffa8a3",
+                        "error-container": "#9f0519",
+                        "surface": "#0e0e0e",
+                        "on-tertiary": "#004e5f",
+                        "tertiary": "#77dfff",
+                        "surface-container-lowest": "#000000",
+                        "outline": "#767575",
+                        "secondary": "#6e9bff",
+                        "on-tertiary-fixed": "#002f3a",
+                        "on-tertiary-container": "#004554",
+                        "on-surface": "#ffffff",
+                        "surface-dim": "#0e0e0e",
+                        "primary-fixed": "#00fc9a",
+                        "surface-variant": "#262626",
+                        "on-secondary-fixed-variant": "#004baf",
+                        "secondary-container": "#0058ca",
+                        "tertiary-dim": "#00c6ee",
+                        "outline-variant": "#484847",
+                        "on-background": "#ffffff",
+                        "inverse-surface": "#fcf9f8",
+                        "tertiary-fixed": "#04d5ff",
+                        "on-primary-fixed-variant": "#00653b",
+                        "secondary-dim": "#0f6df3",
+                        "on-primary-container": "#005b34",
+                        "surface-container-high": "#20201f",
+                        "surface-container": "#1a1a1a",
+                        "surface-tint": "#a1ffc2",
+                        "error-dim": "#d7383b",
+                        "tertiary-fixed-dim": "#00c6ee",
+                        "on-secondary": "#001d4e",
+                        "secondary-fixed-dim": "#acc3ff",
+                        "on-tertiary-fixed-variant": "#004e5f",
+                        "inverse-on-surface": "#565555",
+                        "primary-container": "#00fc9a",
+                        "secondary-fixed": "#c0d1ff",
+                        "on-primary-fixed": "#004627",
+                        "primary-fixed-dim": "#00ec90",
+                        "on-secondary-container": "#f7f7ff",
+                        "on-surface-variant": "#adaaaa"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filament-glow {
+            box-shadow: 0 0 20px rgba(161, 255, 194, 0.15);
+        }
+        .bg-mesh {
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #0e0e0e 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body selection:bg-primary selection:text-on-primary min-h-screen flex flex-col">
+<!-- Top Navigation Suppressed for Login/Auth Flow -->
+<header class="w-full top-0 sticky bg-[#0e0e0e] flex items-center justify-between px-6 py-6 z-50">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 flex flex-col items-center justify-center">
+<div class="w-4 h-4 bg-primary rotate-45 mb-[-4px]"></div>
+<div class="flex gap-1">
+<div class="w-4 h-4 bg-primary-dim rotate-45 opacity-60"></div>
+<div class="w-4 h-4 bg-primary-fixed-dim rotate-45 opacity-30"></div>
+</div>
+</div>
+<span class="text-xl font-headline font-bold tracking-tighter text-[#00FF9C]">THE LUMINOUS LAYER</span>
+</div>
+</header>
+<main class="flex-1 flex flex-col items-center justify-center px-6 pb-20 bg-mesh relative overflow-hidden">
+<!-- Background Ambient Glow -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 blur-[120px] rounded-full -z-10"></div>
+<div class="w-full max-w-md">
+<!-- Hero Icon -->
+<div class="mb-10 text-center">
+<div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-surface-container-high mb-6 relative">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="door_open">door_open</span>
+<div class="absolute inset-0 rounded-full border border-primary/20 scale-125"></div>
+</div>
+<h1 class="text-4xl md:text-5xl font-headline font-bold tracking-tighter text-on-surface mb-4">
+                    Enter the Workshop
+                </h1>
+<p class="text-on-surface-variant text-lg max-w-xs mx-auto">
+                    Access our private 3D printing network via magic link.
+                </p>
+</div>
+<!-- Magic Link Form -->
+<div class="space-y-6">
+<div class="group">
+<label class="block text-xs font-medium uppercase tracking-widest text-on-surface-variant mb-3 ml-1" for="email">
+                        Workspace Email
+                    </label>
+<div class="relative">
+<input class="w-full bg-surface-container-high border-none rounded-b-xl px-6 py-5 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/50 transition-all outline-none" id="email" placeholder="name@workshop.xyz" type="email"/>
+<div class="absolute bottom-0 left-0 w-full h-[2px] bg-outline-variant group-focus-within:bg-primary transition-colors"></div>
+</div>
+</div>
+<button class="w-full py-5 px-8 rounded-full bg-gradient-to-br from-[#00FF9C] to-[#005b34] text-on-primary font-headline font-bold uppercase tracking-widest filament-glow hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
+<span>Send magic link</span>
+<span class="material-symbols-outlined text-xl" data-icon="bolt">bolt</span>
+</button>
+<!-- Information Layer -->
+<div class="mt-12 p-6 rounded-xl bg-surface-container-low border border-outline-variant/10 space-y-4">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-tertiary text-lg" data-icon="timer">timer</span>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+<span class="text-tertiary font-medium">10 Minute Window:</span> Your magic link will expire shortly after being sent to ensure network security.
+                        </p>
+</div>
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="verified_user">verified_user</span>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+<span class="text-secondary font-medium">Whitelisted Access:</span> Only pre-authorized studio emails will receive an access token.
+                        </p>
+</div>
+</div>
+</div>
+<!-- Footer Help -->
+<div class="mt-12 text-center">
+<p class="text-xs text-on-surface-variant/60 font-medium">
+                    Need an invite? Reach out to the <a class="text-primary hover:underline underline-offset-4" href="#">Studio Lead</a>
+</p>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Suppressed as per "Task-Focused" rule for Login/Magic Link pages -->
+<!-- Ambient Texture Layer -->
+<div class="fixed inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay">
+<img alt="" class="w-full h-full object-cover" data-alt="Abstract noise and dark grain texture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCe9fYvTr_HKvDGsjyCca8pl4NBo1Vk186aPe2cZniBiy3mlj_HCDvWFBtmSjwNfj8-Vn-Zo5u0Bwk6OKYWaZM0FfRnW3pMZLZfs9fACarzhVkJncn2UQZ1RbhH38P9-U-Jo89cLjlpyNXOOmC5TQHeTxETOCMw9ghiR2gkyNPKQMy5gztLUUF8qY50_qsLjUshfvXqBtU0ivhxYJV1_YrKvtdBZpeaHz60s0YuRkF_XKyVyUHsDRUa2BjLKdeaStL8y30_jvFCPqC"/>
+</div>
+</body></html>

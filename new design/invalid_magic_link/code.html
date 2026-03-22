@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Link Expired | THE LUMINOUS LAYER</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@200;300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-dim": "#00ec90",
+              "on-error": "#490006",
+              "tertiary-container": "#04d5ff",
+              "surface-container-low": "#131313",
+              "primary": "#a1ffc2",
+              "surface-container-highest": "#262626",
+              "on-secondary-fixed": "#003076",
+              "error": "#ff716c",
+              "background": "#0e0e0e",
+              "inverse-primary": "#006d40",
+              "surface-bright": "#2c2c2c",
+              "on-primary": "#00643a",
+              "on-error-container": "#ffa8a3",
+              "error-container": "#9f0519",
+              "surface": "#0e0e0e",
+              "on-tertiary": "#004e5f",
+              "tertiary": "#77dfff",
+              "surface-container-lowest": "#000000",
+              "outline": "#767575",
+              "secondary": "#6e9bff",
+              "on-tertiary-fixed": "#002f3a",
+              "on-tertiary-container": "#004554",
+              "on-surface": "#ffffff",
+              "surface-dim": "#0e0e0e",
+              "primary-fixed": "#00fc9a",
+              "surface-variant": "#262626",
+              "on-secondary-fixed-variant": "#004baf",
+              "secondary-container": "#0058ca",
+              "tertiary-dim": "#00c6ee",
+              "outline-variant": "#484847",
+              "on-background": "#ffffff",
+              "inverse-surface": "#fcf9f8",
+              "tertiary-fixed": "#04d5ff",
+              "on-primary-fixed-variant": "#00653b",
+              "secondary-dim": "#0f6df3",
+              "on-primary-container": "#005b34",
+              "surface-container-high": "#20201f",
+              "surface-container": "#1a1a1a",
+              "surface-tint": "#a1ffc2",
+              "error-dim": "#d7383b",
+              "tertiary-fixed-dim": "#00c6ee",
+              "on-secondary": "#001d4e",
+              "secondary-fixed-dim": "#acc3ff",
+              "on-tertiary-fixed-variant": "#004e5f",
+              "inverse-on-surface": "#565555",
+              "primary-container": "#00fc9a",
+              "secondary-fixed": "#c0d1ff",
+              "on-primary-fixed": "#004627",
+              "primary-fixed-dim": "#00ec90",
+              "on-secondary-container": "#f7f7ff",
+              "on-surface-variant": "#adaaaa"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glow-error {
+            box-shadow: 0 0 40px rgba(215, 56, 59, 0.1);
+        }
+        .filament-gradient {
+            background: linear-gradient(135deg, #a1ffc2 0%, #00fc9a 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body min-h-screen flex flex-col items-center justify-center p-6 selection:bg-primary/30">
+<!-- Brand Header (TopAppBar) -->
+<header class="w-full top-0 sticky flex items-center justify-between px-6 py-8 bg-[#0e0e0e]">
+<div class="flex items-center gap-2">
+<div class="flex flex-col gap-0.5">
+<div class="w-4 h-4 bg-primary rounded-sm transform rotate-45"></div>
+</div>
+<span class="text-xl font-headline font-bold tracking-tighter text-[#00FF9C]">THE LUMINOUS LAYER</span>
+</div>
+<div class="material-symbols-outlined text-gray-500">door_open</div>
+</header>
+<main class="flex-1 w-full max-w-md flex flex-col items-center justify-center gap-12">
+<!-- Error Content Card -->
+<div class="w-full bg-surface-container rounded-xl p-8 flex flex-col items-center text-center glow-error">
+<!-- Icon with Ambient Glow -->
+<div class="relative mb-8">
+<div class="absolute inset-0 bg-error-dim/20 blur-2xl rounded-full"></div>
+<div class="relative w-20 h-20 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-4xl" style="font-variation-settings: 'FILL' 1;">history_toggle_off</span>
+</div>
+</div>
+<!-- Typography Stack -->
+<h1 class="font-headline text-2xl font-bold tracking-tight mb-3 text-on-surface">
+                Link No Longer Active
+            </h1>
+<p class="text-on-surface-variant font-body text-sm leading-relaxed mb-10 px-4">
+                This magic link is invalid or has expired. For your security, access tokens are only temporary.
+            </p>
+<!-- CTA Section -->
+<div class="w-full space-y-4">
+<button class="filament-gradient w-full py-4 rounded-full font-label font-bold text-on-primary text-sm tracking-wide shadow-lg shadow-primary/10 active:scale-[0.98] transition-all">
+                    REQUEST NEW LINK
+                </button>
+</div>
+</div>
+<!-- Footer Link -->
+<a class="group flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors duration-300" href="/">
+<span class="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
+<span class="font-label text-sm font-medium">Back to home</span>
+</a>
+</main>
+<!-- Decorative Printing Elements (Subtle Background Detail) -->
+<div class="fixed bottom-0 left-0 w-full h-1 bg-surface-container-highest">
+<div class="h-full w-1/3 bg-error-dim blur-[1px]"></div>
+</div>
+<!-- Background Atmospheric Patterns -->
+<div class="fixed top-1/4 -left-20 w-64 h-64 bg-primary/5 blur-[120px] rounded-full pointer-events-none"></div>
+<div class="fixed bottom-1/4 -right-20 w-64 h-64 bg-error-dim/5 blur-[120px] rounded-full pointer-events-none"></div>
+<!-- Navigation suppressed for focused error state -->
+</body></html>

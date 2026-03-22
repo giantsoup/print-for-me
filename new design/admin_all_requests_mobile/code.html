@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Luminous Studio | Admin Requests</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-tertiary-fixed": "#002f3a",
+                        "tertiary": "#77dfff",
+                        "on-tertiary-fixed-variant": "#004e5f",
+                        "primary-fixed-dim": "#00ec90",
+                        "surface": "#0e0e0e",
+                        "inverse-primary": "#006d40",
+                        "on-primary-fixed-variant": "#00653b",
+                        "secondary-container": "#0058ca",
+                        "tertiary-fixed-dim": "#00c6ee",
+                        "surface-container-low": "#131313",
+                        "surface-container-highest": "#262626",
+                        "inverse-surface": "#fcf9f8",
+                        "surface-dim": "#0e0e0e",
+                        "on-secondary": "#001d4e",
+                        "error": "#ff716c",
+                        "tertiary-dim": "#00c6ee",
+                        "on-surface-variant": "#adaaaa",
+                        "inverse-on-surface": "#565555",
+                        "primary": "#a1ffc2",
+                        "surface-variant": "#262626",
+                        "on-primary-container": "#005b34",
+                        "on-tertiary-container": "#004554",
+                        "surface-container": "#1a1a1a",
+                        "secondary": "#6e9bff",
+                        "on-secondary-container": "#f7f7ff",
+                        "on-primary": "#00643a",
+                        "on-error-container": "#ffa8a3",
+                        "on-error": "#490006",
+                        "surface-container-lowest": "#000000",
+                        "error-container": "#9f0519",
+                        "surface-container-high": "#20201f",
+                        "outline": "#767575",
+                        "error-dim": "#d7383b",
+                        "primary-fixed": "#00fc9a",
+                        "tertiary-container": "#04d5ff",
+                        "on-background": "#ffffff",
+                        "on-surface": "#ffffff",
+                        "on-tertiary": "#004e5f",
+                        "outline-variant": "#484847",
+                        "on-secondary-fixed": "#003076",
+                        "secondary-fixed-dim": "#acc3ff",
+                        "surface-bright": "#2c2c2c",
+                        "surface-tint": "#a1ffc2",
+                        "background": "#0e0e0e",
+                        "on-primary-fixed": "#004627",
+                        "secondary-dim": "#0f6df3",
+                        "primary-container": "#00fc9a",
+                        "primary-dim": "#00ec90",
+                        "secondary-fixed": "#c0d1ff",
+                        "tertiary-fixed": "#04d5ff",
+                        "on-secondary-fixed-variant": "#004baf"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0e0e0e;
+            color: #ffffff;
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- TopAppBar Shell -->
+<header class="bg-[#0e0e0e] dark:bg-[#0e0e0e] w-full top-0 sticky shadow-[0_8px_32px_rgba(0,255,156,0.04)] z-50 flex items-center justify-between px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#00FF9C]" data-icon="layers">layers</span>
+<h1 class="text-xl font-bold tracking-tighter text-[#00FF9C] font-['Space_Grotesk']">Luminous Studio</h1>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant hover:bg-[#20201f] transition-colors p-2 rounded-full cursor-pointer" data-icon="tune">tune</span>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-primary-container/20">
+<img alt="Admin" class="w-full h-full object-cover" data-alt="Portrait of a male workshop administrator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCarDModRRKmuuH6Oj-fXBqLZCOfKWkOSdKeHClZsqlHnGpXK7Aas9KoUWcseY76rAHZpcSwKaueOq1-ED4Rz15IO7lCJUXJca9bTL936i90EG_ri1kMbP8yWH6kZRdFzAitTeLQ2yMiLmDAiV4kdjm3y2-xVOJT6gI5tVDBvZAY51eZO49lowXapKZPbXud9bzO3ztNDMKuxTrw2jfF0lXyixxUwQ3101G7CVnkm73XzO8U_MKP7RnpQdn3pb7v3stQcvK5eCaPfW_"/>
+</div>
+</div>
+</header>
+<!-- Content Canvas -->
+<main class="flex-1 px-6 pt-8 pb-32 max-w-lg mx-auto w-full">
+<!-- Editorial Header -->
+<div class="mb-10">
+<h2 class="font-['Space_Grotesk'] text-4xl font-bold tracking-tight mb-2">All Requests</h2>
+<p class="text-on-surface-variant font-medium text-sm">Managing 12 active workshop filaments</p>
+</div>
+<!-- Filter Chips (Subtle Tonal) -->
+<div class="flex gap-2 mb-8 overflow-x-auto pb-2 no-scrollbar">
+<button class="bg-primary-container text-on-primary-container px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap">Active</button>
+<button class="bg-surface-container-high text-on-surface-variant px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap">Queue</button>
+<button class="bg-surface-container-high text-on-surface-variant px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest whitespace-nowrap">Completed</button>
+</div>
+<!-- Request List -->
+<div class="space-y-4">
+<!-- Card 1: Printing -->
+<div class="bg-surface-container rounded-xl p-5 border-l-4 border-primary shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-transform active:scale-95">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold tracking-widest text-primary font-['Space_Grotesk']">#PR-8821</span>
+<div class="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Printing</span>
+</div>
+</div>
+<h3 class="font-['Space_Grotesk'] text-lg font-bold mb-1">Vortex Gear V2</h3>
+<p class="text-on-surface-variant text-sm mb-4">User: Julian Drax</p>
+<div class="flex items-center gap-3">
+<div class="flex-1 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_8px_#00FF9C]" style="width: 65%"></div>
+</div>
+<span class="text-[10px] font-bold text-primary">65%</span>
+</div>
+</div>
+<!-- Card 2: Pending -->
+<div class="bg-surface-container rounded-xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-transform active:scale-95">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold tracking-widest text-tertiary font-['Space_Grotesk']">#PR-8824</span>
+<div class="flex items-center gap-1.5 bg-tertiary/10 text-tertiary px-3 py-1 rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Pending</span>
+</div>
+</div>
+<h3 class="font-['Space_Grotesk'] text-lg font-bold mb-1">Architectural Shell</h3>
+<p class="text-on-surface-variant text-sm mb-4">User: Sarah Chen</p>
+<div class="flex items-center justify-between text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+<span>Est. Time: 4h 20m</span>
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+</div>
+</div>
+<!-- Card 3: Complete -->
+<div class="bg-surface-container rounded-xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-transform active:scale-95">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold tracking-widest text-secondary font-['Space_Grotesk']">#PR-8799</span>
+<div class="flex items-center gap-1.5 bg-secondary/10 text-secondary px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-[12px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Complete</span>
+</div>
+</div>
+<h3 class="font-['Space_Grotesk'] text-lg font-bold mb-1">Drone Frame X</h3>
+<p class="text-on-surface-variant text-sm mb-4">User: Marcus Thorne</p>
+<button class="w-full bg-surface-container-high py-3 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-[#20201f] transition-colors">
+                    Notify Pick-up
+                </button>
+</div>
+<!-- Card 4: Pending -->
+<div class="bg-surface-container rounded-xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-transform active:scale-95">
+<div class="flex justify-between items-start mb-4">
+<span class="text-[10px] font-bold tracking-widest text-tertiary font-['Space_Grotesk']">#PR-8829</span>
+<div class="flex items-center gap-1.5 bg-tertiary/10 text-tertiary px-3 py-1 rounded-full">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Pending</span>
+</div>
+</div>
+<h3 class="font-['Space_Grotesk'] text-lg font-bold mb-1">Custom Keycaps</h3>
+<p class="text-on-surface-variant text-sm mb-4">User: Elena Rossi</p>
+<div class="flex items-center justify-between text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+<span>Est. Time: 1h 15m</span>
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB for new request (Contextual) -->
+<div class="fixed bottom-28 right-6 z-50">
+<button class="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-primary-container text-on-primary flex items-center justify-center shadow-[0_8px_32px_rgba(0,255,156,0.3)] active:scale-90 transition-transform">
+<span class="material-symbols-outlined font-bold" data-icon="add">add</span>
+</button>
+</div>
+<!-- BottomNavBar Shell -->
+<nav class="bg-[#0e0e0e]/90 backdrop-blur-xl fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 rounded-t-[24px] border-t border-[#484847]/15 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+<a class="flex flex-col items-center justify-center text-gray-500 hover:text-[#00FF9C] transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="dashboard">dashboard</span>
+<span class="font-['Manrope'] text-[10px] font-medium uppercase tracking-widest">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#00FF9C] bg-[#00FF9C]/10 rounded-full px-5 py-2 active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="view_in_ar">view_in_ar</span>
+<span class="font-['Manrope'] text-[10px] font-medium uppercase tracking-widest">Requests</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 hover:text-[#00FF9C] transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="settings">settings</span>
+<span class="font-['Manrope'] text-[10px] font-medium uppercase tracking-widest">Settings</span>
+</a>
+</nav>
+</body></html>

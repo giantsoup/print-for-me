@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Luminous | Print Requests</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-fixed-dim": "#acc3ff",
+              "tertiary-dim": "#00c6ee",
+              "surface-container-lowest": "#000000",
+              "on-surface": "#ffffff",
+              "on-error": "#490006",
+              "secondary-container": "#0058ca",
+              "inverse-on-surface": "#565555",
+              "on-primary-fixed": "#004627",
+              "inverse-surface": "#fcf9f8",
+              "surface-container-highest": "#262626",
+              "surface-container-high": "#20201f",
+              "on-error-container": "#ffa8a3",
+              "on-background": "#ffffff",
+              "outline-variant": "#484847",
+              "secondary": "#6e9bff",
+              "surface-dim": "#0e0e0e",
+              "on-secondary-container": "#f7f7ff",
+              "surface-tint": "#a1ffc2",
+              "on-primary-fixed-variant": "#00653b",
+              "primary-container": "#00fc9a",
+              "error-dim": "#d7383b",
+              "on-tertiary-container": "#004554",
+              "inverse-primary": "#006d40",
+              "error": "#ff716c",
+              "on-secondary-fixed-variant": "#004baf",
+              "tertiary-fixed-dim": "#00c6ee",
+              "tertiary-container": "#04d5ff",
+              "secondary-dim": "#0f6df3",
+              "error-container": "#9f0519",
+              "on-tertiary": "#004e5f",
+              "on-primary-container": "#005b34",
+              "surface": "#0e0e0e",
+              "tertiary": "#77dfff",
+              "primary-fixed-dim": "#00ec90",
+              "primary": "#a1ffc2",
+              "on-tertiary-fixed": "#002f3a",
+              "surface-container": "#1a1a1a",
+              "outline": "#767575",
+              "on-secondary-fixed": "#003076",
+              "on-secondary": "#001d4e",
+              "on-primary": "#00643a",
+              "on-tertiary-fixed-variant": "#004e5f",
+              "tertiary-fixed": "#04d5ff",
+              "background": "#0e0e0e",
+              "surface-container-low": "#131313",
+              "on-surface-variant": "#adaaaa",
+              "primary-dim": "#00ec90",
+              "primary-fixed": "#00fc9a",
+              "surface-variant": "#262626",
+              "surface-bright": "#2c2c2c",
+              "secondary-fixed": "#c0d1ff"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { background-color: #0e0e0e; color: #ffffff; font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-card { backdrop-filter: blur(12px); }
+        /* Chrome, Safari, Edge, Opera */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="bg-[#0e0e0e] w-full top-0 sticky z-50 shadow-[0_0_20px_rgba(0,255,156,0.05)]">
+<div class="flex justify-between items-center px-6 py-4 w-full max-w-7xl mx-auto">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#00FF9C] active:scale-95 duration-200 cursor-pointer">menu</span>
+<h1 class="text-2xl font-bold text-[#00FF9C] tracking-tighter font-headline">Luminous</h1>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex items-center gap-8 font-label text-sm font-medium">
+<a class="text-gray-500 hover:opacity-80 transition-opacity" href="#">Home</a>
+<a class="text-gray-500 hover:opacity-80 transition-opacity" href="#">New Request</a>
+<a class="text-[#00FF9C] hover:opacity-80 transition-opacity border-b border-[#00FF9C]/30 pb-1" href="#">My Requests</a>
+</nav>
+<div class="w-10 h-10 rounded-full overflow-hidden border border-white/10 active:scale-95 duration-200 cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="User profile avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDubaM95fmCKnZ2vWaqlqw7w0uOInXG94SKjycLg8GpJ0jEHJbJzm0w1sd6LmApw2hH0wPTZHy8Oy2VMWswbTM5Jh7F92Q6eyB6CxdXZhYRv6YSxmh3yXJUMxu5opcKw_Ni2dVzq4ijYXE-Q2Utk5eTRg82uiHD4RTIMRLt4GJtrG_fQUX3ZZJoDq09w0JokkxWI3C2CvsdVxy6UVNDXhzY7_winXn_zEUNP_pvQvOPqjpkI8I-xC7VbaQBFoAbqL-pF5Jc3JzmJ_qu"/>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-6 pt-12">
+<!-- Dashboard Header -->
+<section class="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h2 class="font-headline text-4xl font-bold tracking-tight mb-2">Print Requests</h2>
+<p class="text-on-surface-variant font-body">Manage and monitor your 3D manufacturing queue.</p>
+</div>
+<div class="flex gap-3">
+<button class="bg-surface-container-high text-on-surface px-6 py-3 rounded-full font-label text-sm font-medium hover:bg-surface-bright transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">filter_list</span>
+                    Filter
+                </button>
+<button class="bg-gradient-to-br from-primary to-primary-container text-on-primary px-8 py-3 rounded-full font-label text-sm font-bold tracking-wide uppercase shadow-[0_0_20px_rgba(161,255,194,0.15)] hover:opacity-90 transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">add</span>
+                    New Request
+                </button>
+</div>
+</section>
+<!-- Stats Grid (Subtle Bento Pattern) -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
+<div class="bg-surface-container-low p-6 rounded-xl">
+<span class="text-on-surface-variant text-xs font-label uppercase tracking-widest mb-1 block">Active</span>
+<div class="flex items-baseline gap-2">
+<span class="text-3xl font-headline font-bold text-primary">04</span>
+<span class="text-on-surface-variant text-sm font-body">Prints</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl">
+<span class="text-on-surface-variant text-xs font-label uppercase tracking-widest mb-1 block">Pending</span>
+<div class="flex items-baseline gap-2">
+<span class="text-3xl font-headline font-bold text-tertiary">12</span>
+<span class="text-on-surface-variant text-sm font-body">Queued</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl">
+<span class="text-on-surface-variant text-xs font-label uppercase tracking-widest mb-1 block">Completed</span>
+<div class="flex items-baseline gap-2">
+<span class="text-3xl font-headline font-bold text-secondary">158</span>
+<span class="text-on-surface-variant text-sm font-body">Total</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl relative overflow-hidden group">
+<div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<span class="text-on-surface-variant text-xs font-label uppercase tracking-widest mb-1 block">Quick Action</span>
+<div class="flex items-center gap-2 text-primary font-bold font-headline">
+<span>Export Data</span>
+<span class="material-symbols-outlined">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Table Container -->
+<div class="bg-surface-container rounded-2xl overflow-hidden shadow-2xl">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-high/50 text-on-surface-variant text-xs font-label uppercase tracking-widest">
+<th class="px-8 py-5 font-medium">Request ID</th>
+<th class="px-8 py-5 font-medium">Status</th>
+<th class="px-8 py-5 font-medium">Files</th>
+<th class="px-8 py-5 font-medium">Created Date</th>
+<th class="px-8 py-5 font-medium text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5 font-body">
+<!-- Row 1: Printing -->
+<tr class="group hover:bg-white/[0.02] transition-colors">
+<td class="px-8 py-6">
+<span class="font-headline font-bold text-on-surface">#PR-8821</span>
+<div class="text-xs text-on-surface-variant mt-1">Industrial Gears v2</div>
+</td>
+<td class="px-8 py-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                                    PRINTING
+                                </div>
+<div class="mt-2 w-32 h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary shadow-[0_0_8px_#a1ffc2]" style="width: 65%;"></div>
+</div>
+</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-lg">folder_open</span>
+<span class="text-on-surface font-medium">12 Files</span>
+</div>
+</td>
+<td class="px-8 py-6">
+<span class="text-on-surface-variant text-sm">Oct 24, 2023</span>
+</td>
+<td class="px-8 py-6 text-right">
+<button class="p-2 hover:bg-surface-container-highest rounded-full transition-colors text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Accepted -->
+<tr class="group hover:bg-white/[0.02] transition-colors">
+<td class="px-8 py-6">
+<span class="font-headline font-bold text-on-surface">#PR-8794</span>
+<div class="text-xs text-on-surface-variant mt-1">Ergo Mouse Shell</div>
+</td>
+<td class="px-8 py-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 text-secondary text-xs font-bold border border-secondary/20 uppercase tracking-wide">
+                                    ACCEPTED
+                                </div>
+</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-lg">description</span>
+<span class="text-on-surface font-medium">3 Files</span>
+</div>
+</td>
+<td class="px-8 py-6">
+<span class="text-on-surface-variant text-sm">Oct 22, 2023</span>
+</td>
+<td class="px-8 py-6 text-right">
+<button class="p-2 hover:bg-surface-container-highest rounded-full transition-colors text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Pending -->
+<tr class="group hover:bg-white/[0.02] transition-colors">
+<td class="px-8 py-6">
+<span class="font-headline font-bold text-on-surface">#PR-8780</span>
+<div class="text-xs text-on-surface-variant mt-1">Architectural Model</div>
+</td>
+<td class="px-8 py-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-tertiary/10 text-tertiary text-xs font-bold border border-tertiary/20 uppercase tracking-wide">
+                                    PENDING
+                                </div>
+</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-lg">inventory_2</span>
+<span class="text-on-surface font-medium">1 File</span>
+</div>
+</td>
+<td class="px-8 py-6">
+<span class="text-on-surface-variant text-sm">Oct 21, 2023</span>
+</td>
+<td class="px-8 py-6 text-right">
+<button class="p-2 hover:bg-surface-container-highest rounded-full transition-colors text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 4: Complete -->
+<tr class="group hover:bg-white/[0.02] transition-colors">
+<td class="px-8 py-6">
+<span class="font-headline font-bold text-on-surface">#PR-8712</span>
+<div class="text-xs text-on-surface-variant mt-1">Bushing Set A-4</div>
+</td>
+<td class="px-8 py-6">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 text-on-surface-variant text-xs font-bold border border-white/10 uppercase tracking-wide">
+                                    COMPLETE
+                                </div>
+</td>
+<td class="px-8 py-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-lg">folder_zip</span>
+<span class="text-on-surface font-medium">8 Files</span>
+</div>
+</td>
+<td class="px-8 py-6">
+<span class="text-on-surface-variant text-sm">Oct 18, 2023</span>
+</td>
+<td class="px-8 py-6 text-right">
+<button class="p-2 hover:bg-surface-container-highest rounded-full transition-colors text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-8 py-4 flex items-center justify-between bg-surface-container-highest/30 border-t border-white/5">
+<span class="text-on-surface-variant text-xs font-label uppercase">Showing 4 of 158 Requests</span>
+<div class="flex items-center gap-1">
+<button class="p-1.5 hover:bg-white/5 rounded-lg disabled:opacity-20" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-on-primary text-xs font-bold">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-on-surface-variant text-xs">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-on-surface-variant text-xs">3</button>
+<button class="p-1.5 hover:bg-white/5 rounded-lg">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-[#0e0e0e]/90 backdrop-blur-xl flex justify-around items-center px-4 pb-6 pt-3 border-t border-white/5 shadow-[0_-4px_24px_rgba(0,0,0,0.5)] rounded-t-2xl">
+<a class="flex flex-col items-center justify-center text-gray-500 hover:text-gray-300 transition-all" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-['Manrope'] text-[10px] font-medium mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 hover:text-gray-300 transition-all" href="#">
+<span class="material-symbols-outlined">add_box</span>
+<span class="font-['Manrope'] text-[10px] font-medium mt-1">New Request</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#00FF9C] transition-all duration-300" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">precision_manufacturing</span>
+<span class="font-['Manrope'] text-[10px] font-medium mt-1">My Requests</span>
+</a>
+</nav>
+</body></html>

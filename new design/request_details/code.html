@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Manrope:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-fixed-dim": "#acc3ff",
+              "tertiary-dim": "#00c6ee",
+              "surface-container-lowest": "#000000",
+              "on-surface": "#ffffff",
+              "on-error": "#490006",
+              "secondary-container": "#0058ca",
+              "inverse-on-surface": "#565555",
+              "on-primary-fixed": "#004627",
+              "inverse-surface": "#fcf9f8",
+              "surface-container-highest": "#262626",
+              "surface-container-high": "#20201f",
+              "on-error-container": "#ffa8a3",
+              "on-background": "#ffffff",
+              "outline-variant": "#484847",
+              "secondary": "#6e9bff",
+              "surface-dim": "#0e0e0e",
+              "on-secondary-container": "#f7f7ff",
+              "surface-tint": "#a1ffc2",
+              "on-primary-fixed-variant": "#00653b",
+              "primary-container": "#00fc9a",
+              "error-dim": "#d7383b",
+              "on-tertiary-container": "#004554",
+              "inverse-primary": "#006d40",
+              "error": "#ff716c",
+              "on-secondary-fixed-variant": "#004baf",
+              "tertiary-fixed-dim": "#00c6ee",
+              "tertiary-container": "#04d5ff",
+              "secondary-dim": "#0f6df3",
+              "error-container": "#9f0519",
+              "on-tertiary": "#004e5f",
+              "on-primary-container": "#005b34",
+              "surface": "#0e0e0e",
+              "tertiary": "#77dfff",
+              "primary-fixed-dim": "#00ec90",
+              "primary": "#a1ffc2",
+              "on-tertiary-fixed": "#002f3a",
+              "surface-container": "#1a1a1a",
+              "outline": "#767575",
+              "on-secondary-fixed": "#003076",
+              "on-secondary": "#001d4e",
+              "on-primary": "#00643a",
+              "on-tertiary-fixed-variant": "#004e5f",
+              "tertiary-fixed": "#04d5ff",
+              "background": "#0e0e0e",
+              "surface-container-low": "#131313",
+              "on-surface-variant": "#adaaaa",
+              "primary-dim": "#00ec90",
+              "primary-fixed": "#00fc9a",
+              "surface-variant": "#262626",
+              "surface-bright": "#2c2c2c",
+              "secondary-fixed": "#c0d1ff"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filament-gradient {
+            background: linear-gradient(135deg, #a1ffc2 0%, #00fc9a 100%);
+        }
+        .glass-panel {
+            background: rgba(26, 26, 26, 0.7);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary selection:text-on-primary">
+<!-- TopAppBar -->
+<nav class="w-full top-0 sticky bg-[#131313] shadow-[0_0_20px_rgba(0,255,156,0.05)] z-[60]">
+<div class="flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<button class="text-[#00FF9C] active:scale-95 duration-200 hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="text-2xl font-['Space_Grotesk'] font-bold text-[#00FF9C] tracking-tighter">Luminous</span>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="text-gray-500 font-['Space_Grotesk'] font-bold tracking-tight hover:opacity-80 transition-opacity" href="#">Home</a>
+<a class="text-gray-500 font-['Space_Grotesk'] font-bold tracking-tight hover:opacity-80 transition-opacity" href="#">New Request</a>
+<a class="text-[#00FF9C] font-['Space_Grotesk'] font-bold tracking-tight hover:opacity-80 transition-opacity" href="#">My Requests</a>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant/20 flex items-center justify-center overflow-hidden">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="Close up portrait of a male professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXOfVScFuUT_0nlAbNhkJJGDD51NVvOmD1_KchwkxYvZx5Wj7AVhDK1Ags5f3MCpBChj9_k08rR0mxl36GlkGD3K3MJ7ItFeRSUzWk0ZNXrqKEbHsNXe8fv1dw5EO7LnWiB3U3Rhn5MQWi9qw4McFRKUK6IG5iqQ3k_LZvulDAaKumCI3GigoF9YihVyxwtuRqj82UwH7YJv7shpZWhVSZJuC8dWjinz9wE4Kr0WM06R-TsW-uaEQRP5zGL9AOc9eoQCEU4dysDz36"/>
+</div>
+</div>
+</div>
+</nav>
+<main class="min-h-screen pb-32 pt-8 px-4 md:px-8 max-w-6xl mx-auto">
+<!-- Header Section -->
+<header class="mb-12">
+<div class="flex items-center gap-2 text-on-surface-variant mb-4">
+<span class="material-symbols-outlined text-sm">arrow_back</span>
+<span class="text-xs font-medium uppercase tracking-widest">Back to Dashboard</span>
+</div>
+<h1 class="font-headline text-4xl md:text-5xl font-bold tracking-tight mb-2">Request #1</h1>
+<p class="text-on-surface-variant font-medium">Mechanical Prototype V2 • Created on Oct 24, 2023</p>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Left Column: Details -->
+<div class="md:col-span-7 space-y-6">
+<!-- Source & Instructions Card -->
+<section class="glass-panel p-8 rounded-xl border border-white/5">
+<h2 class="font-headline text-xl font-semibold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">description</span>
+                        Specifications
+                    </h2>
+<div class="space-y-8">
+<div>
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">Source URL</label>
+<div class="bg-surface-container-lowest px-4 py-3 rounded-lg flex items-center justify-between group">
+<span class="text-primary truncate font-mono text-sm">https://printables.com/model/mech-proto-v2-final</span>
+<span class="material-symbols-outlined text-on-surface-variant text-sm group-hover:text-primary cursor-pointer">open_in_new</span>
+</div>
+</div>
+<div>
+<label class="block text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">Instructions</label>
+<div class="bg-surface-container-lowest p-5 rounded-lg border-b-2 border-transparent focus-within:border-primary transition-all">
+<p class="text-on-surface leading-relaxed">
+                                    Please use PETG for durability. Infill should be at least 40% gyroid. Support is needed for the overhanging gear assembly. Nozzle temp at 240C preferred for better layer adhesion on this specific geometry.
+                                </p>
+</div>
+</div>
+</div>
+</section>
+<!-- Files Section -->
+<section class="bg-surface-container p-8 rounded-xl">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline text-xl font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">folder_open</span>
+                            Files
+                        </h2>
+<button class="text-xs font-bold text-primary flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-sm">add</span>
+                            ADD FILE
+                        </button>
+</div>
+<div class="space-y-3">
+<!-- File Item 1 -->
+<div class="flex items-center justify-between p-4 bg-surface-container-high rounded-xl hover:bg-surface-container-highest transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-surface-container-lowest rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary">3d_rotation</span>
+</div>
+<div>
+<p class="font-medium text-sm">main_housing_v2.stl</p>
+<p class="text-xs text-on-surface-variant">4.2 MB • STL Format</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">download</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</div>
+<!-- File Item 2 -->
+<div class="flex items-center justify-between p-4 bg-surface-container-high rounded-xl hover:bg-surface-container-highest transition-colors">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-surface-container-lowest rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary">architecture</span>
+</div>
+<div>
+<p class="font-medium text-sm">gear_assembly.obj</p>
+<p class="text-xs text-on-surface-variant">12.8 MB • OBJ Format</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">download</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-xl">delete</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Visual Preview & Status -->
+<div class="md:col-span-5 space-y-6">
+<!-- Preview Card -->
+<div class="glass-panel aspect-square rounded-xl overflow-hidden relative group">
+<img alt="3D Print Preview" class="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" data-alt="Blue translucent 3D printed mechanical part" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0u2A4LnwHJ02vtvrBkcObIBcahgrR4_ObJt-iamEf4799LHjDS5e8QVsboZRDcBc--jyw-OMrrGnjS24edhOSb3yvBnc1067xZg1Ba_jqglaBuMTuGFvqjJCJD91hPAM_wCDcVP6YnRF-dKql_W3b1doulYuKjDALKSv7l_9k18XGzEQOG-vD0FVmN93BScliMCfKs4JYPJTRGPQXhu3afuNxMjwt70pqwmEiXkLum34zOItiQoWsYvNiuGSJxmNV82AXOXMwkEvk"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 left-6 right-6">
+<span class="px-3 py-1 bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest rounded-full border border-primary/30 backdrop-blur-md mb-2 inline-block">Visual Preview</span>
+<h3 class="font-headline text-2xl font-bold">Prototype V2 Render</h3>
+</div>
+<button class="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center text-white hover:bg-white/20 transition-all">
+<span class="material-symbols-outlined">view_in_ar</span>
+</button>
+</div>
+<!-- Technical Stats -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container p-5 rounded-xl">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Material</p>
+<p class="font-headline text-lg font-semibold text-tertiary">PETG Carbon</p>
+</div>
+<div class="bg-surface-container p-5 rounded-xl">
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Estimated Time</p>
+<p class="font-headline text-lg font-semibold text-tertiary">14h 22m</p>
+</div>
+</div>
+<!-- Actions Card -->
+<section class="bg-surface-container p-8 rounded-xl border border-white/5">
+<h2 class="font-headline text-xl font-semibold mb-6">Actions</h2>
+<div class="space-y-4">
+<button class="filament-gradient w-full py-4 rounded-full text-on-primary font-bold uppercase tracking-widest text-sm active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(161,255,194,0.15)]">
+                            Save Changes
+                        </button>
+<button class="w-full py-4 rounded-full bg-surface-container-highest text-error-dim font-bold uppercase tracking-widest text-sm hover:bg-error-container hover:text-white transition-all active:scale-[0.98]">
+                            Cancel Request
+                        </button>
+</div>
+<p class="text-center text-[11px] text-on-surface-variant mt-6 px-4">
+                        Requests can only be cancelled before they enter the "Printing" phase. Changes saved here will update the active queue.
+                    </p>
+</section>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#0e0e0e]/90 backdrop-blur-xl border-t border-white/5 shadow-[0_-4px_24px_rgba(0,0,0,0.5)] rounded-t-2xl">
+<a class="flex flex-col items-center justify-center text-gray-500 hover:text-gray-300 transition-all" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-['Manrope'] text-[10px] font-medium mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 hover:text-gray-300 transition-all" href="#">
+<span class="material-symbols-outlined">add_box</span>
+<span class="font-['Manrope'] text-[10px] font-medium mt-1">New Request</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#00FF9C] transition-all duration-300" href="#">
+<span class="material-symbols-outlined">precision_manufacturing</span>
+<span class="font-['Manrope'] text-[10px] font-medium mt-1">My Requests</span>
+</a>
+</nav>
+<!-- Floating Action Button - Only relevant for primary actions, suppressed here for detail view focus -->
+</body></html>

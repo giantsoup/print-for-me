@@ -68,6 +68,10 @@
             "Composer\\Config::disableProcessTimeout",
             "npx concurrently -c \"#93c5fd,#c4b5fd,#34d399,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan horizon\" \"php artisan schedule:work\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,horizon,schedule,logs,vite --kill-others"
         ],
+        "dev:queue": [
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#34d399\" \"php artisan serve\" \"php artisan horizon\" --names=server,horizon --kill-others"
+        ],
         "dev:ssr": [
             "npm run build:ssr",
             "Composer\\Config::disableProcessTimeout",

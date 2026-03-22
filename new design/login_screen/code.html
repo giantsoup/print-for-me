@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Luminous - Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-secondary": "#001d4e",
+              "surface-tint": "#a1ffc2",
+              "surface-container-highest": "#262626",
+              "error-container": "#9f0519",
+              "inverse-primary": "#006d40",
+              "secondary": "#6e9bff",
+              "surface-container": "#1a1a1a",
+              "surface-variant": "#262626",
+              "error": "#ff716c",
+              "on-secondary-container": "#f7f7ff",
+              "on-primary-fixed": "#004627",
+              "surface-container-lowest": "#000000",
+              "primary-fixed": "#00fc9a",
+              "inverse-on-surface": "#565555",
+              "inverse-surface": "#fcf9f8",
+              "on-primary-container": "#005b34",
+              "tertiary-fixed-dim": "#00c6ee",
+              "on-tertiary-fixed": "#002f3a",
+              "on-tertiary-fixed-variant": "#004e5f",
+              "outline-variant": "#484847",
+              "primary-container": "#00fc9a",
+              "background": "#0e0e0e",
+              "on-primary": "#00643a",
+              "on-secondary-fixed": "#003076",
+              "secondary-container": "#0058ca",
+              "surface-container-low": "#131313",
+              "tertiary-dim": "#00c6ee",
+              "on-error": "#490006",
+              "outline": "#767575",
+              "on-surface-variant": "#adaaaa",
+              "primary-dim": "#00ec90",
+              "surface-dim": "#0e0e0e",
+              "surface": "#0e0e0e",
+              "error-dim": "#d7383b",
+              "on-error-container": "#ffa8a3",
+              "surface-bright": "#2c2c2c",
+              "secondary-dim": "#0f6df3",
+              "surface-container-high": "#20201f",
+              "primary-fixed-dim": "#00ec90",
+              "on-background": "#ffffff",
+              "tertiary-container": "#04d5ff",
+              "secondary-fixed": "#c0d1ff",
+              "secondary-fixed-dim": "#acc3ff",
+              "tertiary": "#77dfff",
+              "on-tertiary-container": "#004554",
+              "tertiary-fixed": "#04d5ff",
+              "on-surface": "#ffffff",
+              "on-tertiary": "#004e5f",
+              "on-secondary-fixed-variant": "#004baf",
+              "on-primary-fixed-variant": "#00653b",
+              "primary": "#a1ffc2"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "body": ["Manrope"],
+              "label": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filament-gradient {
+            background: linear-gradient(135deg, #a1ffc2 0%, #00fc9a 100%);
+        }
+        .ambient-glow {
+            box-shadow: 0 0 32px rgba(161, 255, 194, 0.08);
+        }
+        .glass-panel {
+            background: rgba(26, 26, 26, 0.7);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body selection:bg-primary selection:text-on-primary min-h-screen flex flex-col">
+<!-- TopAppBar suppressed for Transactional flow as per Mandate -->
+<main class="flex-grow flex items-center justify-center px-6 py-12 relative overflow-hidden">
+<!-- Atmospheric Background Elements -->
+<div class="absolute top-[-10%] left-[-10%] w-72 h-72 bg-primary/5 rounded-full blur-[100px]"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-secondary/5 rounded-full blur-[120px]"></div>
+<div class="w-full max-w-md z-10">
+<!-- Branding Anchor -->
+<div class="flex flex-col items-center mb-12 space-y-6">
+<!-- Geometric Monolith Logo -->
+<div class="relative w-16 h-16">
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="grid grid-cols-1 gap-1">
+<!-- Logo simulation using shapes -->
+<div class="w-8 h-4 bg-primary rounded-sm transform -skew-x-12"></div>
+<div class="w-8 h-4 bg-primary-dim rounded-sm transform skew-x-12 translate-x-2"></div>
+<div class="w-8 h-4 bg-on-primary-fixed-variant rounded-sm transform -skew-x-12"></div>
+</div>
+</div>
+<div class="absolute inset-0 bg-primary/10 blur-xl rounded-full"></div>
+</div>
+<h1 class="font-headline text-4xl font-bold tracking-tighter text-on-surface">
+                    Luminous
+                </h1>
+</div>
+<!-- Login Card -->
+<div class="glass-panel p-8 rounded-xl space-y-8 ambient-glow border border-white/5">
+<div class="space-y-2">
+<h2 class="font-headline text-xl font-medium text-on-surface">Welcome Back</h2>
+<p class="text-on-surface-variant text-sm leading-relaxed">
+                        Enter your email to receive a secure login link.
+                    </p>
+</div>
+<form class="space-y-6" onsubmit="return false;">
+<div class="space-y-1">
+<label class="text-[10px] font-bold uppercase tracking-widest text-primary-dim px-1" for="email">
+                            Email Address
+                        </label>
+<div class="relative group">
+<input class="w-full bg-surface-container-highest border-none rounded-b-lg p-4 text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none transition-all" id="email" placeholder="name@workshop.com" type="email"/>
+<!-- Focus Glow Line -->
+<div class="absolute bottom-0 left-0 w-0 h-[2px] bg-primary transition-all duration-300 group-focus-within:w-full"></div>
+</div>
+</div>
+<button class="filament-gradient w-full py-4 rounded-full text-on-primary font-headline font-bold text-sm tracking-widest flex items-center justify-center space-x-2 active:scale-[0.98] transition-transform hover:brightness-110">
+<span>SEND LOGIN LINK</span>
+<span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</form>
+<div class="pt-4 flex items-center justify-between">
+<div class="h-[1px] flex-grow bg-outline-variant/20"></div>
+<span class="px-4 text-[10px] font-medium text-outline uppercase tracking-widest">Secure Access</span>
+<div class="h-[1px] flex-grow bg-outline-variant/20"></div>
+</div>
+<!-- Secondary Option -->
+<p class="text-center text-xs text-on-surface-variant">
+                    Don't have an account? 
+                    <a class="text-secondary font-medium hover:underline" href="#">Request an invite</a>
+</p>
+</div>
+<!-- Technical Detail Decoration -->
+<div class="mt-12 flex justify-center space-x-8 opacity-40">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-tertiary text-sm" data-icon="encrypted">encrypted</span>
+<span class="font-headline text-[10px] tracking-tight uppercase">End-to-End Secure</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-tertiary text-sm" data-icon="memory">memory</span>
+<span class="font-headline text-[10px] tracking-tight uppercase">v2.04 Node</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Space for Mobile constraints -->
+<footer class="pb-12 text-center">
+<p class="text-[10px] text-outline font-medium tracking-[0.2em] uppercase">
+            Precision Crafted In The Digital Workshop
+        </p>
+</footer>
+<!-- BottomNavBar suppressed for Task-Focused flow as per Mandate -->
+</body></html>
