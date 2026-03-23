@@ -51,6 +51,32 @@ Artisan::command('auth:invite {email}', function (string $email) {
     $this->line($loginUrl);
 })->purpose('Invite a user by email, whitelist them, and send a magic login link.');
 
+Artisan::command('auth:make-admin {email} {--name=}', function (string $email) {
+    $email = strtolower($email);
+    $providedName = trim((string) $this->option('name'));
+
+    $user = User::firstOrNew(['email' => $email]);
+    $wasExistingUser = $user->exists;
+
+    if (! $wasExistingUser) {
+        $user->name = $providedName !== '' ? $providedName : (strstr($email, '@', true) ?: $email);
+        $user->password = Str::random(40);
+    } elseif ($providedName !== '') {
+        $user->name = $providedName;
+    }
+
+    $user->forceFill([
+        'is_admin' => true,
+        'whitelisted_at' => $user->whitelisted_at ?? now(),
+        'email_verified_at' => $user->email_verified_at ?? now(),
+    ])->save();
+
+    $action = $wasExistingUser ? 'Updated' : 'Created';
+
+    $this->info("{$action} admin: {$email}");
+    $this->line('Run `php artisan auth:invite '.$email.'` to send a magic login link.');
+})->purpose('Create or promote a user to an admin account.');
+
 Artisan::command('prints:purge-completed-files', function () {
     $threshold = now()->subDays(90);
 
