@@ -127,7 +127,6 @@ This repository includes:
 
 - `.github/workflows/deploy.yml` for artifact-based production deploys
 - `.github/scripts/deploy.sh` for release activation on the server
-- `scripts/setup_pfm_server.sh` for one-time, idempotent server bootstrap on `pfm.tayloroyer.com`
 
 The deploy script preserves `storage/app/private` across releases so uploaded files remain available after each deployment.
 

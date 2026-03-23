@@ -42,7 +42,6 @@ test('node tooling stays aligned to the Node 24 line', function () {
 test('deploy assets exist and runtime artifacts remain ignored', function () {
     expect(file_exists(base_path('.github/scripts/deploy.sh')))->toBeTrue();
     expect(file_exists(base_path('.github/workflows/deploy.yml')))->toBeTrue();
-    expect(file_exists(base_path('scripts/setup_pfm_server.sh')))->toBeTrue();
 
     expect(file_get_contents(base_path('.gitignore')))
         ->toContain('/bootstrap/cache/*.php')
@@ -61,17 +60,6 @@ test('deploy script preserves private uploads across releases', function () {
         ->toContain('ln -sfn "${shared_dir}/storage/app/private" "${release_dir}/storage/app/private"')
         ->toContain('mkdir -p "${release_dir}/storage/framework/cache/data"')
         ->toContain('rm -f "${release_dir}/bootstrap/cache/"*.php');
-});
-
-test('server bootstrap script targets the pfm subdomain and database queue deployment', function () {
-    $bootstrapScript = file_get_contents(base_path('scripts/setup_pfm_server.sh'));
-
-    expect($bootstrapScript)
-        ->toContain('APP_DOMAIN="pfm.tayloroyer.com"')
-        ->toContain('QUEUE_CONNECTION" "database"')
-        ->toContain('command=/bin/bash -lc')
-        ->toContain('queue:work database')
-        ->toContain('client_max_body_size 64m');
 });
 
 test('scheduled maintenance commands do not depend on horizon', function () {
