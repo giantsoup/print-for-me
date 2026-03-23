@@ -191,4 +191,8 @@ Artisan::command('auth:purge-stale-magic-tokens', function () {
     $this->info("Stale magic login tokens deleted: {$deleted}");
 })->purpose('Purge magic login tokens older than 24 hours past expiry.');
 
-Schedule::command('horizon:snapshot')->everyFiveMinutes();
+Schedule::command('auth:cleanup-magic-tokens')->hourly();
+Schedule::command('auth:purge-stale-magic-tokens')->dailyAt('02:10');
+Schedule::command('prints:warn-soft-deleted')->dailyAt('02:20');
+Schedule::command('prints:purge-completed-files')->dailyAt('02:30');
+Schedule::command('prints:purge-soft-deleted')->dailyAt('02:40');

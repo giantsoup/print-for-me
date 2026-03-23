@@ -29,7 +29,7 @@ The application currently supports:
 
 ## Stack
 
-- PHP 8.4
+- PHP 8.5
 - Laravel 13
 - Inertia.js v2
 - Vue 3
@@ -119,7 +119,17 @@ php artisan auth:purge-stale-magic-tokens
 
 ## Queueing And Mail
 
-Local development defaults to the database queue driver and log mailer, so queued notifications work without Redis or SMTP setup. If you want to use Horizon, switch the queue connection to Redis and run Horizon separately.
+Local development defaults to the database queue driver and log mailer, so queued notifications work without Redis or SMTP setup. Production on a small single-server deployment can use the same database-backed queue with a single supervisor-managed worker.
+
+## Deployment
+
+This repository includes:
+
+- `.github/workflows/deploy.yml` for artifact-based production deploys
+- `.github/scripts/deploy.sh` for release activation on the server
+- `scripts/setup_pfm_server.sh` for one-time, idempotent server bootstrap on `pfm.tayloroyer.com`
+
+The deploy script preserves `storage/app/private` across releases so uploaded files remain available after each deployment.
 
 ## License
 
