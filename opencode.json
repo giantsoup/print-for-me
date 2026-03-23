@@ -5,7 +5,7 @@
             "type": "local",
             "enabled": true,
             "command": [
-                "php",
+                "/Users/Taylor/Library/Application Support/Herd/bin/php",
                 "artisan",
                 "boost:mcp"
             ]
@@ -14,7 +14,7 @@
             "type": "local",
             "enabled": true,
             "command": [
-                "php",
+                "/Users/Taylor/Library/Application Support/Herd/bin/php",
                 "/Applications/Herd.app/Contents/Resources/herd-mcp.phar"
             ],
             "environment": {

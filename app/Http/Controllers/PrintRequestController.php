@@ -43,7 +43,14 @@ class PrintRequestController extends Controller
             $query->where('status', $status);
         }
 
-        $data = $query->paginate(20)->withQueryString();
+        $data = $query->paginate(20)
+            ->through(function (PrintRequest $printRequest) use ($isAdmin) {
+                return [
+                    ...$printRequest->toArray(),
+                    'availableStatusActions' => $this->availableStatusActions($printRequest, $isAdmin),
+                ];
+            })
+            ->withQueryString();
 
         if ($request->wantsJson()) {
             return response()->json($data);
@@ -117,6 +124,7 @@ class PrintRequestController extends Controller
                 'delete' => $user ? $user->can('delete', $print_request) : false,
                 'isAdmin' => (bool) ($user->is_admin ?? false),
             ],
+            'availableStatusActions' => $this->availableStatusActions($print_request, (bool) ($user?->is_admin ?? false)),
             'timeline' => $timeline,
             'constraints' => [
                 'maxFiles' => 10,
@@ -265,6 +273,23 @@ class PrintRequestController extends Controller
                 'sha256' => $sha256,
             ]);
         }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function availableStatusActions(PrintRequest $printRequest, bool $isAdmin): array
+    {
+        if (! $isAdmin) {
+            return [];
+        }
+
+        return match ($printRequest->status) {
+            PrintRequestStatus::PENDING => ['accept'],
+            PrintRequestStatus::ACCEPTED => ['printing', 'revert'],
+            PrintRequestStatus::PRINTING => ['complete', 'revert'],
+            default => [],
+        };
     }
 
     private function authorizeOwnerOrAdmin(PrintRequest $printRequest): void

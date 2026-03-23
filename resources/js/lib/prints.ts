@@ -1,4 +1,5 @@
 export type PrintRequestStatus = 'pending' | 'accepted' | 'printing' | 'complete' | string;
+export type PrintRequestActionKey = 'accept' | 'printing' | 'complete' | 'revert';
 
 export function statusTone(status: PrintRequestStatus) {
     switch (status) {

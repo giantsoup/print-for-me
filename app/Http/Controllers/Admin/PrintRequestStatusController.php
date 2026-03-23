@@ -8,12 +8,14 @@ use App\Models\PrintRequest;
 use App\Notifications\PrintRequestAcceptedNotification;
 use App\Notifications\PrintRequestCompletedNotification;
 use App\Notifications\PrintRequestRevertedToPendingNotification;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class PrintRequestStatusController extends Controller
 {
-    public function accept(Request $request, PrintRequest $print_request)
+    public function accept(Request $request, PrintRequest $print_request): JsonResponse|RedirectResponse
     {
         if ($print_request->status !== PrintRequestStatus::PENDING) {
             throw ValidationException::withMessages([
@@ -30,10 +32,10 @@ class PrintRequestStatusController extends Controller
             $print_request->user->notify(new PrintRequestAcceptedNotification($print_request));
         }
 
-        return response()->json($print_request);
+        return $this->respond($request, $print_request, 'Request moved to accepted.');
     }
 
-    public function printing(Request $request, PrintRequest $print_request)
+    public function printing(Request $request, PrintRequest $print_request): JsonResponse|RedirectResponse
     {
         if ($print_request->status !== PrintRequestStatus::ACCEPTED) {
             throw ValidationException::withMessages([
@@ -44,10 +46,10 @@ class PrintRequestStatusController extends Controller
         $print_request->status = PrintRequestStatus::PRINTING;
         $print_request->save();
 
-        return response()->json($print_request);
+        return $this->respond($request, $print_request, 'Request moved to printing.');
     }
 
-    public function complete(Request $request, PrintRequest $print_request)
+    public function complete(Request $request, PrintRequest $print_request): JsonResponse|RedirectResponse
     {
         if ($print_request->status !== PrintRequestStatus::PRINTING) {
             throw ValidationException::withMessages([
@@ -64,10 +66,10 @@ class PrintRequestStatusController extends Controller
             $print_request->user->notify(new PrintRequestCompletedNotification($print_request));
         }
 
-        return response()->json($print_request);
+        return $this->respond($request, $print_request, 'Request marked complete.');
     }
 
-    public function revert(Request $request, PrintRequest $print_request)
+    public function revert(Request $request, PrintRequest $print_request): JsonResponse|RedirectResponse
     {
         if (! in_array($print_request->status, [PrintRequestStatus::ACCEPTED, PrintRequestStatus::PRINTING], true)) {
             throw ValidationException::withMessages([
@@ -84,6 +86,15 @@ class PrintRequestStatusController extends Controller
             $print_request->user->notify(new PrintRequestRevertedToPendingNotification($print_request));
         }
 
-        return response()->json($print_request);
+        return $this->respond($request, $print_request, 'Request returned to pending.');
+    }
+
+    private function respond(Request $request, PrintRequest $printRequest, string $message): JsonResponse|RedirectResponse
+    {
+        if ($request->wantsJson()) {
+            return response()->json($printRequest->fresh());
+        }
+
+        return back()->with('status', $message);
     }
 }

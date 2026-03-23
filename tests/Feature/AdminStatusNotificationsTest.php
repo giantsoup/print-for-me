@@ -11,7 +11,7 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Support\Facades\Notification;
 
 use function Pest\Laravel\actingAs;
-use function Pest\Laravel\patch;
+use function Pest\Laravel\patchJson;
 
 beforeEach(function () {
     // Disable absolute session enforcement and CSRF for simplicity in tests
@@ -32,7 +32,7 @@ it('sends notification to requester when admin accepts the request', function ()
     ]);
 
     actingAs($admin);
-    patch(route('admin.print-requests.accept', $req))->assertOk();
+    patchJson(route('admin.print-requests.accept', $req))->assertSuccessful();
 
     Notification::assertSentTo($owner, PrintRequestAcceptedNotification::class);
 });
@@ -50,7 +50,7 @@ it('sends notification to requester when admin completes the request', function 
     ]);
 
     actingAs($admin);
-    patch(route('admin.print-requests.complete', $req))->assertOk();
+    patchJson(route('admin.print-requests.complete', $req))->assertSuccessful();
 
     Notification::assertSentTo($owner, PrintRequestCompletedNotification::class);
 });
@@ -68,7 +68,7 @@ it('sends notification to requester when admin reverts to pending', function () 
     ]);
 
     actingAs($admin);
-    patch(route('admin.print-requests.revert', $req))->assertOk();
+    patchJson(route('admin.print-requests.revert', $req))->assertSuccessful();
 
     Notification::assertSentTo($owner, PrintRequestRevertedToPendingNotification::class);
 });

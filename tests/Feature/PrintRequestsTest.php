@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
@@ -146,6 +147,63 @@ it('lists only the authenticated user\'s print requests (non-admin)', function (
     $data = $response->json('data');
     expect(collect($data)->every(fn ($row) => $row['user_id'] === $user->id))->toBeTrue();
     expect(count($data))->toBe(2);
+});
+
+it('exposes available status actions on the request board for admins', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::ACCEPTED,
+        'source_url' => 'https://example.com/board-actions',
+    ]);
+
+    actingAs($admin);
+
+    get(route('print-requests.index', ['status' => PrintRequestStatus::ACCEPTED]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('prints/Index')
+            ->where('items.data.0.id', $req->id)
+            ->where('items.data.0.availableStatusActions', ['printing', 'revert'])
+        );
+});
+
+it('exposes available status actions on the request detail page for admins', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PRINTING,
+        'source_url' => 'https://example.com/show-actions',
+    ]);
+
+    actingAs($admin);
+
+    get(route('print-requests.show', $req))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('prints/Show')
+            ->where('availableStatusActions', ['complete', 'revert'])
+        );
+});
+
+it('does not expose admin status actions to request owners', function () {
+    $owner = User::factory()->create();
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/owner-show',
+    ]);
+
+    actingAs($owner);
+
+    get(route('print-requests.show', $req))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('prints/Show')
+            ->where('availableStatusActions', [])
+        );
 });
 
 it('prevents updating a non-pending request for non-admin users', function () {

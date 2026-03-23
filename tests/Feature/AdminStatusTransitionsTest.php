@@ -8,6 +8,7 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\patch;
+use function Pest\Laravel\patchJson;
 
 beforeEach(function () {
     // Disable absolute session enforcement and CSRF for simplicity in tests
@@ -25,7 +26,7 @@ it('blocks non-admins from admin status routes', function () {
 
     actingAs($user);
 
-    patch(route('admin.print-requests.accept', $req))->assertStatus(403);
+    patch(route('admin.print-requests.accept', $req))->assertForbidden();
 });
 
 it('allows admin to transition pending -> accepted -> printing -> complete', function () {
@@ -40,18 +41,18 @@ it('allows admin to transition pending -> accepted -> printing -> complete', fun
     actingAs($admin);
 
     // Accept
-    patch(route('admin.print-requests.accept', $req))->assertOk();
+    patchJson(route('admin.print-requests.accept', $req))->assertSuccessful();
     $req->refresh();
     expect($req->status)->toBe(PrintRequestStatus::ACCEPTED);
     expect($req->accepted_at)->not->toBeNull();
 
     // Printing
-    patch(route('admin.print-requests.printing', $req))->assertOk();
+    patchJson(route('admin.print-requests.printing', $req))->assertSuccessful();
     $req->refresh();
     expect($req->status)->toBe(PrintRequestStatus::PRINTING);
 
     // Complete
-    patch(route('admin.print-requests.complete', $req))->assertOk();
+    patchJson(route('admin.print-requests.complete', $req))->assertSuccessful();
     $req->refresh();
     expect($req->status)->toBe(PrintRequestStatus::COMPLETE);
     expect($req->completed_at)->not->toBeNull();
@@ -70,7 +71,7 @@ it('allows admin to revert accepted or printing back to pending', function () {
 
     actingAs($admin);
 
-    patch(route('admin.print-requests.revert', $accepted))->assertOk();
+    patchJson(route('admin.print-requests.revert', $accepted))->assertSuccessful();
     $accepted->refresh();
     expect($accepted->status)->toBe(PrintRequestStatus::PENDING);
     expect($accepted->reverted_at)->not->toBeNull();
@@ -82,8 +83,29 @@ it('allows admin to revert accepted or printing back to pending', function () {
         'source_url' => 'https://example.com/admin4',
     ]);
 
-    patch(route('admin.print-requests.revert', $printing))->assertOk();
+    patchJson(route('admin.print-requests.revert', $printing))->assertSuccessful();
     $printing->refresh();
     expect($printing->status)->toBe(PrintRequestStatus::PENDING);
     expect($printing->reverted_at)->not->toBeNull();
+});
+
+it('redirects back with a flash message for browser-based admin transitions', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/admin5',
+    ]);
+
+    actingAs($admin);
+
+    $response = $this->from(route('print-requests.show', $req))
+        ->patch(route('admin.print-requests.accept', $req));
+
+    $response->assertRedirect(route('print-requests.show', $req))
+        ->assertSessionHas('status', 'Request moved to accepted.');
+
+    $req->refresh();
+    expect($req->status)->toBe(PrintRequestStatus::ACCEPTED);
 });

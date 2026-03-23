@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import PrintRequestStateActions from '@/components/luminous/PrintRequestStateActions.vue';
 import StatusBadge from '@/components/luminous/StatusBadge.vue';
-import { formatDateOnly, formatDateTime, formatFileSize } from '@/lib/prints';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { formatDateOnly, formatDateTime, formatFileSize, type PrintRequestActionKey } from '@/lib/prints';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { Download, LoaderCircle, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
@@ -38,6 +39,7 @@ interface Props {
         delete: boolean;
         isAdmin: boolean;
     };
+    availableStatusActions: PrintRequestActionKey[];
     timeline: TimelineItem[];
     constraints: {
         maxFiles: number;
@@ -47,6 +49,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const page = usePage();
 
 const form = useForm<{ source_url: string | null; instructions: string | null; files: File[]; remove_file_ids: number[] }>({
     source_url: props.printRequest.source_url || '',
@@ -56,6 +59,7 @@ const form = useForm<{ source_url: string | null; instructions: string | null; f
 });
 
 const pickedFiles = ref<File[]>([]);
+const flashStatus = computed(() => page.props.flash?.status);
 
 function onPickFiles(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -80,9 +84,7 @@ const existingCount = computed(() => props.printRequest.files.length);
 const existingSize = computed(() => props.printRequest.files.reduce((sum, file) => sum + (file.size_bytes || 0), 0));
 const removingCount = computed(() => props.printRequest.files.filter((file) => form.remove_file_ids.includes(file.id)).length);
 const removingSize = computed(() =>
-    props.printRequest.files
-        .filter((file) => form.remove_file_ids.includes(file.id))
-        .reduce((sum, file) => sum + (file.size_bytes || 0), 0),
+    props.printRequest.files.filter((file) => form.remove_file_ids.includes(file.id)).reduce((sum, file) => sum + (file.size_bytes || 0), 0),
 );
 const newCount = computed(() => pickedFiles.value.length);
 const newSize = computed(() => pickedFiles.value.reduce((sum, file) => sum + (file.size || 0), 0));
@@ -137,6 +139,10 @@ function cancelRequest() {
             <StatusBadge :status="props.printRequest.status" />
         </template>
 
+        <div v-if="flashStatus" class="mb-6 rounded-[1.45rem] border border-primary/12 bg-primary/10 px-5 py-4 text-sm text-primary">
+            {{ flashStatus }}
+        </div>
+
         <div class="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
             <section class="space-y-6">
                 <article class="luminous-panel px-5 py-5">
@@ -156,9 +162,9 @@ function cancelRequest() {
 
                         <div
                             v-if="props.can.isAdmin && props.printRequest.user"
-                            class="rounded-[1.4rem] bg-white/[0.04] px-4 py-4 text-sm text-muted-soft lg:max-w-xs"
+                            class="text-muted-soft rounded-[1.4rem] bg-white/[0.04] px-4 py-4 text-sm lg:max-w-xs"
                         >
-                            <p class="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-primary/70">Submitted By</p>
+                            <p class="text-[0.72rem] font-semibold tracking-[0.2em] text-primary/70 uppercase">Submitted By</p>
                             <p class="mt-3 font-display text-xl font-semibold tracking-tight text-white">{{ props.printRequest.user.name }}</p>
                             <p class="mt-1 text-sm text-white/65">{{ props.printRequest.user.email }}</p>
                         </div>
@@ -181,22 +187,18 @@ function cancelRequest() {
                 <article class="luminous-panel px-5 py-5">
                     <div class="flex items-center justify-between gap-3">
                         <div>
-                            <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Files</p>
+                            <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Files</p>
                             <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Current request assets.</h2>
                         </div>
-                        <p class="text-sm text-muted-soft">{{ existingCount }} attached</p>
+                        <p class="text-muted-soft text-sm">{{ existingCount }} attached</p>
                     </div>
 
                     <div class="mt-6 space-y-3">
-                        <div
-                            v-for="file in props.printRequest.files"
-                            :key="file.id"
-                            class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4"
-                        >
+                        <div v-for="file in props.printRequest.files" :key="file.id" class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4">
                             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div class="min-w-0">
                                     <p class="truncate font-medium text-white">{{ file.original_name }}</p>
-                                    <p class="mt-1 text-xs uppercase tracking-[0.18em] text-white/42">{{ formatFileSize(file.size_bytes) }}</p>
+                                    <p class="mt-1 text-xs tracking-[0.18em] text-white/42 uppercase">{{ formatFileSize(file.size_bytes) }}</p>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
                                     <a
@@ -227,20 +229,16 @@ function cancelRequest() {
                         <label for="new_files" class="field-label">Add Files</label>
                         <label
                             for="new_files"
-                            class="block cursor-pointer rounded-[1.45rem] border border-dashed border-white/10 bg-white/[0.03] px-5 py-6 text-sm text-muted-soft transition-colors hover:bg-white/[0.05]"
+                            class="text-muted-soft block cursor-pointer rounded-[1.45rem] border border-dashed border-white/10 bg-white/[0.03] px-5 py-6 text-sm transition-colors hover:bg-white/[0.05]"
                         >
                             Add more files to this request while it is still editable.
                         </label>
                         <input id="new_files" type="file" multiple class="sr-only" @change="onPickFiles" />
 
                         <div v-if="pickedFiles.length" class="mt-4 space-y-3">
-                            <div
-                                v-for="file in pickedFiles"
-                                :key="file.name + file.size"
-                                class="rounded-[1.35rem] bg-white/[0.04] px-4 py-3 text-sm"
-                            >
+                            <div v-for="file in pickedFiles" :key="file.name + file.size" class="rounded-[1.35rem] bg-white/[0.04] px-4 py-3 text-sm">
                                 <p class="font-medium text-white">{{ file.name }}</p>
-                                <p class="mt-1 text-xs uppercase tracking-[0.18em] text-white/42">{{ formatFileSize(file.size) }}</p>
+                                <p class="mt-1 text-xs tracking-[0.18em] text-white/42 uppercase">{{ formatFileSize(file.size) }}</p>
                             </div>
                         </div>
                     </div>
@@ -248,39 +246,51 @@ function cancelRequest() {
             </section>
 
             <aside class="space-y-6">
+                <article v-if="props.can.isAdmin" class="luminous-panel px-5 py-5">
+                    <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Workflow Control</p>
+                    <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Manage the request state here.</h2>
+                    <p class="text-muted-soft mt-3 text-sm leading-6">
+                        Move the request through review and production without leaving the detail screen.
+                    </p>
+
+                    <div class="mt-6">
+                        <PrintRequestStateActions
+                            :request-id="props.printRequest.id"
+                            :status="props.printRequest.status"
+                            :actions="props.availableStatusActions"
+                        />
+                    </div>
+                </article>
+
                 <article class="luminous-panel px-5 py-5">
-                    <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Timeline</p>
+                    <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Timeline</p>
                     <div class="mt-6 space-y-4">
-                        <div
-                            v-for="event in props.timeline"
-                            :key="event.key"
-                            class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4"
-                        >
+                        <div v-for="event in props.timeline" :key="event.key" class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4">
                             <div class="flex items-center justify-between gap-3">
                                 <p class="font-display text-xl font-semibold tracking-tight text-white">{{ event.label }}</p>
-                                <span class="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white/42">
+                                <span class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/42 uppercase">
                                     {{ formatDateTime(event.at) }}
                                 </span>
                             </div>
-                            <p class="mt-2 text-sm leading-6 text-muted-soft">{{ event.description }}</p>
+                            <p class="text-muted-soft mt-2 text-sm leading-6">{{ event.description }}</p>
                         </div>
                     </div>
                 </article>
 
                 <article class="luminous-panel px-5 py-5">
-                    <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Save State</p>
+                    <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Save State</p>
                     <div class="mt-6 space-y-3">
                         <div class="flex items-center justify-between rounded-[1.35rem] bg-white/[0.04] px-4 py-4">
-                            <span class="text-sm text-muted-soft">Files after save</span>
+                            <span class="text-muted-soft text-sm">Files after save</span>
                             <span class="font-display text-2xl text-white">{{ finalCount }}</span>
                         </div>
                         <div class="flex items-center justify-between rounded-[1.35rem] bg-white/[0.04] px-4 py-4">
-                            <span class="text-sm text-muted-soft">Total after save</span>
+                            <span class="text-muted-soft text-sm">Total after save</span>
                             <span class="font-display text-2xl text-secondary">{{ formatFileSize(finalSize) }}</span>
                         </div>
                     </div>
 
-                    <div class="mt-5 space-y-2 text-sm leading-6 text-muted-soft">
+                    <div class="text-muted-soft mt-5 space-y-2 text-sm leading-6">
                         <p v-if="!withinCount">This update exceeds the {{ props.constraints.maxFiles }} file limit.</p>
                         <p v-if="!withinTotal">This update would exceed the 50 MB total limit.</p>
                         <p v-if="!hasSource">Keep a source link or at least one file on the request.</p>
@@ -311,7 +321,7 @@ function cancelRequest() {
                         </button>
                     </div>
 
-                    <p class="mt-4 text-sm leading-6 text-muted-soft">
+                    <p class="text-muted-soft mt-4 text-sm leading-6">
                         Pending requests stay editable. Once production moves forward, only admins can change the request.
                     </p>
                 </article>
