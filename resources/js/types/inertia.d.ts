@@ -4,9 +4,9 @@
 export {};
 
 declare module '@inertiajs/core' {
-  interface PageProps {
-    flash?: {
-      status?: string;
-    };
-  }
+    interface PageProps {
+        flash?: {
+            status?: string;
+        };
+    }
 }

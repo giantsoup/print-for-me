@@ -4,7 +4,10 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ArrowRight, CheckCircle2, History } from 'lucide-vue-next';
 
 const page = usePage();
-const hasError = Boolean((page.props.errors as Record<string, string[] | string | undefined>)?.token || (page.props.errors as Record<string, string[] | string | undefined>)?.email);
+const hasError = Boolean(
+    (page.props.errors as Record<string, string[] | string | undefined>)?.token ||
+    (page.props.errors as Record<string, string[] | string | undefined>)?.email,
+);
 </script>
 
 <template>

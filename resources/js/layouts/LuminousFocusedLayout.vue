@@ -44,13 +44,13 @@ withDefaults(defineProps<Props>(), {
             <main class="flex flex-1 items-center px-4 py-10 sm:px-6">
                 <div class="mx-auto w-full" :class="maxWidth">
                     <div class="mb-8 text-center">
-                        <p v-if="eyebrow" class="mb-3 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-primary/75">
+                        <p v-if="eyebrow" class="mb-3 text-[0.72rem] font-semibold tracking-[0.24em] text-primary/75 uppercase">
                             {{ eyebrow }}
                         </p>
-                        <h1 class="font-display text-3xl font-semibold tracking-tight text-gradient-filament sm:text-4xl">
+                        <h1 class="text-gradient-filament font-display text-3xl font-semibold tracking-tight sm:text-4xl">
                             {{ title }}
                         </h1>
-                        <p v-if="intro" class="mx-auto mt-3 max-w-md text-sm leading-6 text-muted-soft sm:text-base">
+                        <p v-if="intro" class="text-muted-soft mx-auto mt-3 max-w-md text-sm leading-6 sm:text-base">
                             {{ intro }}
                         </p>
                     </div>

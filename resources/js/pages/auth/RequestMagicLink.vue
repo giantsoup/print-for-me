@@ -76,7 +76,7 @@ onMounted(() => {
             </p>
         </form>
 
-        <p class="mt-8 text-center text-sm leading-6 text-muted-soft">
+        <p class="text-muted-soft mt-8 text-center text-sm leading-6">
             If you do not have access yet, return to the landing page and contact the admin for an invite.
         </p>
         <div class="mt-4 text-center">

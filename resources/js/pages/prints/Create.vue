@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { formatFileSize } from '@/lib/prints';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
+import { formatFileSize } from '@/lib/prints';
 import { Head, useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Upload, WandSparkles } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -90,10 +90,12 @@ function submit() {
                                 <Upload class="h-6 w-6" />
                             </div>
                             <h2 class="mt-5 font-display text-2xl font-semibold tracking-tight text-white">Drag, drop, or tap to browse.</h2>
-                            <p class="mt-3 text-sm leading-6 text-muted-soft">
+                            <p class="text-muted-soft mt-3 text-sm leading-6">
                                 Upload STL, 3MF, OBJ, F3D, F3Z, STEP, STP, IGES, or IGS files. The request needs either files or a source link.
                             </p>
-                            <div class="mt-5 flex flex-wrap items-center justify-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-white/45">
+                            <div
+                                class="mt-5 flex flex-wrap items-center justify-center gap-2 text-[0.7rem] font-semibold tracking-[0.18em] text-white/45 uppercase"
+                            >
                                 <span class="rounded-full bg-white/[0.05] px-3 py-2">Max {{ props.constraints.maxFiles }} files</span>
                                 <span class="rounded-full bg-white/[0.05] px-3 py-2">50 MB total</span>
                             </div>
@@ -109,7 +111,7 @@ function submit() {
                         >
                             <div class="min-w-0">
                                 <p class="truncate font-medium text-white">{{ file.name }}</p>
-                                <p class="mt-1 text-xs uppercase tracking-[0.16em] text-white/42">{{ formatFileSize(file.size) }}</p>
+                                <p class="mt-1 text-xs tracking-[0.16em] text-white/42 uppercase">{{ formatFileSize(file.size) }}</p>
                             </div>
                         </div>
 
@@ -132,27 +134,27 @@ function submit() {
 
             <aside class="space-y-6">
                 <article class="luminous-panel px-5 py-5">
-                    <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Request Summary</p>
+                    <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Request Summary</p>
                     <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Everything needed to submit.</h2>
 
                     <dl class="mt-6 space-y-3">
                         <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
-                            <dt class="text-sm text-muted-soft">Files selected</dt>
+                            <dt class="text-muted-soft text-sm">Files selected</dt>
                             <dd class="font-display text-2xl text-white">{{ fileCount }}</dd>
                         </div>
                         <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
-                            <dt class="text-sm text-muted-soft">Current total</dt>
+                            <dt class="text-muted-soft text-sm">Current total</dt>
                             <dd class="font-display text-2xl text-secondary">{{ totalSize }}</dd>
                         </div>
                         <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
-                            <dt class="text-sm text-muted-soft">Source provided</dt>
-                            <dd class="text-sm font-semibold uppercase tracking-[0.18em]" :class="hasSource ? 'text-primary' : 'text-white/45'">
+                            <dt class="text-muted-soft text-sm">Source provided</dt>
+                            <dd class="text-sm font-semibold tracking-[0.18em] uppercase" :class="hasSource ? 'text-primary' : 'text-white/45'">
                                 {{ hasSource ? 'Ready' : 'Required' }}
                             </dd>
                         </div>
                     </dl>
 
-                    <div class="mt-6 space-y-2 text-sm leading-6 text-muted-soft">
+                    <div class="text-muted-soft mt-6 space-y-2 text-sm leading-6">
                         <p v-if="!withinCount">You have selected more than {{ props.constraints.maxFiles }} files.</p>
                         <p v-if="!withinTotal">The total upload size is above 50 MB.</p>
                         <p v-if="!hasSource">Add a source link or upload at least one file before submitting.</p>
@@ -166,7 +168,7 @@ function submit() {
                         </div>
                         <div>
                             <h2 class="font-display text-xl font-semibold tracking-tight text-white">Helpful tips</h2>
-                            <ul class="mt-4 space-y-3 text-sm leading-6 text-muted-soft">
+                            <ul class="text-muted-soft mt-4 space-y-3 text-sm leading-6">
                                 <li>Use the instructions field for materials, finish, or support preferences.</li>
                                 <li>Keep the source link when the original model page has context worth preserving.</li>
                                 <li>Pending requests can still be edited after submission.</li>
@@ -184,9 +186,7 @@ function submit() {
                         <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
                         {{ form.processing ? 'Submitting request' : 'Submit request' }}
                     </button>
-                    <p class="mt-3 text-center text-xs uppercase tracking-[0.18em] text-white/40">
-                        Files stay private to this request.
-                    </p>
+                    <p class="mt-3 text-center text-xs tracking-[0.18em] text-white/40 uppercase">Files stay private to this request.</p>
                 </article>
             </aside>
         </form>

@@ -33,7 +33,7 @@ const options: Array<{ value: MotionPreference; title: string; description: stri
         <div class="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
             <section class="space-y-6">
                 <article class="luminous-panel px-5 py-5">
-                    <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Motion Preference</p>
+                    <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Motion Preference</p>
                     <div class="mt-6 space-y-3">
                         <button
                             v-for="option in options"
@@ -41,16 +41,14 @@ const options: Array<{ value: MotionPreference; title: string; description: stri
                             type="button"
                             class="w-full rounded-[1.45rem] px-4 py-4 text-left transition-colors"
                             :class="
-                                motionPreference === option.value
-                                    ? 'bg-primary/10 text-white'
-                                    : 'bg-white/[0.04] text-white/78 hover:bg-white/[0.06]'
+                                motionPreference === option.value ? 'bg-primary/10 text-white' : 'bg-white/[0.04] text-white/78 hover:bg-white/[0.06]'
                             "
                             @click="updateMotionPreference(option.value)"
                         >
                             <div class="flex items-start justify-between gap-4">
                                 <div>
                                     <p class="font-display text-xl font-semibold tracking-tight">{{ option.title }}</p>
-                                    <p class="mt-2 text-sm leading-6 text-muted-soft">{{ option.description }}</p>
+                                    <p class="text-muted-soft mt-2 text-sm leading-6">{{ option.description }}</p>
                                 </div>
                                 <span
                                     class="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full border"
@@ -70,8 +68,9 @@ const options: Array<{ value: MotionPreference; title: string; description: stri
                         </div>
                         <div>
                             <h2 class="font-display text-xl font-semibold tracking-tight text-white">What changed</h2>
-                            <p class="mt-3 text-sm leading-6 text-muted-soft">
-                                The app no longer switches between light, dark, and system themes. The visual system is fixed so every screen stays consistent with the new mobile-first redesign.
+                            <p class="text-muted-soft mt-3 text-sm leading-6">
+                                The app no longer switches between light, dark, and system themes. The visual system is fixed so every screen stays
+                                consistent with the new mobile-first redesign.
                             </p>
                         </div>
                     </div>
@@ -81,7 +80,7 @@ const options: Array<{ value: MotionPreference; title: string; description: stri
             <section class="luminous-panel px-5 py-5">
                 <div class="flex items-center justify-between gap-3">
                     <div>
-                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Live Preview</p>
+                        <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Live Preview</p>
                         <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">See the interface feel in context.</h2>
                     </div>
                     <Sparkles class="h-5 w-5 text-primary" />
@@ -90,39 +89,39 @@ const options: Array<{ value: MotionPreference; title: string; description: stri
                 <div class="mt-6 space-y-4">
                     <div class="relative overflow-hidden rounded-[1.7rem] bg-white/[0.04] px-5 py-6">
                         <div
-                            class="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/18 blur-3xl"
+                            class="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-primary/18 blur-3xl"
                             :class="motionPreference === 'standard' ? 'animate-pulse' : ''"
                         />
-                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Primary Action</p>
-                        <button class="pill-button pill-button-primary mt-5">
-                            Submit request
-                        </button>
+                        <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Primary Action</p>
+                        <button class="pill-button pill-button-primary mt-5">Submit request</button>
                     </div>
 
                     <div class="grid gap-4 md:grid-cols-2">
                         <div class="rounded-[1.45rem] bg-white/[0.04] px-4 py-4">
-                            <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-white/42">Card motion</p>
+                            <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-white/42 uppercase">Card motion</p>
                             <div
                                 class="mt-4 rounded-[1.3rem] bg-white/[0.05] px-4 py-5"
                                 :class="motionPreference === 'standard' ? 'transition-transform duration-500 hover:-translate-y-1' : ''"
                             >
                                 <p class="font-display text-xl font-semibold tracking-tight text-white">Queue card</p>
-                                <p class="mt-2 text-sm leading-6 text-muted-soft">Hover and tap feedback scale back automatically in reduced motion mode.</p>
+                                <p class="text-muted-soft mt-2 text-sm leading-6">
+                                    Hover and tap feedback scale back automatically in reduced motion mode.
+                                </p>
                             </div>
                         </div>
 
                         <div class="rounded-[1.45rem] bg-white/[0.04] px-4 py-4">
-                            <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-white/42">Ambient effects</p>
+                            <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-white/42 uppercase">Ambient effects</p>
                             <div class="mt-4 rounded-[1.3rem] bg-white/[0.05] px-4 py-5">
-                                <div
-                                    class="h-2 rounded-full bg-primary/25"
-                                >
+                                <div class="h-2 rounded-full bg-primary/25">
                                     <div
                                         class="h-2 rounded-full bg-primary"
                                         :class="motionPreference === 'standard' ? 'w-2/3 transition-all duration-700' : 'w-2/3'"
                                     />
                                 </div>
-                                <p class="mt-3 text-sm leading-6 text-muted-soft">Reduced motion keeps the same layout and styling while minimizing animated transitions.</p>
+                                <p class="text-muted-soft mt-3 text-sm leading-6">
+                                    Reduced motion keeps the same layout and styling while minimizing animated transitions.
+                                </p>
                             </div>
                         </div>
                     </div>

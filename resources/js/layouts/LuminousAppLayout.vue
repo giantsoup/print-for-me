@@ -113,16 +113,16 @@ const containerClass = computed(() => (props.wide ? 'max-w-[88rem]' : 'max-w-6xl
                 </div>
             </header>
 
-            <main :class="containerClass" class="relative z-10 mx-auto px-4 pb-40 pt-5 sm:px-6 md:pb-12 md:pt-6">
-                <section class="mb-6 flex flex-col gap-4 md:mb-8 md:gap-5 md:flex-row md:items-end md:justify-between">
+            <main :class="containerClass" class="relative z-10 mx-auto px-4 pt-5 pb-40 sm:px-6 md:pt-6 md:pb-12">
+                <section class="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-end md:justify-between md:gap-5">
                     <div class="max-w-2xl">
-                        <p v-if="props.eyebrow" class="mb-3 text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-primary/75">
+                        <p v-if="props.eyebrow" class="mb-3 text-[0.72rem] font-semibold tracking-[0.24em] text-primary/75 uppercase">
                             {{ props.eyebrow }}
                         </p>
-                        <h1 class="font-display text-[2rem] font-semibold tracking-tight text-gradient-filament sm:text-4xl">
+                        <h1 class="text-gradient-filament font-display text-[2rem] font-semibold tracking-tight sm:text-4xl">
                             {{ props.title }}
                         </h1>
-                        <p v-if="props.intro" class="mt-3 max-w-2xl text-sm leading-6 text-muted-soft sm:text-base">
+                        <p v-if="props.intro" class="text-muted-soft mt-3 max-w-2xl text-sm leading-6 sm:text-base">
                             {{ props.intro }}
                         </p>
                     </div>
@@ -141,8 +141,12 @@ const containerClass = computed(() => (props.wide ? 'max-w-[88rem]' : 'max-w-6xl
                         v-for="item in dockNav"
                         :key="item.key"
                         :href="item.href"
-                        class="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-2 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/45"
-                        :class="item.key === props.activeNav ? 'bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(161,255,194,0.12)]' : 'hover:bg-white/[0.04] hover:text-white/80'"
+                        class="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-2 py-2 text-[0.62rem] font-semibold tracking-[0.16em] text-white/45 uppercase"
+                        :class="
+                            item.key === props.activeNav
+                                ? 'bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(161,255,194,0.12)]'
+                                : 'hover:bg-white/[0.04] hover:text-white/80'
+                        "
                     >
                         <component :is="item.icon" class="h-4 w-4" />
                         <span>{{ item.label }}</span>

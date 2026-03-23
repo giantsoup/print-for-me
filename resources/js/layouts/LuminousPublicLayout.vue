@@ -17,19 +17,22 @@ const isAuthed = computed(() => Boolean(page.props.auth.user));
                     </Link>
 
                     <nav class="hidden items-center gap-2 md:flex">
-                        <a href="#how-it-works" class="rounded-full px-4 py-2 text-sm font-medium text-white/60 hover:bg-white/[0.045] hover:text-white">
+                        <a
+                            href="#how-it-works"
+                            class="rounded-full px-4 py-2 text-sm font-medium text-white/60 hover:bg-white/[0.045] hover:text-white"
+                        >
                             How it works
                         </a>
-                        <a href="#why-it-works" class="rounded-full px-4 py-2 text-sm font-medium text-white/60 hover:bg-white/[0.045] hover:text-white">
+                        <a
+                            href="#why-it-works"
+                            class="rounded-full px-4 py-2 text-sm font-medium text-white/60 hover:bg-white/[0.045] hover:text-white"
+                        >
                             Why it works
                         </a>
                     </nav>
 
                     <div class="flex items-center gap-2">
-                        <Link
-                            :href="isAuthed ? route('dashboard') : route('login')"
-                            class="pill-button pill-button-primary"
-                        >
+                        <Link :href="isAuthed ? route('dashboard') : route('login')" class="pill-button pill-button-primary">
                             {{ isAuthed ? 'Open dashboard' : 'Request login link' }}
                         </Link>
                     </div>

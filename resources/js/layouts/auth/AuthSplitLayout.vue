@@ -20,11 +20,11 @@ defineProps<{
                     <BrandMark />
                 </Link>
 
-                <div class="mt-auto luminous-panel px-6 py-6">
-                    <p class="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-primary/75">{{ name }}</p>
+                <div class="luminous-panel mt-auto px-6 py-6">
+                    <p class="text-[0.72rem] font-semibold tracking-[0.24em] text-primary/75 uppercase">{{ name }}</p>
                     <blockquote v-if="quote" class="mt-4 space-y-3">
                         <p class="font-display text-3xl font-semibold tracking-tight text-white">&ldquo;{{ quote.message }}&rdquo;</p>
-                        <footer class="text-sm text-muted-soft">{{ quote.author }}</footer>
+                        <footer class="text-muted-soft text-sm">{{ quote.author }}</footer>
                     </blockquote>
                 </div>
             </aside>
@@ -39,10 +39,10 @@ defineProps<{
 
                     <div class="luminous-panel px-6 py-8 sm:px-8">
                         <div v-if="title || description" class="mb-8 text-center">
-                            <h1 v-if="title" class="font-display text-3xl font-semibold tracking-tight text-gradient-filament">
+                            <h1 v-if="title" class="text-gradient-filament font-display text-3xl font-semibold tracking-tight">
                                 {{ title }}
                             </h1>
-                            <p v-if="description" class="mt-3 text-sm leading-6 text-muted-soft">
+                            <p v-if="description" class="text-muted-soft mt-3 text-sm leading-6">
                                 {{ description }}
                             </p>
                         </div>

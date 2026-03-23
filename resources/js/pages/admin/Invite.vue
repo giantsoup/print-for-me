@@ -40,8 +40,9 @@ function submit() {
                 <p v-if="form.errors.email" class="mt-2 text-sm text-rose-300">{{ form.errors.email }}</p>
             </div>
 
-            <div class="rounded-[1.4rem] bg-white/[0.04] px-4 py-4 text-sm leading-6 text-muted-soft">
-                The invite email contains a one-time magic link. Access remains invite-only, but the recipient can request new links later once they are whitelisted.
+            <div class="text-muted-soft rounded-[1.4rem] bg-white/[0.04] px-4 py-4 text-sm leading-6">
+                The invite email contains a one-time magic link. Access remains invite-only, but the recipient can request new links later once they
+                are whitelisted.
             </div>
 
             <button

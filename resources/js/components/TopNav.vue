@@ -36,10 +36,7 @@ function close() {
                 >
                     {{ isAuthed ? 'Requests' : 'Log in' }}
                 </Link>
-                <Link
-                    :href="isAuthed ? route('print-requests.create') : route('login')"
-                    class="pill-button pill-button-primary"
-                >
+                <Link :href="isAuthed ? route('print-requests.create') : route('login')" class="pill-button pill-button-primary">
                     {{ isAuthed ? 'New request' : 'Request login link' }}
                 </Link>
             </nav>
@@ -53,7 +50,7 @@ function close() {
             </button>
         </div>
 
-        <div v-if="open" class="border-t border-white/6 px-4 py-3 md:hidden sm:px-6">
+        <div v-if="open" class="border-t border-white/6 px-4 py-3 sm:px-6 md:hidden">
             <nav class="grid gap-2">
                 <Link
                     :href="isAuthed ? route('dashboard') : route('home')"
@@ -69,11 +66,7 @@ function close() {
                 >
                     {{ isAuthed ? 'Requests' : 'Log in' }}
                 </Link>
-                <Link
-                    :href="isAuthed ? route('print-requests.create') : route('login')"
-                    class="pill-button pill-button-primary"
-                    @click="close"
-                >
+                <Link :href="isAuthed ? route('print-requests.create') : route('login')" class="pill-button pill-button-primary" @click="close">
                     {{ isAuthed ? 'New request' : 'Request login link' }}
                 </Link>
             </nav>

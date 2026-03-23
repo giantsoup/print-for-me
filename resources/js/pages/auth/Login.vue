@@ -72,7 +72,7 @@ onMounted(() => {
             </p>
         </form>
 
-        <div class="mt-8 rounded-[1.4rem] bg-white/[0.04] px-4 py-4 text-sm leading-6 text-muted-soft">
+        <div class="text-muted-soft mt-8 rounded-[1.4rem] bg-white/[0.04] px-4 py-4 text-sm leading-6">
             Rate-limited for security. If your email is not already invited, contact the admin before requesting access again.
         </div>
     </LuminousFocusedLayout>

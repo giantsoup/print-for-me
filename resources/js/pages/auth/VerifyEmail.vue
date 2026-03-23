@@ -29,14 +29,12 @@ function submit() {
                 <MailCheck class="h-7 w-7" />
             </div>
 
-            <p class="mt-6 max-w-md text-sm leading-6 text-muted-soft">
-                A verification link has been sent to your email address. Open it from your inbox to activate the account attached to this magic-link session.
+            <p class="text-muted-soft mt-6 max-w-md text-sm leading-6">
+                A verification link has been sent to your email address. Open it from your inbox to activate the account attached to this magic-link
+                session.
             </p>
 
-            <p
-                v-if="status === 'verification-link-sent'"
-                class="mt-5 rounded-[1.2rem] bg-primary/10 px-4 py-3 text-sm text-primary"
-            >
+            <p v-if="status === 'verification-link-sent'" class="mt-5 rounded-[1.2rem] bg-primary/10 px-4 py-3 text-sm text-primary">
                 A new verification link has been sent.
             </p>
 
@@ -50,14 +48,7 @@ function submit() {
                     Resend verification email
                 </button>
 
-                <Link
-                    :href="route('logout')"
-                    method="post"
-                    as="button"
-                    class="pill-button pill-button-secondary w-full"
-                >
-                    Log out
-                </Link>
+                <Link :href="route('logout')" method="post" as="button" class="pill-button pill-button-secondary w-full"> Log out </Link>
             </form>
         </div>
     </LuminousFocusedLayout>

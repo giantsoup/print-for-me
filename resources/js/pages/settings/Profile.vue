@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { User } from '@/types';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
+import type { User } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ShieldAlert } from 'lucide-vue-next';
 
@@ -49,23 +49,27 @@ function submit() {
                         <p v-if="form.errors.email" class="mt-2 text-sm text-rose-300">{{ form.errors.email }}</p>
                     </div>
 
-                    <div v-if="mustVerifyEmail && !user.email_verified_at" class="mt-6 rounded-[1.3rem] bg-white/[0.04] px-4 py-4 text-sm leading-6 text-muted-soft">
+                    <div
+                        v-if="mustVerifyEmail && !user.email_verified_at"
+                        class="text-muted-soft mt-6 rounded-[1.3rem] bg-white/[0.04] px-4 py-4 text-sm leading-6"
+                    >
                         Your email is unverified.
                         <Link :href="route('verification.send')" method="post" as="button" class="font-medium text-primary">
                             Resend verification email
                         </Link>
                     </div>
 
-                    <p
-                        v-if="status === 'verification-link-sent'"
-                        class="mt-4 rounded-[1.2rem] bg-primary/10 px-4 py-3 text-sm text-primary"
-                    >
+                    <p v-if="status === 'verification-link-sent'" class="mt-4 rounded-[1.2rem] bg-primary/10 px-4 py-3 text-sm text-primary">
                         A new verification link has been sent.
                     </p>
                 </article>
 
                 <article class="luminous-panel px-5 py-5">
-                    <button type="submit" :disabled="form.processing" class="pill-button pill-button-primary w-full disabled:cursor-not-allowed disabled:opacity-45">
+                    <button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="pill-button pill-button-primary w-full disabled:cursor-not-allowed disabled:opacity-45"
+                    >
                         {{ form.processing ? 'Saving profile' : 'Save profile' }}
                     </button>
                     <p v-if="form.recentlySuccessful" class="mt-3 text-center text-sm text-primary">Saved.</p>
@@ -74,7 +78,7 @@ function submit() {
 
             <aside class="space-y-6">
                 <article class="luminous-panel px-5 py-5">
-                    <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Last Session</p>
+                    <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Last Session</p>
                     <dl class="mt-6 space-y-4 text-sm">
                         <div class="rounded-[1.3rem] bg-white/[0.04] px-4 py-4">
                             <dt class="text-white/45">IP address</dt>
@@ -93,14 +97,19 @@ function submit() {
                             <ShieldAlert class="h-4 w-4" />
                         </div>
                         <div>
-                            <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-rose-200/80">Session Security</p>
-                            <p class="mt-3 text-sm leading-6 text-muted-soft">
+                            <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-rose-200/80 uppercase">Session Security</p>
+                            <p class="text-muted-soft mt-3 text-sm leading-6">
                                 If a session looks compromised, invalidate every active session attached to this account.
                             </p>
                         </div>
                     </div>
 
-                    <Link :href="route('sessions.invalidate')" method="post" as="button" class="pill-button mt-6 w-full justify-center bg-rose-500/12 text-rose-300">
+                    <Link
+                        :href="route('sessions.invalidate')"
+                        method="post"
+                        as="button"
+                        class="pill-button mt-6 w-full justify-center bg-rose-500/12 text-rose-300"
+                    >
                         Log out of all devices
                     </Link>
                 </article>

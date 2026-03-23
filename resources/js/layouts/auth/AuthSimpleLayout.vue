@@ -20,10 +20,10 @@ defineProps<{
 
                 <div class="luminous-panel px-6 py-8 sm:px-8">
                     <div v-if="title || description" class="mb-8 text-center">
-                        <h1 v-if="title" class="font-display text-3xl font-semibold tracking-tight text-gradient-filament">
+                        <h1 v-if="title" class="text-gradient-filament font-display text-3xl font-semibold tracking-tight">
                             {{ title }}
                         </h1>
-                        <p v-if="description" class="mt-3 text-sm leading-6 text-muted-soft">
+                        <p v-if="description" class="text-muted-soft mt-3 text-sm leading-6">
                             {{ description }}
                         </p>
                     </div>

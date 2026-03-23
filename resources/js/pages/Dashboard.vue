@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import StatusBadge from '@/components/luminous/StatusBadge.vue';
-import { formatDateTime, formatRelative } from '@/lib/prints';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
+import { formatDateTime, formatRelative } from '@/lib/prints';
 import { Head, Link } from '@inertiajs/vue3';
 import { ArrowRight, Clock3, FolderOpen, Layers3, Sparkles, UserPlus2 } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -76,57 +76,32 @@ const metricCards = computed(() => {
         "
     >
         <template #pageActions>
-            <Link
-                v-if="props.isAdmin"
-                :href="route('print-requests.index')"
-                class="pill-button pill-button-secondary"
-            >
-                View request board
-            </Link>
-            <Link
-                v-if="props.isAdmin"
-                :href="route('admin.invite.create')"
-                class="pill-button pill-button-primary"
-            >
+            <Link v-if="props.isAdmin" :href="route('print-requests.index')" class="pill-button pill-button-secondary"> View request board </Link>
+            <Link v-if="props.isAdmin" :href="route('admin.invite.create')" class="pill-button pill-button-primary">
                 Invite user
                 <UserPlus2 class="h-4 w-4" />
             </Link>
 
-            <Link
-                v-if="!props.isAdmin"
-                :href="route('print-requests.index')"
-                class="pill-button pill-button-secondary"
-            >
-                My requests
-            </Link>
-            <Link
-                v-if="!props.isAdmin"
-                :href="route('print-requests.create')"
-                class="pill-button pill-button-primary"
-            >
+            <Link v-if="!props.isAdmin" :href="route('print-requests.index')" class="pill-button pill-button-secondary"> My requests </Link>
+            <Link v-if="!props.isAdmin" :href="route('print-requests.create')" class="pill-button pill-button-primary">
                 New request
                 <ArrowRight class="h-4 w-4" />
             </Link>
         </template>
 
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <article
-                v-for="card in metricCards"
-                :key="card.label"
-                class="luminous-panel px-5 py-5"
-            >
-                <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-white/42">{{ card.label }}</p>
+            <article v-for="card in metricCards" :key="card.label" class="luminous-panel px-5 py-5">
+                <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-white/42 uppercase">{{ card.label }}</p>
                 <p class="mt-4 font-display text-4xl font-semibold tracking-tight" :class="card.tone">{{ card.value }}</p>
             </article>
         </div>
 
-        <section
-            v-if="!props.isAdmin"
-            class="mt-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]"
-        >
-            <article class="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,rgba(161,255,194,0.96),rgba(0,252,154,0.82))] px-6 py-6 text-[#06341c] filament-glow">
-                <div class="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/25 blur-3xl" />
-                <p class="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-[#0f4f2c]/70">Ready To Start</p>
+        <section v-if="!props.isAdmin" class="mt-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+            <article
+                class="filament-glow relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,rgba(161,255,194,0.96),rgba(0,252,154,0.82))] px-6 py-6 text-[#06341c]"
+            >
+                <div class="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/25 blur-3xl" />
+                <p class="text-[0.72rem] font-semibold tracking-[0.24em] text-[#0f4f2c]/70 uppercase">Ready To Start</p>
                 <h2 class="mt-3 font-display text-3xl font-semibold tracking-tight">Drop in files, add notes, send it.</h2>
                 <p class="mt-3 max-w-xl text-sm leading-6 text-[#0d4a28]/80">
                     The new request flow keeps uploads front and center, with file limits and instructions visible before you submit.
@@ -147,44 +122,41 @@ const metricCards = computed(() => {
                 </div>
                 <dl class="mt-6 space-y-4">
                     <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
-                        <dt class="text-sm text-muted-soft">Pending review</dt>
+                        <dt class="text-muted-soft text-sm">Pending review</dt>
                         <dd class="font-display text-2xl text-white">{{ props.statusCounts.pending ?? 0 }}</dd>
                     </div>
                     <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
-                        <dt class="text-sm text-muted-soft">In production</dt>
+                        <dt class="text-muted-soft text-sm">In production</dt>
                         <dd class="font-display text-2xl text-primary">{{ activeCount }}</dd>
                     </div>
                     <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
-                        <dt class="text-sm text-muted-soft">Finished prints</dt>
+                        <dt class="text-muted-soft text-sm">Finished prints</dt>
                         <dd class="font-display text-2xl text-emerald-300">{{ props.statusCounts.complete ?? 0 }}</dd>
                     </div>
                 </dl>
             </article>
         </section>
 
-        <section
-            v-if="props.isAdmin"
-            class="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]"
-        >
+        <section v-if="props.isAdmin" class="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]">
             <article class="luminous-panel px-5 py-5">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Workflow Snapshot</p>
+                        <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Workflow Snapshot</p>
                         <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Move faster through the queue.</h2>
                     </div>
                     <Layers3 class="h-5 w-5 text-primary" />
                 </div>
                 <div class="mt-6 grid gap-3 sm:grid-cols-3">
                     <div class="rounded-3xl bg-white/[0.04] px-4 py-4">
-                        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">Pending</p>
+                        <p class="text-[0.68rem] font-semibold tracking-[0.2em] text-white/42 uppercase">Pending</p>
                         <p class="mt-2 font-display text-3xl text-white">{{ props.statusCounts.pending ?? 0 }}</p>
                     </div>
                     <div class="rounded-3xl bg-white/[0.04] px-4 py-4">
-                        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">Accepted</p>
+                        <p class="text-[0.68rem] font-semibold tracking-[0.2em] text-white/42 uppercase">Accepted</p>
                         <p class="mt-2 font-display text-3xl text-secondary">{{ props.statusCounts.accepted ?? 0 }}</p>
                     </div>
                     <div class="rounded-3xl bg-white/[0.04] px-4 py-4">
-                        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white/42">Printing</p>
+                        <p class="text-[0.68rem] font-semibold tracking-[0.2em] text-white/42 uppercase">Printing</p>
                         <p class="mt-2 font-display text-3xl text-primary">{{ props.statusCounts.printing ?? 0 }}</p>
                     </div>
                 </div>
@@ -193,7 +165,7 @@ const metricCards = computed(() => {
             <article class="luminous-panel px-5 py-5">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Admin Actions</p>
+                        <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Admin Actions</p>
                         <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Keep the workflow moving.</h2>
                     </div>
                     <FolderOpen class="h-5 w-5 text-secondary" />
@@ -215,16 +187,14 @@ const metricCards = computed(() => {
             <article class="luminous-panel px-5 py-5">
                 <div class="flex items-center justify-between gap-3">
                     <div>
-                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">
+                        <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">
                             {{ props.isAdmin ? 'Latest Requests' : 'Recent Requests' }}
                         </p>
                         <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">
                             {{ props.isAdmin ? 'Fresh work entering the board.' : 'Your current and recent prints.' }}
                         </h2>
                     </div>
-                    <Link :href="route('print-requests.index')" class="text-sm font-medium text-white/65 hover:text-white">
-                        View all
-                    </Link>
+                    <Link :href="route('print-requests.index')" class="text-sm font-medium text-white/65 hover:text-white"> View all </Link>
                 </div>
 
                 <div class="mt-6 grid gap-3">
@@ -240,10 +210,10 @@ const metricCards = computed(() => {
                                     <p class="font-display text-xl font-semibold tracking-tight text-white">Request #{{ requestItem.id }}</p>
                                     <StatusBadge :status="requestItem.status" />
                                 </div>
-                                <p class="mt-2 text-sm leading-6 text-muted-soft">
+                                <p class="text-muted-soft mt-2 text-sm leading-6">
                                     {{ requestItem.instructions || requestItem.source_url || 'No extra notes were added to this request.' }}
                                 </p>
-                                <div class="mt-3 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.18em] text-white/42">
+                                <div class="mt-3 flex flex-wrap items-center gap-3 text-xs tracking-[0.18em] text-white/42 uppercase">
                                     <span>{{ requestItem.files_count }} {{ requestItem.files_count === 1 ? 'file' : 'files' }}</span>
                                     <span>{{ formatDateTime(requestItem.created_at) }}</span>
                                     <span v-if="props.isAdmin && requestItem.user">{{ requestItem.user.name }}</span>
@@ -254,7 +224,7 @@ const metricCards = computed(() => {
                         </div>
                     </Link>
 
-                    <div v-if="!props.recentRequests.length" class="rounded-[1.45rem] bg-white/[0.04] px-4 py-8 text-sm text-muted-soft">
+                    <div v-if="!props.recentRequests.length" class="text-muted-soft rounded-[1.45rem] bg-white/[0.04] px-4 py-8 text-sm">
                         No requests have been submitted yet.
                     </div>
                 </div>
@@ -263,25 +233,21 @@ const metricCards = computed(() => {
             <article class="luminous-panel px-5 py-5">
                 <div class="flex items-center justify-between gap-3">
                     <div>
-                        <p class="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-primary/75">Recent Activity</p>
+                        <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Recent Activity</p>
                         <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Queue events worth watching.</h2>
                     </div>
                     <Clock3 class="h-5 w-5 text-primary" />
                 </div>
 
                 <div class="mt-6 space-y-3">
-                    <div
-                        v-for="activity in props.recentActivity"
-                        :key="activity.id"
-                        class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4"
-                    >
+                    <div v-for="activity in props.recentActivity" :key="activity.id" class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4">
                         <div class="flex items-center justify-between gap-3">
                             <p class="font-display text-lg font-semibold tracking-tight text-white">{{ activity.title }}</p>
-                            <span class="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white/40">
+                            <span class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/40 uppercase">
                                 {{ formatRelative(activity.at) }}
                             </span>
                         </div>
-                        <p class="mt-2 text-sm leading-6 text-muted-soft">{{ activity.description }}</p>
+                        <p class="text-muted-soft mt-2 text-sm leading-6">{{ activity.description }}</p>
                         <Link
                             :href="route('print-requests.show', { print_request: activity.request_id })"
                             class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary"
@@ -291,7 +257,7 @@ const metricCards = computed(() => {
                         </Link>
                     </div>
 
-                    <div v-if="!props.recentActivity.length" class="rounded-[1.35rem] bg-white/[0.04] px-4 py-8 text-sm text-muted-soft">
+                    <div v-if="!props.recentActivity.length" class="text-muted-soft rounded-[1.35rem] bg-white/[0.04] px-4 py-8 text-sm">
                         Activity will appear here as requests move through the workflow.
                     </div>
                 </div>
