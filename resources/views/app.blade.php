@@ -27,8 +27,10 @@
         <!--suppress HtmlUnknownAttribute -->
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <link rel="icon" type="image/png" href="{{ asset('website-logo.png') }}">
-        <link rel="apple-touch-icon" href="{{ asset('website-logo.png') }}">
+        <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}?v=pfm-1">
+        <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon.png') }}?v=pfm-1">
+        <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}?v=pfm-1">
+        <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}?v=pfm-1">
 
         @routes
         @vite('resources/js/app.ts')

@@ -31,3 +31,14 @@ it('redirects authenticated non-admin users to dashboard', function () {
 
     $response->assertRedirect(route('dashboard'));
 });
+
+it('renders the print-for-me favicon assets in the application shell', function () {
+    $response = $this->get(route('home'));
+
+    $response->assertOk()
+        ->assertSee('href="'.asset('favicon.svg').'?v=pfm-1"', false)
+        ->assertSee('href="'.asset('favicon.png').'?v=pfm-1"', false)
+        ->assertSee('href="'.asset('favicon.ico').'?v=pfm-1"', false)
+        ->assertSee('href="'.asset('apple-touch-icon.png').'?v=pfm-1"', false)
+        ->assertDontSee('website-logo.png', false);
+});
