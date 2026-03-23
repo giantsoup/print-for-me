@@ -22,15 +22,16 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->logInfo('Starting DatabaseSeeder: creating users and demo data...');
+        $adminEmail = (string) config('prints.admin_email', 'admin@example.com');
 
         try {
-            DB::transaction(function () {
+            DB::transaction(function () use ($adminEmail) {
                 // Admin user
                 $admin = User::firstOrCreate(
-                    ['email' => 'admin@example.com'],
+                    ['email' => $adminEmail],
                     [
-                        'name' => 'Taylor Oyer',
-                        'password' => 'password',
+                        'name' => 'Workshop Admin',
+                        'password' => Str::random(40),
                         'is_admin' => true,
                         'whitelisted_at' => now(),
                         'email_verified_at' => now(),
