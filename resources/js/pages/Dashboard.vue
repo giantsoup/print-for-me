@@ -192,6 +192,10 @@ const metricCards = computed(() => {
                         Invite user
                         <ArrowRight class="h-4 w-4" />
                     </Link>
+                    <Link :href="route('admin.users.index')" class="pill-button pill-button-secondary w-full justify-between">
+                        Manage users
+                        <ArrowRight class="h-4 w-4" />
+                    </Link>
                 </div>
             </article>
         </section>

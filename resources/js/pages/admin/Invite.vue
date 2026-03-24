@@ -19,30 +19,28 @@ function submit() {
     <Head title="Invite User" />
 
     <LuminousFocusedLayout
-        eyebrow="Admin Invite"
-        title="Invite someone into the print queue."
-        intro="This sends a one-time magic login link to an email address and whitelists that user for future sign-ins."
-        :back-href="route('dashboard')"
-        back-label="Back to dashboard"
+        eyebrow="Users"
+        title="Invite user"
+        :back-href="route('admin.users.index')"
+        back-label="Users"
     >
         <form class="space-y-6" @submit.prevent="submit">
             <div>
-                <label for="email" class="field-label">Member Email</label>
+                <label for="email" class="field-label">Email</label>
                 <input
                     id="email"
                     v-model="form.email"
                     type="email"
                     required
                     autocomplete="email"
-                    placeholder="friend@example.com"
+                    placeholder="name@example.com"
                     class="luminous-input"
                 />
                 <p v-if="form.errors.email" class="mt-2 text-sm text-rose-300">{{ form.errors.email }}</p>
             </div>
 
             <div class="text-muted-soft rounded-[1.4rem] bg-white/[0.04] px-4 py-4 text-sm leading-6">
-                The invite email contains a one-time magic link. Access remains invite-only, but the recipient can request new links later once they
-                are whitelisted.
+                Sends a one-time sign-in link and grants access.
             </div>
 
             <button

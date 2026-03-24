@@ -64,11 +64,9 @@ class MagicLinkController extends Controller
 
         $email = strtolower(trim($validated['email']));
 
-        $user = User::where('email', $email)->first();
+        $user = User::withTrashed()->where('email', $email)->first();
 
-        if (! $user || ! $user->whitelisted_at) {
-            // Keep an explicit error for non-whitelisted to align with current UX/tests.
-            // (Alternative enumeration-resistant approach would always return generic success.)
+        if (! $user || ! $user->canReceiveMagicLinks()) {
             throw ValidationException::withMessages([
                 'email' => 'This email is not authorized. You must be invited first.',
             ]);
@@ -157,11 +155,17 @@ class MagicLinkController extends Controller
                 ]);
             }
 
-            $user = User::where('email', $email)->first();
+            $user = User::withTrashed()->where('email', $email)->first();
 
             if (! $user) {
                 throw ValidationException::withMessages([
                     'email' => 'This account does not exist.',
+                ]);
+            }
+
+            if (! $user->canReceiveMagicLinks()) {
+                throw ValidationException::withMessages([
+                    'email' => 'This email is not authorized. You must be invited first.',
                 ]);
             }
 

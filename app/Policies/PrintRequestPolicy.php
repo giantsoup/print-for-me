@@ -35,7 +35,7 @@ class PrintRequestPolicy
         }
 
         if ($user->is_admin ?? false) {
-            return true;
+            return ! $printRequest->trashed();
         }
 
         return $user->id === $printRequest->user_id
@@ -52,10 +52,22 @@ class PrintRequestPolicy
             return false;
         }
 
-        // Only the owner can soft delete when pending (admin not included per guide)
+        if ($user->is_admin ?? false) {
+            return ! $printRequest->trashed();
+        }
+
         return $user->id === $printRequest->user_id
             && $printRequest->status === PrintRequestStatus::PENDING
             && ! $printRequest->trashed();
+    }
+
+    public function restore(?User $user, PrintRequest $printRequest): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return (bool) ($user->is_admin ?? false) && $printRequest->trashed();
     }
 
     /**

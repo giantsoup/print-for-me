@@ -48,7 +48,7 @@ class PrintRequestController extends Controller
             ->through(function (PrintRequest $printRequest) use ($isAdmin) {
                 return [
                     ...$printRequest->toArray(),
-                    'availableStatusActions' => $this->availableStatusActions($printRequest, $isAdmin),
+                    'availableStatusActions' => $printRequest->availableStatusActions($isAdmin),
                 ];
             })
             ->withQueryString();
@@ -123,9 +123,10 @@ class PrintRequestController extends Controller
             'can' => [
                 'update' => $user ? $user->can('update', $print_request) : false,
                 'delete' => $user ? $user->can('delete', $print_request) : false,
+                'restore' => $user ? $user->can('restore', $print_request) : false,
                 'isAdmin' => (bool) ($user->is_admin ?? false),
             ],
-            'availableStatusActions' => $this->availableStatusActions($print_request, (bool) ($user?->is_admin ?? false)),
+            'availableStatusActions' => $print_request->availableStatusActions((bool) ($user?->is_admin ?? false)),
             'timeline' => $timeline,
             'constraints' => [
                 'maxFiles' => 10,
@@ -233,6 +234,19 @@ class PrintRequestController extends Controller
         return redirect()->route('print-requests.index')->with('status', 'Print request deleted.');
     }
 
+    public function restore(Request $request, PrintRequest $print_request)
+    {
+        $this->authorize('restore', $print_request);
+
+        $print_request->restore();
+
+        if ($request->wantsJson()) {
+            return response()->json(['status' => 'restored']);
+        }
+
+        return back()->with('status', 'Print request restored.');
+    }
+
     public function forceDestroy(Request $request, $id)
     {
         // Find including soft-deleted rows
@@ -289,23 +303,6 @@ class PrintRequestController extends Controller
                 'sha256' => $sha256,
             ]);
         }
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function availableStatusActions(PrintRequest $printRequest, bool $isAdmin): array
-    {
-        if (! $isAdmin) {
-            return [];
-        }
-
-        return match ($printRequest->status) {
-            PrintRequestStatus::PENDING => ['accept'],
-            PrintRequestStatus::ACCEPTED => ['printing', 'revert'],
-            PrintRequestStatus::PRINTING => ['complete', 'revert'],
-            default => [],
-        };
     }
 
     private function authorizeOwnerOrAdmin(PrintRequest $printRequest): void

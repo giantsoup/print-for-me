@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import BrandMark from '@/components/luminous/BrandMark.vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { FolderOpen, LayoutGrid, PlusSquare, Settings2, UserRound } from 'lucide-vue-next';
+import { FolderOpen, LayoutGrid, PlusSquare, Settings2, UserRound, Users } from 'lucide-vue-next';
 import { computed } from 'vue';
 
-type NavKey = 'dashboard' | 'new' | 'requests' | 'settings';
+type NavKey = 'dashboard' | 'new' | 'requests' | 'users' | 'settings';
 
 interface Props {
     title: string;
@@ -31,6 +31,7 @@ const desktopNav = computed(() => {
         return [
             { key: 'dashboard', label: 'Dashboard', href: route('dashboard') },
             { key: 'requests', label: 'Requests', href: route('print-requests.index') },
+            { key: 'users', label: 'Users', href: route('admin.users.index') },
             { key: 'settings', label: 'Settings', href: route('profile.edit') },
         ] as const;
     }
@@ -48,6 +49,7 @@ const dockNav = computed(() => {
         return [
             { key: 'dashboard', label: 'Dashboard', href: route('dashboard'), icon: LayoutGrid },
             { key: 'requests', label: 'Requests', href: route('print-requests.index'), icon: FolderOpen },
+            { key: 'users', label: 'Users', href: route('admin.users.index'), icon: Users },
             { key: 'settings', label: 'Settings', href: route('profile.edit'), icon: Settings2 },
         ] as const;
     }

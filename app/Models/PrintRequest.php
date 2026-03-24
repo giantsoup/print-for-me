@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PrintRequestStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,5 +46,19 @@ class PrintRequest extends Model
     public function files(): HasMany
     {
         return $this->hasMany(PrintRequestFile::class);
+    }
+
+    public function availableStatusActions(bool $isAdmin): array
+    {
+        if (! $isAdmin) {
+            return [];
+        }
+
+        return match ($this->status) {
+            PrintRequestStatus::PENDING => ['accept'],
+            PrintRequestStatus::ACCEPTED => ['printing', 'revert'],
+            PrintRequestStatus::PRINTING => ['complete', 'revert'],
+            default => [],
+        };
     }
 }

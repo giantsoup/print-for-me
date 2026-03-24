@@ -37,6 +37,10 @@ export interface User {
     last_login_at?: string | null;
     last_login_ip?: string | null;
     last_login_user_agent?: string | null;
+    whitelisted_at?: string | null;
+    access_revoked_at?: string | null;
+    deleted_at?: string | null;
+    session_version?: number;
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;
