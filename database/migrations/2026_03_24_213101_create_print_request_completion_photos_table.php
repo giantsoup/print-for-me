@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('sha256', 64)->index();
             $table->timestamps();
 
-            $table->index(['print_request_id', 'sort_order']);
+            $table->index(['print_request_id', 'sort_order'], 'prcp_request_sort_idx');
         });
     }
 
