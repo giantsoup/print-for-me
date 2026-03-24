@@ -66,7 +66,7 @@ const containerClass = computed(() => (props.wide ? 'max-w-[88rem]' : 'max-w-6xl
     <div class="luminous-shell">
         <div class="relative z-10">
             <header class="sticky top-0 z-30 border-b border-white/6 bg-black/20 backdrop-blur-2xl">
-                <div :class="containerClass" class="mx-auto flex items-center justify-between gap-4 px-4 py-3 sm:px-6 sm:py-4">
+                <div :class="containerClass" class="mx-auto flex items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
                     <Link :href="route('dashboard')" class="shrink-0">
                         <BrandMark />
                     </Link>
@@ -113,21 +113,24 @@ const containerClass = computed(() => (props.wide ? 'max-w-[88rem]' : 'max-w-6xl
                 </div>
             </header>
 
-            <main :class="containerClass" class="relative z-10 mx-auto px-4 pt-5 pb-40 sm:px-6 md:pt-6 md:pb-12">
-                <section class="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-end md:justify-between md:gap-5">
+            <main :class="containerClass" class="relative z-10 mx-auto px-4 pt-4 pb-40 sm:px-6 md:pt-6 md:pb-12">
+                <section class="mb-5 flex flex-col gap-3 md:mb-7 md:flex-row md:items-end md:justify-between md:gap-5">
                     <div class="max-w-2xl">
-                        <p v-if="props.eyebrow" class="mb-3 text-[0.72rem] font-semibold tracking-[0.24em] text-primary/75 uppercase">
+                        <p
+                            v-if="props.eyebrow"
+                            class="mb-2 text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase sm:mb-3 sm:text-[0.72rem] sm:tracking-[0.24em]"
+                        >
                             {{ props.eyebrow }}
                         </p>
-                        <h1 class="text-gradient-filament font-display text-[2rem] font-semibold tracking-tight sm:text-4xl">
+                        <h1 class="text-gradient-filament text-[1.8rem] font-semibold tracking-tight sm:font-display sm:text-4xl">
                             {{ props.title }}
                         </h1>
-                        <p v-if="props.intro" class="text-muted-soft mt-3 max-w-2xl text-sm leading-6 sm:text-base">
+                        <p v-if="props.intro" class="text-muted-soft mt-2.5 max-w-2xl text-sm leading-5 sm:mt-3 sm:text-base sm:leading-6">
                             {{ props.intro }}
                         </p>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-3">
+                    <div class="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
                         <slot name="pageActions" />
                     </div>
                 </section>
