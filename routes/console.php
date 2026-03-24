@@ -18,7 +18,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Artisan::command('auth:invite {email}', function (string $email) {
-    $email = strtolower($email);
+    $email = strtolower(trim($email));
 
     $user = User::firstOrNew(['email' => $email]);
     if (! $user->exists) {
@@ -52,7 +52,7 @@ Artisan::command('auth:invite {email}', function (string $email) {
 })->purpose('Invite a user by email, whitelist them, and send a magic login link.');
 
 Artisan::command('auth:make-admin {email} {--name=}', function (string $email) {
-    $email = strtolower($email);
+    $email = strtolower(trim($email));
     $providedName = trim((string) $this->option('name'));
 
     $user = User::firstOrNew(['email' => $email]);
