@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\InviteController;
+use App\Http\Controllers\Admin\PrintRequestSourcePreviewController;
 use App\Http\Controllers\Admin\PrintRequestStatusController;
 use App\Http\Controllers\Admin\SourcePreviewDomainController;
 use App\Http\Controllers\Admin\UserController;
@@ -34,6 +35,8 @@ Route::group(['middleware' => ['auth', 'absolute', 'session_version', 'admin']],
         ->name('admin.print-requests.complete');
     Route::patch('admin/print-requests/{print_request}/revert', [PrintRequestStatusController::class, 'revert'])
         ->name('admin.print-requests.revert');
+    Route::post('admin/print-requests/{print_request}/source-preview/refetch', PrintRequestSourcePreviewController::class)
+        ->name('admin.print-requests.source-preview.refetch');
 
     Route::get('admin/source-preview-domains', [SourcePreviewDomainController::class, 'index'])
         ->name('admin.source-preview-domains.index');

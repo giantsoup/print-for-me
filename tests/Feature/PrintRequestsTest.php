@@ -613,6 +613,68 @@ it('falls back to the main content image when a page omits preview image metadat
     expect($request->source_preview_failed_at)->toBeNull();
 });
 
+it('lets an admin refetch request content for a print request', function () {
+    Http::preventStrayRequests();
+
+    Http::fake([
+        'https://example.com/refetch-model*' => Http::response(
+            <<<'HTML'
+            <html>
+                <head>
+                    <meta property="og:title" content="Updated Bracket">
+                    <meta property="og:description" content="Freshly fetched preview after a manual admin refresh.">
+                    <meta property="og:image" content="/images/updated-bracket.png">
+                    <meta property="og:site_name" content="Example Models">
+                </head>
+            </html>
+            HTML,
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8'],
+        ),
+    ]);
+
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+    $request = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/refetch-model/bracket',
+        'source_preview_failed_at' => now(),
+    ]);
+
+    actingAs($admin);
+
+    post(route('admin.print-requests.source-preview.refetch', $request))
+        ->assertRedirectBack()
+        ->assertSessionHas('status', 'Request content refreshed successfully.');
+
+    $request->refresh();
+
+    expect($request->source_preview)->toMatchArray([
+        'url' => 'https://example.com/refetch-model/bracket',
+        'domain' => 'example.com',
+        'site_name' => 'Example Models',
+        'title' => 'Updated Bracket',
+        'description' => 'Freshly fetched preview after a manual admin refresh.',
+        'image_url' => 'https://example.com/images/updated-bracket.png',
+    ]);
+    expect($request->source_preview_fetched_at)->not->toBeNull();
+    expect($request->source_preview_failed_at)->toBeNull();
+});
+
+it('blocks non-admins from refetching request content', function () {
+    $user = User::factory()->create();
+    $request = PrintRequest::create([
+        'user_id' => $user->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/refetch-blocked',
+    ]);
+
+    actingAs($user);
+
+    post(route('admin.print-requests.source-preview.refetch', $request))->assertForbidden();
+});
+
 it('allows owner to securely download their file and blocks non-owner', function () {
     Storage::fake('local');
 

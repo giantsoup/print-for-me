@@ -4,7 +4,7 @@ import StatusBadge from '@/components/luminous/StatusBadge.vue';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { formatDateOnly, formatDateTime, formatFileSize, type PrintRequestActionKey } from '@/lib/prints';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { ChevronDown, ChevronUp, Download, ExternalLink, LoaderCircle, SquarePen, Trash2, X } from 'lucide-vue-next';
+import { ChevronDown, ChevronUp, Download, ExternalLink, LoaderCircle, RefreshCcw, SquarePen, Trash2, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface FileItem {
@@ -78,6 +78,7 @@ const props = defineProps<Props>();
 const page = usePage();
 const isEditing = ref(false);
 const isSourceDescriptionExpanded = ref(false);
+const isRefetchingSourcePreview = ref(false);
 const pickedFiles = ref<File[]>([]);
 
 const form = useForm<{ source_url: string | null; instructions: string | null; files: File[]; remove_file_ids: number[] }>({
@@ -230,6 +231,25 @@ function cancelRequest() {
     router.delete(route('print-requests.destroy', { print_request: props.printRequest.id }));
 }
 
+function refetchSourcePreview() {
+    if (!props.can.isAdmin || !sourceUrl.value || isRefetchingSourcePreview.value) {
+        return;
+    }
+
+    isRefetchingSourcePreview.value = true;
+
+    router.post(
+        route('admin.print-requests.source-preview.refetch', { print_request: props.printRequest.id }),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                isRefetchingSourcePreview.value = false;
+            },
+        },
+    );
+}
+
 function resetFormState() {
     const defaults = {
         source_url: props.printRequest.source_url || '',
@@ -357,6 +377,19 @@ function syncSourceDescriptionOverflow() {
                             </div>
 
                             <div v-else-if="sourceUrl" class="space-y-4">
+                                <div v-if="props.can.isAdmin" class="flex justify-start">
+                                    <button
+                                        type="button"
+                                        class="pill-button pill-button-secondary w-full justify-center sm:w-auto"
+                                        :disabled="isRefetchingSourcePreview"
+                                        @click="refetchSourcePreview"
+                                    >
+                                        <LoaderCircle v-if="isRefetchingSourcePreview" class="h-4 w-4 animate-spin" />
+                                        <RefreshCcw v-else class="h-4 w-4" />
+                                        Refetch request content
+                                    </button>
+                                </div>
+
                                 <div class="overflow-hidden rounded-[1.45rem] border border-primary/16 bg-primary/[0.07] p-4 sm:p-5">
                                     <a
                                         v-if="sourceImageUrl && !sourcePreviewBlocked"
