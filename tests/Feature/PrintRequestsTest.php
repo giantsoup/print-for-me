@@ -462,6 +462,157 @@ it('stores fetched source preview metadata for a queued request', function () {
     expect($request->source_preview_failed_at)->toBeNull();
 });
 
+it('stores source previews from og name tags and structured data when description metas are blank', function () {
+    Http::preventStrayRequests();
+
+    Http::fake([
+        'https://printables.com/model*' => Http::response(
+            <<<'HTML'
+            <html>
+                <head>
+                    <meta name="og:site_name" content="Printables.com">
+                    <meta name="og:title" content="Breacher">
+                    <meta name="og:description" content="">
+                    <meta name="og:image" content="/images/breacher.png">
+                    <script type="application/ld+json">
+                        {
+                            "@context": "https://schema.org",
+                            "@type": "Product",
+                            "name": "Breacher",
+                            "description": "Breacher is a tube-mag 3d printed Nerf shotgun blaster that fires and ejects Silly Shells!",
+                            "image": {
+                                "@type": "ImageObject",
+                                "url": "https://printables.com/images/breacher-structured.png"
+                            }
+                        }
+                    </script>
+                </head>
+                <body>
+                    <p>&nbsp;</p>
+                    <p>This fallback paragraph should not be needed when structured data is present.</p>
+                </body>
+            </html>
+            HTML,
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8'],
+        ),
+    ]);
+
+    $request = PrintRequest::create([
+        'user_id' => User::factory()->create()->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://printables.com/model/1369482-breacher',
+    ]);
+
+    (new FetchPrintRequestSourcePreview($request->id, $request->source_url))
+        ->handle(app(AttemptSourcePreview::class));
+
+    $request->refresh();
+
+    expect($request->source_preview)->toMatchArray([
+        'url' => 'https://printables.com/model/1369482-breacher',
+        'domain' => 'printables.com',
+        'site_name' => 'Printables.com',
+        'title' => 'Breacher',
+        'description' => 'Breacher is a tube-mag 3d printed Nerf shotgun blaster that fires and ejects Silly Shells!',
+        'image_url' => 'https://printables.com/images/breacher.png',
+    ]);
+    expect($request->source_preview_fetched_at)->not->toBeNull();
+    expect($request->source_preview_failed_at)->toBeNull();
+});
+
+it('keeps absolute preview image urls valid when a provider serves spaces in the asset path', function () {
+    Http::preventStrayRequests();
+
+    Http::fake([
+        'https://www.myminifactory.com/object*' => Http::response(
+            <<<'HTML'
+            <html>
+                <head>
+                    <title>Flexi Phoenix</title>
+                    <meta property="og:title" content="Flexi Phoenix">
+                    <meta property="og:description" content="An articulated print-in-place phoenix.">
+                    <meta property="og:image" content="https://dl2.myminifactory.com/object-assets/phoenix/Flexi Phoenix Hero.jpg">
+                </head>
+            </html>
+            HTML,
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8'],
+        ),
+    ]);
+
+    $request = PrintRequest::create([
+        'user_id' => User::factory()->create()->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://www.myminifactory.com/object/3d-print-flexi-phoenix-1',
+    ]);
+
+    (new FetchPrintRequestSourcePreview($request->id, $request->source_url))
+        ->handle(app(AttemptSourcePreview::class));
+
+    $request->refresh();
+
+    expect($request->source_preview)->toMatchArray([
+        'url' => 'https://www.myminifactory.com/object/3d-print-flexi-phoenix-1',
+        'domain' => 'myminifactory.com',
+        'title' => 'Flexi Phoenix',
+        'description' => 'An articulated print-in-place phoenix.',
+        'image_url' => 'https://dl2.myminifactory.com/object-assets/phoenix/Flexi%20Phoenix%20Hero.jpg',
+    ]);
+    expect($request->source_preview_fetched_at)->not->toBeNull();
+    expect($request->source_preview_failed_at)->toBeNull();
+});
+
+it('falls back to the main content image when a page omits preview image metadata', function () {
+    Http::preventStrayRequests();
+
+    Http::fake([
+        'https://pinshape.com/items*' => Http::response(
+            <<<'HTML'
+            <html>
+                <head>
+                    <title>OpenRC Tractor - Pinshape</title>
+                </head>
+                <body>
+                    <nav>
+                        <img src="/static/logo.png" alt="Pinshape logo">
+                    </nav>
+                    <main>
+                        <img src="//assets.pinshape.com/uploads/image/file/103693/large_openrc-tractor-3d-printing-103693.jpg" class="card-img-top item-detail-image" alt="OpenRC Tractor">
+                        <section>
+                            <p>I also prepared some basic instructions and BOM, so you can easily print and assemble your own tractor.</p>
+                        </section>
+                    </main>
+                </body>
+            </html>
+            HTML,
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8'],
+        ),
+    ]);
+
+    $request = PrintRequest::create([
+        'user_id' => User::factory()->create()->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://pinshape.com/items/26608-3d-printed-openrc-tractor',
+    ]);
+
+    (new FetchPrintRequestSourcePreview($request->id, $request->source_url))
+        ->handle(app(AttemptSourcePreview::class));
+
+    $request->refresh();
+
+    expect($request->source_preview)->toMatchArray([
+        'url' => 'https://pinshape.com/items/26608-3d-printed-openrc-tractor',
+        'domain' => 'pinshape.com',
+        'title' => 'OpenRC Tractor - Pinshape',
+        'description' => 'I also prepared some basic instructions and BOM, so you can easily print and assemble your own tractor.',
+        'image_url' => 'https://assets.pinshape.com/uploads/image/file/103693/large_openrc-tractor-3d-printing-103693.jpg',
+    ]);
+    expect($request->source_preview_fetched_at)->not->toBeNull();
+    expect($request->source_preview_failed_at)->toBeNull();
+});
+
 it('allows owner to securely download their file and blocks non-owner', function () {
     Storage::fake('local');
 

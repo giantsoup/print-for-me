@@ -113,30 +113,55 @@ class SourcePreviewFetcher
         }
 
         $xpath = new DOMXPath($document);
+        $structuredNodes = $this->extractStructuredNodes($xpath);
 
         $preview = array_filter([
             'url' => $url,
             'domain' => $this->displayDomain($url),
             'site_name' => $this->extractFirst($xpath, [
-                "//meta[@property='og:site_name']/@content",
+                "//meta[@property='og:site_name' or @name='og:site_name']/@content",
                 "//meta[@name='application-name']/@content",
+            ], 80) ?? $this->extractStructuredString($structuredNodes, [
+                'publisher.name',
+                'brand.name',
+                'provider.name',
+                'isPartOf.name',
             ], 80),
             'title' => $this->extractFirst($xpath, [
-                "//meta[@property='og:title']/@content",
-                "//meta[@name='twitter:title']/@content",
+                "//meta[@property='og:title' or @name='og:title']/@content",
+                "//meta[@property='twitter:title' or @name='twitter:title']/@content",
                 '//title/text()',
+            ], 140) ?? $this->extractStructuredString($structuredNodes, [
+                'headline',
+                'name',
             ], 140),
             'description' => $this->extractFirst($xpath, [
-                "//meta[@property='og:description']/@content",
+                "//meta[@property='og:description' or @name='og:description']/@content",
                 "//meta[@name='description']/@content",
-                "//meta[@name='twitter:description']/@content",
+                "//meta[@property='twitter:description' or @name='twitter:description']/@content",
+            ], 1600) ?? $this->extractStructuredString($structuredNodes, [
+                'description',
+                'summary',
+            ], 1600) ?? $this->extractFirst($xpath, [
                 '//article//p/text()',
                 '//main//p/text()',
                 '//body//p/text()',
             ], 1600),
             'image_url' => $this->resolveUrl($url, $this->extractFirst($xpath, [
-                "//meta[@property='og:image']/@content",
-                "//meta[@name='twitter:image']/@content",
+                "//meta[@property='og:image' or @name='og:image']/@content",
+                "//meta[@property='twitter:image' or @name='twitter:image']/@content",
+                "//meta[@itemprop='image']/@content",
+                "//link[@rel='image_src']/@href",
+            ], 2048) ?? $this->extractStructuredString($structuredNodes, [
+                'image.url',
+                'image',
+                'thumbnailUrl',
+                'primaryImageOfPage.url',
+            ], 2048) ?? $this->extractFirst($xpath, [
+                "//main//img[contains(@class, 'item-detail-image')]/@src",
+                "//main//img[contains(@class, 'card-img-top')]/@src",
+                "//main//img[not(starts-with(@src, 'data:'))]/@src",
+                "//article//img[not(starts-with(@src, 'data:'))]/@src",
             ], 2048)),
         ], fn (mixed $value): bool => filled($value));
 
@@ -152,7 +177,108 @@ class SourcePreviewFetcher
                 continue;
             }
 
-            $candidate = $this->normalizeText($nodes->item(0)?->nodeValue, $limit);
+            foreach ($nodes as $node) {
+                $candidate = $this->normalizeText($node->nodeValue, $limit);
+
+                if (filled($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, array<mixed>>
+     */
+    private function extractStructuredNodes(DOMXPath $xpath): array
+    {
+        $scripts = $xpath->query("//script[@type='application/ld+json']/text()");
+
+        if (! $scripts || $scripts->length === 0) {
+            return [];
+        }
+
+        $nodes = [];
+
+        foreach ($scripts as $script) {
+            $payload = trim((string) $script->nodeValue);
+
+            if ($payload === '') {
+                continue;
+            }
+
+            $decoded = json_decode($payload, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                continue;
+            }
+
+            $this->collectStructuredNodes($decoded, $nodes);
+        }
+
+        return $nodes;
+    }
+
+    /**
+     * @param  array<int, array<mixed>>  $nodes
+     * @param  array<int, string>  $paths
+     */
+    private function extractStructuredString(array $nodes, array $paths, int $limit): ?string
+    {
+        foreach ($nodes as $node) {
+            foreach ($paths as $path) {
+                $candidate = $this->firstStructuredString(data_get($node, $path));
+                $normalized = $this->normalizeText($candidate, $limit);
+
+                if (filled($normalized)) {
+                    return $normalized;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<int, array<mixed>>  $nodes
+     */
+    private function collectStructuredNodes(mixed $value, array &$nodes): void
+    {
+        if (! is_array($value)) {
+            return;
+        }
+
+        $nodes[] = $value;
+
+        foreach ($value as $child) {
+            $this->collectStructuredNodes($child, $nodes);
+        }
+    }
+
+    private function firstStructuredString(mixed $value): ?string
+    {
+        if (is_string($value)) {
+            return $value;
+        }
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        foreach (['url', 'contentUrl', 'secureUrl'] as $preferredKey) {
+            if (array_key_exists($preferredKey, $value)) {
+                $candidate = $this->firstStructuredString($value[$preferredKey]);
+
+                if (filled($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        foreach ($value as $child) {
+            $candidate = $this->firstStructuredString($child);
 
             if (filled($candidate)) {
                 return $candidate;
@@ -192,6 +318,12 @@ class SourcePreviewFetcher
     private function resolveUrl(string $pageUrl, ?string $candidate): ?string
     {
         if (! filled($candidate)) {
+            return null;
+        }
+
+        $candidate = str_replace(' ', '%20', trim($candidate));
+
+        if ($candidate === '') {
             return null;
         }
 

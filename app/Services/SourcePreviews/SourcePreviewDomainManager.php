@@ -28,7 +28,7 @@ class SourcePreviewDomainManager
             ],
             'thangs.com' => [
                 'label' => 'Thangs',
-                'policy' => SourcePreviewFetchPolicy::Allow,
+                'policy' => SourcePreviewFetchPolicy::Block,
             ],
             'cults3d.com' => [
                 'label' => 'Cults3D',

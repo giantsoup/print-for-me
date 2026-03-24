@@ -51,12 +51,18 @@ it('loads the source preview domain workspace with seeded popular domains', func
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/source-previews/Index')
             ->where('domains', fn ($domains) => collect($domains)->pluck('domain')->contains('makerworld.com')
-                && collect($domains)->pluck('domain')->contains('printables.com'))
+                && collect($domains)->pluck('domain')->contains('printables.com')
+                && collect($domains)->pluck('domain')->contains('thangs.com'))
             ->where('summary.tracked', fn (int $count) => $count >= 6)
         );
 
     assertDatabaseHas('source_preview_domains', [
         'domain' => 'makerworld.com',
+        'policy' => SourcePreviewFetchPolicy::Block->value,
+    ]);
+
+    assertDatabaseHas('source_preview_domains', [
+        'domain' => 'thangs.com',
         'policy' => SourcePreviewFetchPolicy::Block->value,
     ]);
 });
