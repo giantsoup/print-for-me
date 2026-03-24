@@ -18,12 +18,7 @@ function submit() {
 <template>
     <Head title="Invite User" />
 
-    <LuminousFocusedLayout
-        eyebrow="Users"
-        title="Invite user"
-        :back-href="route('admin.users.index')"
-        back-label="Users"
-    >
+    <LuminousFocusedLayout eyebrow="Users" title="Invite user" :back-href="route('admin.users.index')" back-label="Users">
         <form class="space-y-6" @submit.prevent="submit">
             <div>
                 <label for="email" class="field-label">Email</label>

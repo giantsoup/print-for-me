@@ -70,8 +70,8 @@ watch(
 );
 
 const flashStatus = computed(() => page.props.flash?.status);
-const activeFilterCount = computed(() =>
-    [filterForm.q.trim(), filterForm.role, filterForm.access, filterForm.lifecycle, filterForm.request_status].filter(Boolean).length,
+const activeFilterCount = computed(
+    () => [filterForm.q.trim(), filterForm.role, filterForm.access, filterForm.lifecycle, filterForm.request_status].filter(Boolean).length,
 );
 
 function applyFilters() {
@@ -155,12 +155,7 @@ function labelize(value: string) {
 <template>
     <Head title="Manage Users" />
 
-    <LuminousAppLayout
-        active-nav="users"
-        eyebrow="Users"
-        title="Users"
-        wide
-    >
+    <LuminousAppLayout active-nav="users" eyebrow="Users" title="Users" wide>
         <template #pageActions>
             <Link :href="route('admin.invite.create')" class="pill-button pill-button-primary w-full sm:w-auto">
                 Invite
@@ -193,13 +188,19 @@ function labelize(value: string) {
 
             <article class="luminous-panel w-full min-w-0 px-4 py-4 sm:px-5 sm:py-5">
                 <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Revoked</p>
-                <p class="mt-3 text-center text-3xl font-semibold tracking-tight text-white sm:font-display">{{ props.summaryCounts.revoked ?? 0 }}</p>
+                <p class="mt-3 text-center text-3xl font-semibold tracking-tight text-white sm:font-display">
+                    {{ props.summaryCounts.revoked ?? 0 }}
+                </p>
                 <p class="text-muted-soft mt-2 text-sm">Revoked access</p>
             </article>
 
-            <article class="luminous-panel col-span-2 w-full max-w-[16.5rem] justify-self-center px-4 py-4 sm:px-5 sm:py-5 xl:col-span-1 xl:max-w-none xl:justify-self-auto">
+            <article
+                class="luminous-panel col-span-2 w-full max-w-[16.5rem] justify-self-center px-4 py-4 sm:px-5 sm:py-5 xl:col-span-1 xl:max-w-none xl:justify-self-auto"
+            >
                 <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Deleted</p>
-                <p class="mt-3 text-center text-3xl font-semibold tracking-tight text-white sm:font-display">{{ props.summaryCounts.deleted ?? 0 }}</p>
+                <p class="mt-3 text-center text-3xl font-semibold tracking-tight text-white sm:font-display">
+                    {{ props.summaryCounts.deleted ?? 0 }}
+                </p>
                 <p class="text-muted-soft mt-2 text-sm">Deleted accounts</p>
             </article>
         </section>
@@ -217,7 +218,9 @@ function labelize(value: string) {
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <span class="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold tracking-[0.16em] text-white/60 uppercase">
+                    <span
+                        class="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold tracking-[0.16em] text-white/60 uppercase"
+                    >
                         {{ isFilterPanelOpen ? 'Hide' : 'Show' }}
                     </span>
                     <ChevronDown class="h-4 w-4 text-white/55 transition-transform duration-200" :class="{ 'rotate-180': isFilterPanelOpen }" />
@@ -259,7 +262,9 @@ function labelize(value: string) {
                         <span class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/42 uppercase">Lifecycle</span>
                         <select v-model="filterForm.lifecycle" class="luminous-input min-h-12">
                             <option value="">Active only</option>
-                            <option v-for="lifecycle in props.availableFilters.lifecycle" :key="lifecycle" :value="lifecycle">{{ labelize(lifecycle) }}</option>
+                            <option v-for="lifecycle in props.availableFilters.lifecycle" :key="lifecycle" :value="lifecycle">
+                                {{ labelize(lifecycle) }}
+                            </option>
                         </select>
                     </label>
 
@@ -267,7 +272,9 @@ function labelize(value: string) {
                         <span class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/42 uppercase">Request Activity</span>
                         <select v-model="filterForm.request_status" class="luminous-input min-h-12">
                             <option value="">All request activity</option>
-                            <option v-for="status in props.availableFilters.requestStatuses" :key="status" :value="status">{{ labelize(status) }}</option>
+                            <option v-for="status in props.availableFilters.requestStatuses" :key="status" :value="status">
+                                {{ labelize(status) }}
+                            </option>
                         </select>
                     </label>
 
@@ -285,15 +292,21 @@ function labelize(value: string) {
                     <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">
                             <p class="text-xl font-semibold tracking-tight text-white sm:font-display sm:text-2xl">{{ item.name }}</p>
-                            <span class="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] uppercase" :class="roleTone(item.is_admin)">
+                            <span
+                                class="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] uppercase"
+                                :class="roleTone(item.is_admin)"
+                            >
                                 {{ item.is_admin ? 'Admin' : 'Member' }}
                             </span>
-                            <span class="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] uppercase" :class="accessTone(item.access_state)">
+                            <span
+                                class="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] uppercase"
+                                :class="accessTone(item.access_state)"
+                            >
                                 {{ accessLabel(item.access_state) }}
                             </span>
                         </div>
 
-                        <p class="text-muted-soft mt-3 break-words text-sm leading-6">{{ item.email }}</p>
+                        <p class="text-muted-soft mt-3 text-sm leading-6 break-words">{{ item.email }}</p>
 
                         <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                             <div class="rounded-[1.2rem] bg-white/[0.04] px-4 py-4">
@@ -309,7 +322,9 @@ function labelize(value: string) {
                             <div class="rounded-[1.2rem] bg-white/[0.04] px-4 py-4">
                                 <p class="text-[0.68rem] font-semibold tracking-[0.16em] text-white/40 uppercase">Requests</p>
                                 <p class="mt-2 text-sm text-white">{{ item.request_counts.total }} total</p>
-                                <p class="text-muted-soft mt-1 text-xs">Pending {{ item.request_counts.pending }}, printing {{ item.request_counts.printing }}</p>
+                                <p class="text-muted-soft mt-1 text-xs">
+                                    Pending {{ item.request_counts.pending }}, printing {{ item.request_counts.printing }}
+                                </p>
                             </div>
 
                             <div class="rounded-[1.2rem] bg-white/[0.04] px-4 py-4">

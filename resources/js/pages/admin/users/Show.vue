@@ -280,13 +280,7 @@ function accessTone(value: string) {
 <template>
     <Head :title="user.name" />
 
-    <LuminousAppLayout
-        active-nav="users"
-        eyebrow="User"
-        :title="user.name"
-        :intro="user.email"
-        wide
-    >
+    <LuminousAppLayout active-nav="users" eyebrow="User" :title="user.name" :intro="user.email" wide>
         <template #pageActions>
             <Link :href="route('admin.users.index')" class="pill-button pill-button-secondary w-full sm:w-auto">
                 <ArrowLeft class="h-4 w-4" />
@@ -305,10 +299,16 @@ function accessTone(value: string) {
         <section class="grid gap-3 xl:grid-cols-[1.25fr_0.75fr]">
             <article class="luminous-panel px-5 py-5">
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] uppercase" :class="user.is_admin ? 'bg-secondary/12 text-secondary' : 'bg-white/[0.06] text-white/72'">
+                    <span
+                        class="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] uppercase"
+                        :class="user.is_admin ? 'bg-secondary/12 text-secondary' : 'bg-white/[0.06] text-white/72'"
+                    >
                         {{ user.is_admin ? 'Admin' : 'Member' }}
                     </span>
-                    <span class="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] uppercase" :class="accessTone(user.access_state)">
+                    <span
+                        class="rounded-full px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] uppercase"
+                        :class="accessTone(user.access_state)"
+                    >
                         {{ accessLabel(user.access_state) }}
                     </span>
                 </div>
@@ -336,7 +336,7 @@ function accessTone(value: string) {
 
                     <div class="rounded-[1.2rem] bg-white/[0.04] px-4 py-4">
                         <p class="text-[0.68rem] font-semibold tracking-[0.16em] text-white/40 uppercase">Last IP</p>
-                        <p class="mt-2 break-words text-sm text-white">{{ user.last_login_ip || 'Unavailable' }}</p>
+                        <p class="mt-2 text-sm break-words text-white">{{ user.last_login_ip || 'Unavailable' }}</p>
                     </div>
 
                     <div class="rounded-[1.2rem] bg-white/[0.04] px-4 py-4">
@@ -390,12 +390,14 @@ function accessTone(value: string) {
                         <p v-if="updateForm.errors.email" class="text-sm text-rose-300">{{ updateForm.errors.email }}</p>
                     </label>
 
-                    <p class="text-muted-soft text-sm leading-6">Changing the email clears verification, signs out active sessions, and requires a new invite.</p>
+                    <p class="text-muted-soft text-sm leading-6">
+                        Changing the email clears verification, signs out active sessions, and requires a new invite.
+                    </p>
 
                     <button
                         type="submit"
                         :disabled="!availableActions.canUpdate || updateForm.processing || !updateForm.isDirty"
-                        class="pill-button pill-button-primary w-full sm:w-auto disabled:cursor-not-allowed disabled:opacity-45"
+                        class="pill-button pill-button-primary w-full disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
                     >
                         <LoaderCircle v-if="updateForm.processing" class="h-4 w-4 animate-spin" />
                         Save account changes
@@ -480,7 +482,13 @@ function accessTone(value: string) {
                     </button>
 
                     <p
-                        v-if="inviteForm.errors['user'] || revokeAccessForm.errors['user'] || restoreAccessForm.errors['user'] || invalidateSessionsForm.errors['user'] || demoteForm.errors['user']"
+                        v-if="
+                            inviteForm.errors['user'] ||
+                            revokeAccessForm.errors['user'] ||
+                            restoreAccessForm.errors['user'] ||
+                            invalidateSessionsForm.errors['user'] ||
+                            demoteForm.errors['user']
+                        "
                         class="text-sm text-rose-300"
                     >
                         {{
@@ -542,7 +550,8 @@ function accessTone(value: string) {
                                 <DialogHeader class="space-y-3">
                                     <DialogTitle>Delete this account?</DialogTitle>
                                     <DialogDescription>
-                                        The account will be soft-deleted, all current access will be revoked, and the user will need to be restored before any further changes.
+                                        The account will be soft-deleted, all current access will be revoked, and the user will need to be restored
+                                        before any further changes.
                                     </DialogDescription>
                                 </DialogHeader>
 
@@ -552,7 +561,11 @@ function accessTone(value: string) {
                                     <DialogClose as-child>
                                         <button type="button" class="pill-button pill-button-secondary w-full sm:w-auto">Cancel</button>
                                     </DialogClose>
-                                    <button type="submit" class="pill-button pill-button-primary w-full sm:w-auto" :disabled="deleteUserForm.processing">
+                                    <button
+                                        type="submit"
+                                        class="pill-button pill-button-primary w-full sm:w-auto"
+                                        :disabled="deleteUserForm.processing"
+                                    >
                                         <LoaderCircle v-if="deleteUserForm.processing" class="h-4 w-4 animate-spin" />
                                         Delete user
                                     </button>
@@ -585,28 +598,43 @@ function accessTone(value: string) {
                                 <DialogHeader class="space-y-3">
                                     <DialogTitle>Permanently purge this account?</DialogTitle>
                                     <DialogDescription>
-                                        This removes the account, all related print requests, all attached files, and all active magic-login links. This cannot be undone.
+                                        This removes the account, all related print requests, all attached files, and all active magic-login links.
+                                        This cannot be undone.
                                     </DialogDescription>
                                 </DialogHeader>
 
                                 <label class="grid gap-2">
                                     <span class="field-label">Type {{ user.email }} to confirm</span>
                                     <input v-model="purgeUserForm.confirm_email" type="email" class="luminous-input" />
-                                    <p v-if="purgeUserForm.errors.confirm_email" class="text-sm text-rose-300">{{ purgeUserForm.errors.confirm_email }}</p>
+                                    <p v-if="purgeUserForm.errors.confirm_email" class="text-sm text-rose-300">
+                                        {{ purgeUserForm.errors.confirm_email }}
+                                    </p>
                                 </label>
 
                                 <label class="flex items-start gap-3 rounded-[1.2rem] bg-white/[0.04] px-4 py-4">
-                                    <input v-model="purgeUserForm.confirm_purge" type="checkbox" class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent" />
-                                    <span class="text-sm leading-6 text-white/80">I understand that related requests, file records, stored files, and magic links will be removed.</span>
+                                    <input
+                                        v-model="purgeUserForm.confirm_purge"
+                                        type="checkbox"
+                                        class="mt-1 h-4 w-4 rounded border-white/20 bg-transparent"
+                                    />
+                                    <span class="text-sm leading-6 text-white/80"
+                                        >I understand that related requests, file records, stored files, and magic links will be removed.</span
+                                    >
                                 </label>
-                                <p v-if="purgeUserForm.errors.confirm_purge" class="text-sm text-rose-300">{{ purgeUserForm.errors.confirm_purge }}</p>
+                                <p v-if="purgeUserForm.errors.confirm_purge" class="text-sm text-rose-300">
+                                    {{ purgeUserForm.errors.confirm_purge }}
+                                </p>
                                 <p v-if="destructiveError" class="text-sm text-rose-300">{{ destructiveError }}</p>
 
                                 <DialogFooter class="gap-2">
                                     <DialogClose as-child>
                                         <button type="button" class="pill-button pill-button-secondary w-full sm:w-auto">Cancel</button>
                                     </DialogClose>
-                                    <button type="submit" class="pill-button pill-button-primary w-full sm:w-auto" :disabled="purgeUserForm.processing">
+                                    <button
+                                        type="submit"
+                                        class="pill-button pill-button-primary w-full sm:w-auto"
+                                        :disabled="purgeUserForm.processing"
+                                    >
                                         <LoaderCircle v-if="purgeUserForm.processing" class="h-4 w-4 animate-spin" />
                                         Permanently purge
                                     </button>
@@ -681,7 +709,10 @@ function accessTone(value: string) {
                         </div>
 
                         <div class="flex w-full flex-col gap-3 xl:w-[18rem]">
-                            <Link :href="route('print-requests.show', { print_request: item.id })" class="pill-button pill-button-secondary w-full justify-between">
+                            <Link
+                                :href="route('print-requests.show', { print_request: item.id })"
+                                class="pill-button pill-button-secondary w-full justify-between"
+                            >
                                 Open request
                                 <ArrowRight class="h-4 w-4" />
                             </Link>

@@ -134,22 +134,26 @@ function filterByStatus(status: string | null) {
                 <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div class="min-w-0 flex-1">
                         <div class="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-                            <p class="text-xl leading-tight font-semibold tracking-tight text-white sm:font-display sm:text-2xl">Request #{{ item.id }}</p>
+                            <p class="text-xl leading-tight font-semibold tracking-tight text-white sm:font-display sm:text-2xl">
+                                Request #{{ item.id }}
+                            </p>
                             <StatusBadge :status="item.status" />
                         </div>
 
-                        <p class="text-muted-soft mt-3 max-w-3xl break-words text-sm leading-6">
+                        <p class="text-muted-soft mt-3 max-w-3xl text-sm leading-6 break-words">
                             {{ item.instructions || item.source_url || 'No extra notes were added to this request.' }}
                         </p>
 
-                        <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.72rem] font-semibold tracking-[0.18em] text-white/42 uppercase">
+                        <div
+                            class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.72rem] font-semibold tracking-[0.18em] text-white/42 uppercase"
+                        >
                             <span>{{ item.files_count }} {{ item.files_count === 1 ? 'file' : 'files' }}</span>
                             <span>{{ formatDateTime(item.created_at) }}</span>
                             <span v-if="props.isAdmin && item.user">{{ item.user.name }}</span>
                         </div>
                     </div>
 
-                    <div class="flex w-full flex-col gap-3 xl:min-w-[17rem] xl:max-w-[17rem]">
+                    <div class="flex w-full flex-col gap-3 xl:max-w-[17rem] xl:min-w-[17rem]">
                         <Link
                             :href="route('print-requests.show', { print_request: item.id })"
                             class="pill-button pill-button-secondary w-full justify-between"
