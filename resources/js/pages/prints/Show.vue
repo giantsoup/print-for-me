@@ -4,7 +4,7 @@ import StatusBadge from '@/components/luminous/StatusBadge.vue';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { formatDateOnly, formatDateTime, formatFileSize, type PrintRequestActionKey } from '@/lib/prints';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { ChevronDown, ChevronUp, Download, ExternalLink, ImageOff, LoaderCircle, SquarePen, Trash2, X } from 'lucide-vue-next';
+import { ChevronDown, ChevronUp, Download, ExternalLink, LoaderCircle, SquarePen, Trash2, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface FileItem {
@@ -46,6 +46,7 @@ interface Props {
             email: string;
         } | null;
     };
+    sourcePreviewPolicy?: 'allow' | 'block' | null;
     can: {
         update: boolean;
         delete: boolean;
@@ -83,8 +84,13 @@ const sourceDescription = computed(() => sourcePreview.value?.description || nul
 const sourceDescriptionElement = ref<HTMLElement | null>(null);
 const sourceDescriptionCanExpand = ref(false);
 const sourceImageUrl = computed(() => sourcePreview.value?.image_url || null);
-const sourcePreviewPending = computed(() => Boolean(sourceUrl.value) && !sourcePreview.value && !props.printRequest.source_preview_failed_at);
-const sourcePreviewFailed = computed(() => Boolean(sourceUrl.value) && !sourcePreview.value && Boolean(props.printRequest.source_preview_failed_at));
+const sourcePreviewBlocked = computed(() => Boolean(sourceUrl.value) && props.sourcePreviewPolicy === 'block' && !sourcePreview.value);
+const sourcePreviewPending = computed(
+    () => Boolean(sourceUrl.value) && !sourcePreviewBlocked.value && !sourcePreview.value && !props.printRequest.source_preview_failed_at,
+);
+const sourcePreviewFailed = computed(
+    () => Boolean(sourceUrl.value) && !sourcePreviewBlocked.value && !sourcePreview.value && Boolean(props.printRequest.source_preview_failed_at),
+);
 const pageTitle = computed(() => sourcePreview.value?.title || sourcePreview.value?.site_name || sourceDomain.value || 'Print request');
 
 const existingCount = computed(() => props.printRequest.files.length);
@@ -282,55 +288,51 @@ function syncSourceDescriptionOverflow() {
 
         <div class="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
             <section class="space-y-6">
-                <article class="luminous-panel px-5 py-5">
-                    <div class="rounded-[1.35rem] border border-white/6 bg-white/[0.03] px-4 py-4 sm:px-5">
-                        <div class="flex flex-col gap-4">
-                            <div class="min-w-0 rounded-[1.15rem] bg-white/[0.04] px-4 py-4">
-                                <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">For</p>
-                                <p class="mt-2 text-lg font-semibold tracking-tight text-white">
-                                    {{ props.printRequest.user?.name || 'Unknown' }}
-                                </p>
-                                <p class="mt-1 text-sm break-all text-white/58">
-                                    {{ props.printRequest.user?.email || 'No email available' }}
-                                </p>
-                            </div>
+                <article class="luminous-panel px-4 py-4 sm:px-5 sm:py-5">
+                    <div class="flex flex-col gap-4">
+                        <div class="min-w-0">
+                            <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">For</p>
+                            <p class="mt-2 text-base font-semibold tracking-tight text-white sm:text-lg">
+                                {{ props.printRequest.user?.name || 'Unknown' }}
+                            </p>
+                            <p class="mt-1 text-sm break-all text-white/58">
+                                {{ props.printRequest.user?.email || 'No email available' }}
+                            </p>
+                        </div>
 
-                            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                <div class="min-w-0">
-                                    <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Status</p>
-                                    <div class="mt-2 flex flex-wrap items-center gap-3">
-                                        <StatusBadge :status="props.printRequest.status" />
-                                        <p class="text-sm text-white/55">
-                                            {{ existingCount }} {{ existingCount === 1 ? 'attachment' : 'attachments' }}
-                                        </p>
-                                    </div>
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div class="min-w-0">
+                                <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Status</p>
+                                <div class="mt-2 flex flex-wrap items-center gap-3">
+                                    <StatusBadge :status="props.printRequest.status" />
+                                    <p class="text-sm text-white/55">{{ existingCount }} {{ existingCount === 1 ? 'attachment' : 'attachments' }}</p>
                                 </div>
-
-                                <button
-                                    v-if="props.can.update && !isEditing"
-                                    type="button"
-                                    class="pill-button pill-button-secondary w-full justify-center sm:w-auto"
-                                    @click="enterEditMode"
-                                >
-                                    <SquarePen class="h-4 w-4" />
-                                    Edit
-                                </button>
-
-                                <button
-                                    v-if="isEditing"
-                                    type="button"
-                                    class="pill-button pill-button-secondary w-full justify-center sm:w-auto"
-                                    :disabled="form.processing"
-                                    @click="cancelEdit"
-                                >
-                                    <X class="h-4 w-4" />
-                                    Cancel editing
-                                </button>
                             </div>
+
+                            <button
+                                v-if="props.can.update && !isEditing"
+                                type="button"
+                                class="pill-button pill-button-secondary w-full justify-center sm:w-auto"
+                                @click="enterEditMode"
+                            >
+                                <SquarePen class="h-4 w-4" />
+                                Edit
+                            </button>
+
+                            <button
+                                v-if="isEditing"
+                                type="button"
+                                class="pill-button pill-button-secondary w-full justify-center sm:w-auto"
+                                :disabled="form.processing"
+                                @click="cancelEdit"
+                            >
+                                <X class="h-4 w-4" />
+                                Cancel editing
+                            </button>
                         </div>
                     </div>
 
-                    <div class="mt-6 space-y-6">
+                    <div class="mt-5 space-y-5">
                         <div>
                             <label v-if="isEditing" for="source_url" class="field-label">Request URL</label>
                             <p v-else class="field-label">Request URL</p>
@@ -343,12 +345,13 @@ function syncSourceDescriptionOverflow() {
                             <div v-else-if="sourceUrl" class="space-y-4">
                                 <div class="overflow-hidden rounded-[1.45rem] border border-primary/16 bg-primary/[0.07] p-4 sm:p-5">
                                     <a
+                                        v-if="sourceImageUrl && !sourcePreviewBlocked"
                                         :href="sourceUrl"
                                         target="_blank"
                                         rel="noreferrer noopener"
                                         class="group block overflow-hidden rounded-[1.2rem] border border-white/8 bg-white/[0.03] transition-colors hover:border-primary/20 hover:bg-white/[0.05]"
                                     >
-                                        <div v-if="sourceImageUrl" class="relative h-32 w-full overflow-hidden sm:h-56">
+                                        <div class="relative h-32 w-full overflow-hidden sm:h-56">
                                             <img
                                                 :src="sourceImageUrl"
                                                 :alt="sourceTitle"
@@ -360,31 +363,9 @@ function syncSourceDescriptionOverflow() {
                                                 <ExternalLink class="h-4 w-4" />
                                             </div>
                                         </div>
-
-                                        <div
-                                            v-else
-                                            class="relative flex h-32 w-full items-center justify-center bg-linear-to-br from-white/[0.06] via-white/[0.03] to-transparent sm:h-56"
-                                        >
-                                            <div class="flex flex-col items-center gap-3 px-6 text-center">
-                                                <div
-                                                    class="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-white/70"
-                                                >
-                                                    <ImageOff class="h-5 w-5" />
-                                                </div>
-                                                <div>
-                                                    <p class="text-sm font-medium text-white/88">{{ sourceLabel }}</p>
-                                                    <p class="mt-1 text-xs tracking-[0.16em] text-white/45 uppercase">Open source</p>
-                                                </div>
-                                            </div>
-                                            <div
-                                                class="absolute right-3 bottom-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white/80 backdrop-blur-sm"
-                                            >
-                                                <ExternalLink class="h-4 w-4" />
-                                            </div>
-                                        </div>
                                     </a>
 
-                                    <div class="mt-4 min-w-0">
+                                    <div class="mt-0 min-w-0" :class="sourceImageUrl && !sourcePreviewBlocked ? 'mt-4' : ''">
                                         <div class="flex min-w-0 flex-wrap items-center gap-2">
                                             <span
                                                 class="max-w-full rounded-full bg-white/[0.08] px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-primary uppercase"
@@ -397,6 +378,12 @@ function syncSourceDescriptionOverflow() {
                                             >
                                                 Preview
                                             </span>
+                                            <span
+                                                v-if="sourcePreviewBlocked"
+                                                class="max-w-full rounded-full bg-white/[0.05] px-3 py-1 text-[0.68rem] font-semibold tracking-[0.16em] text-white/55 uppercase"
+                                            >
+                                                Preview blocked
+                                            </span>
                                         </div>
 
                                         <a
@@ -407,6 +394,9 @@ function syncSourceDescriptionOverflow() {
                                         >
                                             {{ sourceTitle }}
                                         </a>
+                                        <p v-if="sourcePreviewBlocked" class="mt-2 text-xs leading-5 text-white/46">
+                                            Preview fetching is blocked for this website. Open the source page directly.
+                                        </p>
                                         <p
                                             v-if="sourceDescription"
                                             ref="sourceDescriptionElement"
@@ -440,7 +430,7 @@ function syncSourceDescriptionOverflow() {
                                     <p class="text-muted-soft mt-4 text-sm leading-6">Loading source preview.</p>
                                 </div>
 
-                                <p v-else-if="sourcePreviewFailed" class="text-muted-soft text-sm leading-6">
+                                <p v-else-if="sourcePreviewFailed && !sourcePreviewBlocked" class="text-muted-soft text-sm leading-6">
                                     Preview unavailable. The source link is still available above.
                                 </p>
                             </div>

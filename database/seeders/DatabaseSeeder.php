@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->logInfo('Starting DatabaseSeeder: creating users and demo data...');
         $adminEmail = (string) config('prints.admin_email', 'admin@example.com');
+        $this->call(SourcePreviewDomainSeeder::class);
 
         try {
             DB::transaction(function () use ($adminEmail) {

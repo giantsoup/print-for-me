@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\InviteController;
 use App\Http\Controllers\Admin\PrintRequestStatusController;
+use App\Http\Controllers\Admin\SourcePreviewDomainController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,4 +34,11 @@ Route::group(['middleware' => ['auth', 'absolute', 'session_version', 'admin']],
         ->name('admin.print-requests.complete');
     Route::patch('admin/print-requests/{print_request}/revert', [PrintRequestStatusController::class, 'revert'])
         ->name('admin.print-requests.revert');
+
+    Route::get('admin/source-preview-domains', [SourcePreviewDomainController::class, 'index'])
+        ->name('admin.source-preview-domains.index');
+    Route::patch('admin/source-preview-domains/{source_preview_domain}', [SourcePreviewDomainController::class, 'update'])
+        ->name('admin.source-preview-domains.update');
+    Route::post('admin/source-preview-domains/{source_preview_domain}/attempt', [SourcePreviewDomainController::class, 'attempt'])
+        ->name('admin.source-preview-domains.attempt');
 });

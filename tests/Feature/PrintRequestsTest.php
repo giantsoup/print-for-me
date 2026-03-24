@@ -1,11 +1,13 @@
 <?php
 
 use App\Enums\PrintRequestStatus;
+use App\Enums\SourcePreviewFetchPolicy;
 use App\Http\Middleware\EnforceAbsoluteSession;
 use App\Models\PrintRequest;
+use App\Models\SourcePreviewDomain;
 use App\Models\User;
+use App\Services\SourcePreviews\AttemptSourcePreview;
 use App\Support\FetchPrintRequestSourcePreview;
-use App\Support\SourcePreviewFetcher;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
@@ -61,6 +63,59 @@ it('requires at least one source (url or file) on create', function () {
     $response = post(route('print-requests.store'), [], ['Accept' => 'application/json']);
 
     $response->assertStatus(422)->assertJsonValidationErrors(['files']);
+});
+
+it('marks blocked preview domains as unavailable without queueing a fetch', function () {
+    $user = User::factory()->create();
+    SourcePreviewDomain::factory()->create([
+        'domain' => 'makerworld.com',
+        'label' => 'MakerWorld',
+        'policy' => SourcePreviewFetchPolicy::Block,
+    ]);
+
+    actingAs($user);
+
+    $response = post(route('print-requests.store'), [
+        'source_url' => 'https://makerworld.com/en/models/130958-skadis-top-shelf',
+    ], ['Accept' => 'application/json']);
+
+    $response->assertCreated();
+
+    $request = PrintRequest::query()->findOrFail($response->json('id'));
+
+    expect($request->source_preview)->toBeNull();
+    expect($request->source_preview_fetched_at)->toBeNull();
+    expect($request->source_preview_failed_at)->not->toBeNull();
+
+    Queue::assertNotPushed(FetchPrintRequestSourcePreview::class);
+});
+
+it('exposes blocked preview policy on the request detail page', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+
+    SourcePreviewDomain::factory()->create([
+        'domain' => 'makerworld.com',
+        'label' => 'MakerWorld',
+        'policy' => SourcePreviewFetchPolicy::Block,
+    ]);
+
+    $request = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://makerworld.com/en/models/130958-skadis-top-shelf',
+        'source_preview_failed_at' => now(),
+    ]);
+
+    actingAs($admin);
+
+    get(route('print-requests.show', $request))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('prints/Show')
+            ->where('sourcePreviewPolicy', 'block')
+            ->where('printRequest.source_url', 'https://makerworld.com/en/models/130958-skadis-top-shelf')
+        );
 });
 
 it('rejects disallowed file extensions', function () {
@@ -391,7 +446,7 @@ it('stores fetched source preview metadata for a queued request', function () {
     ]);
 
     (new FetchPrintRequestSourcePreview($request->id, $request->source_url))
-        ->handle(app(SourcePreviewFetcher::class));
+        ->handle(app(AttemptSourcePreview::class));
 
     $request->refresh();
 

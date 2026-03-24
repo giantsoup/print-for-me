@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\PrintRequest;
+use App\Services\SourcePreviews\AttemptSourcePreview;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -23,7 +24,7 @@ class FetchPrintRequestSourcePreview implements ShouldQueue
         public string $sourceUrl,
     ) {}
 
-    public function handle(SourcePreviewFetcher $fetcher): void
+    public function handle(AttemptSourcePreview $attemptSourcePreview): void
     {
         $printRequest = PrintRequest::query()->find($this->printRequestId);
 
@@ -31,12 +32,6 @@ class FetchPrintRequestSourcePreview implements ShouldQueue
             return;
         }
 
-        $preview = $fetcher->fetch($this->sourceUrl);
-
-        $printRequest->forceFill([
-            'source_preview' => $preview,
-            'source_preview_fetched_at' => $preview ? now() : null,
-            'source_preview_failed_at' => $preview ? null : now(),
-        ])->save();
+        $attemptSourcePreview->handle($printRequest);
     }
 }

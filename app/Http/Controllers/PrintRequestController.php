@@ -8,6 +8,7 @@ use App\Http\Requests\UpdatePrintRequestRequest;
 use App\Models\PrintRequest;
 use App\Notifications\NewPrintRequestNotification;
 use App\Notifications\PendingRequestCanceledByUserNotification;
+use App\Services\SourcePreviews\SourcePreviewDomainManager;
 use App\Support\FetchPrintRequestSourcePreview;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,8 @@ use Inertia\Inertia;
 
 class PrintRequestController extends Controller
 {
+    public function __construct(public SourcePreviewDomainManager $sourcePreviewDomains) {}
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -120,6 +123,9 @@ class PrintRequestController extends Controller
 
         return Inertia::render('prints/Show', [
             'printRequest' => $print_request,
+            'sourcePreviewPolicy' => $print_request->source_url
+                ? ($this->sourcePreviewDomains->isAutomaticFetchAllowed($print_request->source_url) ? 'allow' : 'block')
+                : null,
             'can' => [
                 'update' => $user ? $user->can('update', $print_request) : false,
                 'delete' => $user ? $user->can('delete', $print_request) : false,
@@ -332,11 +338,23 @@ class PrintRequestController extends Controller
             return;
         }
 
+        $this->sourcePreviewDomains->registerSeenPrintRequest($printRequest);
+
         if (! $sourceChanged && filled($printRequest->source_preview_failed_at)) {
             return;
         }
 
         if (! $sourceChanged && filled($printRequest->source_preview_fetched_at) && filled($printRequest->source_preview)) {
+            return;
+        }
+
+        if (! $this->sourcePreviewDomains->isAutomaticFetchAllowed($sourceUrl)) {
+            $printRequest->forceFill([
+                'source_preview' => null,
+                'source_preview_fetched_at' => null,
+                'source_preview_failed_at' => now(),
+            ])->save();
+
             return;
         }
 

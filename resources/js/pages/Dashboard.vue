@@ -3,7 +3,7 @@ import StatusBadge from '@/components/luminous/StatusBadge.vue';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { formatDateTime, formatRelative } from '@/lib/prints';
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowRight, Clock3, FolderOpen, Layers3, Sparkles, UserPlus2 } from 'lucide-vue-next';
+import { ArrowRight, Clock3, FolderOpen, Layers3, ScanSearch, Sparkles, UserPlus2 } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface DashboardRequest {
@@ -195,6 +195,10 @@ const metricCards = computed(() => {
                     <Link :href="route('admin.users.index')" class="pill-button pill-button-secondary w-full justify-between">
                         Manage users
                         <ArrowRight class="h-4 w-4" />
+                    </Link>
+                    <Link :href="route('admin.source-preview-domains.index')" class="pill-button pill-button-secondary w-full justify-between">
+                        Preview domains
+                        <ScanSearch class="h-4 w-4" />
                     </Link>
                 </div>
             </article>
