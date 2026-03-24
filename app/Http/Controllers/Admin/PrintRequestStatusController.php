@@ -4,17 +4,24 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\PrintRequestStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\CompletePrintRequestRequest;
 use App\Models\PrintRequest;
 use App\Notifications\PrintRequestAcceptedNotification;
 use App\Notifications\PrintRequestCompletedNotification;
 use App\Notifications\PrintRequestRevertedToPendingNotification;
+use App\Services\PrintRequests\StoreCompletionPhotos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class PrintRequestStatusController extends Controller
 {
+    public function __construct(
+        public StoreCompletionPhotos $storeCompletionPhotos,
+    ) {}
+
     public function accept(Request $request, PrintRequest $print_request): JsonResponse|RedirectResponse
     {
         if ($print_request->status !== PrintRequestStatus::PENDING) {
@@ -49,7 +56,7 @@ class PrintRequestStatusController extends Controller
         return $this->respond($request, $print_request, 'Request moved to printing.');
     }
 
-    public function complete(Request $request, PrintRequest $print_request): JsonResponse|RedirectResponse
+    public function complete(CompletePrintRequestRequest $request, PrintRequest $print_request): JsonResponse|RedirectResponse
     {
         if ($print_request->status !== PrintRequestStatus::PRINTING) {
             throw ValidationException::withMessages([
@@ -57,11 +64,14 @@ class PrintRequestStatusController extends Controller
             ]);
         }
 
-        $print_request->status = PrintRequestStatus::COMPLETE;
-        $print_request->completed_at = now();
-        $print_request->save();
+        DB::transaction(function () use ($request, $print_request): void {
+            $print_request->status = PrintRequestStatus::COMPLETE;
+            $print_request->completed_at = now();
+            $print_request->save();
 
-        // Notify requester (queued)
+            $this->storeCompletionPhotos->handle($print_request, $request->file('photos', []));
+        });
+
         if ($print_request->user) {
             $print_request->user->notify(new PrintRequestCompletedNotification($print_request));
         }
@@ -92,7 +102,7 @@ class PrintRequestStatusController extends Controller
     private function respond(Request $request, PrintRequest $printRequest, string $message): JsonResponse|RedirectResponse
     {
         if ($request->wantsJson()) {
-            return response()->json($printRequest->fresh());
+            return response()->json($printRequest->fresh(['completionPhotos']));
         }
 
         return back()->with('status', $message);

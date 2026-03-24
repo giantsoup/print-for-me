@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PrintRequestStatus;
+use App\Http\Requests\Admin\CompletePrintRequestRequest;
 use App\Http\Requests\StorePrintRequestRequest;
 use App\Http\Requests\UpdatePrintRequestRequest;
 use App\Models\PrintRequest;
 use App\Notifications\NewPrintRequestNotification;
 use App\Notifications\PendingRequestCanceledByUserNotification;
+use App\Services\PrintRequests\DeleteStoredAssets;
 use App\Services\SourcePreviews\SourcePreviewDomainManager;
 use App\Support\FetchPrintRequestSourcePreview;
 use Illuminate\Http\Request;
@@ -19,7 +21,10 @@ use Inertia\Inertia;
 
 class PrintRequestController extends Controller
 {
-    public function __construct(public SourcePreviewDomainManager $sourcePreviewDomains) {}
+    public function __construct(
+        public SourcePreviewDomainManager $sourcePreviewDomains,
+        public DeleteStoredAssets $deleteStoredAssets,
+    ) {}
 
     public function index(Request $request)
     {
@@ -86,7 +91,18 @@ class PrintRequestController extends Controller
     {
         $this->authorize('view', $print_request);
 
-        $print_request->load(['files', 'user:id,name,email']);
+        $print_request->load(['files', 'completionPhotos', 'user:id,name,email']);
+        $completionPhotos = $print_request->completionPhotos
+            ->map(fn ($photo) => [
+                'id' => $photo->id,
+                'original_name' => $photo->original_name,
+                'mime_type' => $photo->mime_type,
+                'size_bytes' => $photo->size_bytes,
+                'width' => $photo->width,
+                'height' => $photo->height,
+            ])
+            ->values();
+        $print_request->unsetRelation('completionPhotos');
 
         $timeline = collect([
             [
@@ -123,6 +139,7 @@ class PrintRequestController extends Controller
 
         return Inertia::render('prints/Show', [
             'printRequest' => $print_request,
+            'completionPhotos' => $completionPhotos,
             'sourcePreviewPolicy' => $print_request->source_url
                 ? ($this->sourcePreviewDomains->isAutomaticFetchAllowed($print_request->source_url) ? 'allow' : 'block')
                 : null,
@@ -138,6 +155,9 @@ class PrintRequestController extends Controller
                 'maxFiles' => 10,
                 'maxTotalBytes' => 50 * 1024 * 1024,
                 'allowedExtensions' => ['stl', '3mf', 'obj', 'f3d', 'f3z', 'step', 'stp', 'iges', 'igs'],
+            ],
+            'completionPhotoConstraints' => [
+                'maxFiles' => CompletePrintRequestRequest::MAX_PHOTOS,
             ],
         ]);
     }
@@ -261,15 +281,11 @@ class PrintRequestController extends Controller
         // Authorize per policy
         $this->authorize('forceDelete', $print_request);
 
-        // Remove associated files from storage if present
-        $files = $print_request->files()->get();
-        foreach ($files as $file) {
-            if ($file->disk && $file->path) {
-                Storage::disk($file->disk)->delete($file->path);
-            }
-        }
+        $this->deleteStoredAssets->handle($print_request);
 
-        // Permanently delete the record
+        $print_request->files()->delete();
+        $print_request->completionPhotos()->delete();
+
         $print_request->forceDelete();
 
         if ($request->wantsJson()) {

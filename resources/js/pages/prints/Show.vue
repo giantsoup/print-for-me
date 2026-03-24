@@ -29,6 +29,15 @@ interface TimelineItem {
     at: string;
 }
 
+interface CompletionPhoto {
+    id: number;
+    original_name: string;
+    mime_type?: string | null;
+    size_bytes: number;
+    width?: number | null;
+    height?: number | null;
+}
+
 interface Props {
     printRequest: {
         id: number;
@@ -46,6 +55,7 @@ interface Props {
             email: string;
         } | null;
     };
+    completionPhotos: CompletionPhoto[];
     sourcePreviewPolicy?: 'allow' | 'block' | null;
     can: {
         update: boolean;
@@ -58,6 +68,9 @@ interface Props {
         maxFiles: number;
         maxTotalBytes: number;
         allowedExtensions: string[];
+    };
+    completionPhotoConstraints: {
+        maxFiles: number;
     };
 }
 
@@ -92,6 +105,7 @@ const sourcePreviewFailed = computed(
     () => Boolean(sourceUrl.value) && !sourcePreviewBlocked.value && !sourcePreview.value && Boolean(props.printRequest.source_preview_failed_at),
 );
 const pageTitle = computed(() => sourcePreview.value?.title || sourcePreview.value?.site_name || sourceDomain.value || 'Print request');
+const completionPhotoCount = computed(() => props.completionPhotos.length);
 
 const existingCount = computed(() => props.printRequest.files.length);
 const existingSize = computed(() => props.printRequest.files.reduce((sum, file) => sum + (file.size_bytes || 0), 0));
@@ -533,6 +547,43 @@ function syncSourceDescriptionOverflow() {
                         <p v-if="form.errors.files" class="mt-3 text-sm text-rose-300">{{ form.errors.files }}</p>
                     </div>
                 </article>
+
+                <article v-if="completionPhotoCount" class="luminous-panel px-5 py-5">
+                    <div class="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                        <div class="min-w-0">
+                            <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Finished Print</p>
+                            <h2 class="mt-3 text-xl leading-tight font-semibold tracking-tight text-white sm:font-display sm:text-2xl">
+                                Completion Photos
+                            </h2>
+                        </div>
+                        <p class="text-muted-soft text-sm">{{ completionPhotoCount }} uploaded</p>
+                    </div>
+
+                    <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                        <a
+                            v-for="(photo, index) in props.completionPhotos"
+                            :key="photo.id"
+                            :href="route('print-requests.completion-photos.show', { print_request: props.printRequest.id, photo: photo.id })"
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            class="group overflow-hidden rounded-[1.35rem] border border-white/8 bg-white/[0.04] transition-colors hover:border-primary/18 hover:bg-white/[0.06]"
+                        >
+                            <div class="aspect-[4/3] overflow-hidden bg-black/20">
+                                <img
+                                    :src="route('print-requests.completion-photos.show', { print_request: props.printRequest.id, photo: photo.id })"
+                                    :alt="photo.original_name || `Completion photo ${index + 1}`"
+                                    loading="lazy"
+                                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                                />
+                            </div>
+
+                            <div class="px-4 py-4">
+                                <p class="font-medium text-white">Photo {{ index + 1 }}</p>
+                                <p class="mt-1 text-xs tracking-[0.18em] text-white/42 uppercase">{{ formatFileSize(photo.size_bytes) }}</p>
+                            </div>
+                        </a>
+                    </div>
+                </article>
             </section>
 
             <aside class="space-y-6">
@@ -557,6 +608,7 @@ function syncSourceDescriptionOverflow() {
                             :request-id="props.printRequest.id"
                             :status="props.printRequest.status"
                             :actions="props.availableStatusActions"
+                            :completion-photo-constraints="props.completionPhotoConstraints"
                         />
                     </div>
                 </article>

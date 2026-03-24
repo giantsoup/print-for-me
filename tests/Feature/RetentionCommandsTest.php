@@ -25,7 +25,9 @@ it('purges files for completed requests older than 90 days', function () {
     ]);
 
     $path = 'prints/2025/08/old-complete.stl';
+    $photoPath = 'prints/completions/2025/08/old-complete-photo.webp';
     Storage::disk('local')->put($path, 'OLD COMPLETE');
+    Storage::disk('local')->put($photoPath, 'OLD COMPLETE PHOTO');
     $pr->files()->create([
         'disk' => 'local',
         'path' => $path,
@@ -34,11 +36,24 @@ it('purges files for completed requests older than 90 days', function () {
         'size_bytes' => 10,
         'sha256' => hash('sha256', 'OLD COMPLETE'),
     ]);
+    $pr->completionPhotos()->create([
+        'disk' => 'local',
+        'path' => $photoPath,
+        'original_name' => 'old-complete-photo.webp',
+        'mime_type' => 'image/webp',
+        'size_bytes' => 18,
+        'width' => 1200,
+        'height' => 900,
+        'sort_order' => 1,
+        'sha256' => hash('sha256', 'OLD COMPLETE PHOTO'),
+    ]);
 
     artisan('prints:purge-completed-files');
 
     expect(Storage::disk('local')->exists($path))->toBeFalse();
+    expect(Storage::disk('local')->exists($photoPath))->toBeFalse();
     expect($pr->files()->count())->toBe(0);
+    expect($pr->completionPhotos()->count())->toBe(0);
 });
 
 it('permanently deletes soft-deleted requests older than 90 days and their files', function () {
@@ -53,7 +68,9 @@ it('permanently deletes soft-deleted requests older than 90 days and their files
     ]);
 
     $path = 'prints/2025/08/soft-old.stl';
+    $photoPath = 'prints/completions/2025/08/soft-old-photo.webp';
     Storage::disk('local')->put($path, 'SOFT OLD');
+    Storage::disk('local')->put($photoPath, 'SOFT OLD PHOTO');
     $pr->files()->create([
         'disk' => 'local',
         'path' => $path,
@@ -61,6 +78,17 @@ it('permanently deletes soft-deleted requests older than 90 days and their files
         'mime_type' => 'application/sla',
         'size_bytes' => 10,
         'sha256' => hash('sha256', 'SOFT OLD'),
+    ]);
+    $pr->completionPhotos()->create([
+        'disk' => 'local',
+        'path' => $photoPath,
+        'original_name' => 'soft-old-photo.webp',
+        'mime_type' => 'image/webp',
+        'size_bytes' => 14,
+        'width' => 1200,
+        'height' => 900,
+        'sort_order' => 1,
+        'sha256' => hash('sha256', 'SOFT OLD PHOTO'),
     ]);
 
     $pr->delete();
@@ -70,7 +98,9 @@ it('permanently deletes soft-deleted requests older than 90 days and their files
 
     assertDatabaseMissing('print_requests', ['id' => $pr->id]);
     assertDatabaseMissing('print_request_files', ['print_request_id' => $pr->id]);
+    assertDatabaseMissing('print_request_completion_photos', ['print_request_id' => $pr->id]);
     expect(Storage::disk('local')->exists($path))->toBeFalse();
+    expect(Storage::disk('local')->exists($photoPath))->toBeFalse();
 });
 
 it('warns owners 7 days before permanent purge of soft-deleted requests', function () {

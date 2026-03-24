@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PrintRequestCompletionPhotoController;
 use App\Http\Controllers\PrintRequestController;
 use App\Http\Controllers\PrintRequestFileController;
 use Illuminate\Support\Facades\Route;
@@ -22,4 +23,7 @@ Route::group(['middleware' => ['auth', 'absolute', 'session_version']], function
     Route::get('print-requests/{print_request}/files/{file}/download', [PrintRequestFileController::class, 'download'])
         ->withTrashed()
         ->middleware('can:download,print_request')->name('print-requests.files.download');
+    Route::get('print-requests/{print_request}/completion-photos/{photo}', [PrintRequestCompletionPhotoController::class, 'show'])
+        ->withTrashed()
+        ->middleware('can:view,print_request')->name('print-requests.completion-photos.show');
 });

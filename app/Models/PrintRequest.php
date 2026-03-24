@@ -48,6 +48,11 @@ class PrintRequest extends Model
         return $this->hasMany(PrintRequestFile::class);
     }
 
+    public function completionPhotos(): HasMany
+    {
+        return $this->hasMany(PrintRequestCompletionPhoto::class)->orderBy('sort_order');
+    }
+
     public function availableStatusActions(bool $isAdmin): array
     {
         if (! $isAdmin) {

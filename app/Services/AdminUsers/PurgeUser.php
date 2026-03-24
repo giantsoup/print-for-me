@@ -5,27 +5,25 @@ namespace App\Services\AdminUsers;
 use App\Models\MagicLoginToken;
 use App\Models\PrintRequest;
 use App\Models\User;
+use App\Services\PrintRequests\DeleteStoredAssets;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class PurgeUser
 {
     public function __construct(
         private readonly AdminUserEventLogger $logger,
+        private readonly DeleteStoredAssets $deleteStoredAssets,
     ) {}
 
     public function __invoke(User $actor, User $subject): void
     {
-        $fileRecords = PrintRequest::withTrashed()
+        $printRequests = PrintRequest::withTrashed()
             ->where('user_id', $subject->id)
-            ->with(['files'])
-            ->get()
-            ->flatMap(fn (PrintRequest $printRequest) => $printRequest->files);
+            ->with(['files', 'completionPhotos'])
+            ->get();
 
-        foreach ($fileRecords as $file) {
-            if ($file->disk && $file->path && Storage::disk($file->disk)->exists($file->path)) {
-                Storage::disk($file->disk)->delete($file->path);
-            }
+        foreach ($printRequests as $printRequest) {
+            $this->deleteStoredAssets->handle($printRequest);
         }
 
         DB::transaction(function () use ($actor, $subject): void {
@@ -36,6 +34,7 @@ class PurgeUser
                 ->get()
                 ->each(function (PrintRequest $printRequest): void {
                     $printRequest->files()->delete();
+                    $printRequest->completionPhotos()->delete();
                     $printRequest->forceDelete();
                 });
 

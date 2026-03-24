@@ -5,6 +5,7 @@ use App\Models\PrintRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginLinkNotification;
 use App\Notifications\PrintRequestSoftDeletedPurgeWarningNotification;
+use App\Services\PrintRequests\DeleteStoredAssets;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -87,21 +88,23 @@ Artisan::command('prints:purge-completed-files', function () {
 
     PrintRequest::whereNotNull('completed_at')
         ->where('completed_at', '<=', $threshold)
-        ->with('files:id,print_request_id,disk,path')
+        ->with([
+            'files:id,print_request_id,disk,path',
+            'completionPhotos:id,print_request_id,disk,path',
+        ])
         ->chunkById(100, function ($chunk) use (&$totalRequests, &$deletedFiles, &$missingFiles, &$errors) {
+            $deleteStoredAssets = app(DeleteStoredAssets::class);
+
             foreach ($chunk as $pr) {
                 $totalRequests++;
 
-                foreach ($pr->files as $file) {
+                $deletedBefore = $deletedFiles;
+                $missingBefore = $missingFiles;
+
+                foreach ($pr->files->concat($pr->completionPhotos) as $asset) {
                     try {
-                        $disk = $file->disk;
-                        $path = $file->path;
-                        if (Storage::disk($disk)->exists($path)) {
-                            if (Storage::disk($disk)->delete($path)) {
-                                $deletedFiles++;
-                            } else {
-                                $errors++;
-                            }
+                        if (Storage::disk($asset->disk)->exists($asset->path)) {
+                            $deletedFiles++;
                         } else {
                             $missingFiles++;
                         }
@@ -110,8 +113,16 @@ Artisan::command('prints:purge-completed-files', function () {
                     }
                 }
 
-                // Remove file DB records to avoid dangling entries
+                try {
+                    $deleteStoredAssets->handle($pr);
+                } catch (Throwable $e) {
+                    $errors++;
+                    $deletedFiles = $deletedBefore;
+                    $missingFiles = $missingBefore;
+                }
+
                 $pr->files()->delete();
+                $pr->completionPhotos()->delete();
             }
         });
 
@@ -129,21 +140,23 @@ Artisan::command('prints:purge-soft-deleted', function () {
 
     PrintRequest::onlyTrashed()
         ->where('deleted_at', '<=', $threshold)
-        ->with('files:id,print_request_id,disk,path')
+        ->with([
+            'files:id,print_request_id,disk,path',
+            'completionPhotos:id,print_request_id,disk,path',
+        ])
         ->chunkById(100, function ($chunk) use (&$totalRequests, &$filesDeleted, &$filesMissing, &$errors) {
+            $deleteStoredAssets = app(DeleteStoredAssets::class);
+
             foreach ($chunk as $pr) {
                 $totalRequests++;
 
-                foreach ($pr->files as $file) {
+                $deletedBefore = $filesDeleted;
+                $missingBefore = $filesMissing;
+
+                foreach ($pr->files->concat($pr->completionPhotos) as $asset) {
                     try {
-                        $disk = $file->disk;
-                        $path = $file->path;
-                        if (Storage::disk($disk)->exists($path)) {
-                            if (Storage::disk($disk)->delete($path)) {
-                                $filesDeleted++;
-                            } else {
-                                $errors++;
-                            }
+                        if (Storage::disk($asset->disk)->exists($asset->path)) {
+                            $filesDeleted++;
                         } else {
                             $filesMissing++;
                         }
@@ -152,8 +165,16 @@ Artisan::command('prints:purge-soft-deleted', function () {
                     }
                 }
 
-                // Remove file DB records to avoid dangling entries
+                try {
+                    $deleteStoredAssets->handle($pr);
+                } catch (Throwable $e) {
+                    $errors++;
+                    $filesDeleted = $deletedBefore;
+                    $filesMissing = $missingBefore;
+                }
+
                 $pr->files()->delete();
+                $pr->completionPhotos()->delete();
                 $pr->forceDelete();
             }
         });

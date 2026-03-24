@@ -416,7 +416,9 @@ it('permanently purges a deleted user and their related data while preserving th
     ]);
 
     $path = 'prints/2026/03/purge.stl';
+    $photoPath = 'prints/completions/2026/03/purge-photo.webp';
     Storage::disk('local')->put($path, 'content');
+    Storage::disk('local')->put($photoPath, 'photo');
 
     $request->files()->create([
         'disk' => 'local',
@@ -425,6 +427,17 @@ it('permanently purges a deleted user and their related data while preserving th
         'mime_type' => 'application/sla',
         'size_bytes' => 8,
         'sha256' => hash('sha256', 'purge'),
+    ]);
+    $request->completionPhotos()->create([
+        'disk' => 'local',
+        'path' => $photoPath,
+        'original_name' => 'purge-photo.webp',
+        'mime_type' => 'image/webp',
+        'size_bytes' => 5,
+        'width' => 1200,
+        'height' => 900,
+        'sort_order' => 1,
+        'sha256' => hash('sha256', 'purge-photo'),
     ]);
 
     MagicLoginToken::create([
@@ -445,8 +458,10 @@ it('permanently purges a deleted user and their related data while preserving th
     assertDatabaseMissing('users', ['id' => $subject->id]);
     assertDatabaseMissing('print_requests', ['id' => $request->id]);
     assertDatabaseMissing('print_request_files', ['print_request_id' => $request->id]);
+    assertDatabaseMissing('print_request_completion_photos', ['print_request_id' => $request->id]);
     assertDatabaseMissing('magic_login_tokens', ['email' => $subject->email]);
     expect(Storage::disk('local')->exists($path))->toBeFalse();
+    expect(Storage::disk('local')->exists($photoPath))->toBeFalse();
 
     $event = AdminUserEvent::where('event', 'user_purged')->latest()->first();
     expect($event)->not->toBeNull()

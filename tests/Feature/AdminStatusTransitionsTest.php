@@ -5,8 +5,11 @@ use App\Http\Middleware\EnforceAbsoluteSession;
 use App\Models\PrintRequest;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 use function Pest\Laravel\patch;
 use function Pest\Laravel\patchJson;
 
@@ -56,6 +59,82 @@ it('allows admin to transition pending -> accepted -> printing -> complete', fun
     $req->refresh();
     expect($req->status)->toBe(PrintRequestStatus::COMPLETE);
     expect($req->completed_at)->not->toBeNull();
+});
+
+it('stores optimized completion photos when an admin completes a request', function () {
+    Storage::fake('local');
+
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PRINTING,
+        'source_url' => 'https://example.com/admin-photos',
+    ]);
+
+    actingAs($admin);
+
+    patch(route('admin.print-requests.complete', $req), [
+        'photos' => [
+            UploadedFile::fake()->image('finished-print.jpg', 2400, 1800)->size(6000),
+            UploadedFile::fake()->image('finished-print-2.png', 2200, 1600)->size(5000),
+        ],
+        '_method' => 'patch',
+    ], ['Accept' => 'application/json'])->assertSuccessful();
+
+    $req->refresh();
+    $photos = $req->completionPhotos()->get();
+
+    expect($req->status)->toBe(PrintRequestStatus::COMPLETE)
+        ->and($req->completed_at)->not->toBeNull()
+        ->and($photos)->toHaveCount(2);
+
+    foreach ($photos as $photo) {
+        expect(Storage::disk('local')->exists($photo->path))->toBeTrue()
+            ->and($photo->size_bytes)->toBeGreaterThan(0)
+            ->and(max($photo->width ?? 0, $photo->height ?? 0))->toBeLessThanOrEqual(1600);
+
+        [$width, $height] = getimagesizefromstring(Storage::disk('local')->get($photo->path));
+
+        expect(max($width, $height))->toBeLessThanOrEqual(1600);
+    }
+
+    actingAs($owner);
+
+    get(route('print-requests.completion-photos.show', ['print_request' => $req->id, 'photo' => $photos->first()->id]))
+        ->assertOk()
+        ->assertHeader('content-type', $photos->first()->mime_type);
+});
+
+it('validates the completion photo limit', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PRINTING,
+        'source_url' => 'https://example.com/admin-photo-limit',
+    ]);
+
+    actingAs($admin);
+
+    patch(route('admin.print-requests.complete', $req), [
+        'photos' => [
+            UploadedFile::fake()->image('1.jpg'),
+            UploadedFile::fake()->image('2.jpg'),
+            UploadedFile::fake()->image('3.jpg'),
+            UploadedFile::fake()->image('4.jpg'),
+            UploadedFile::fake()->image('5.jpg'),
+            UploadedFile::fake()->image('6.jpg'),
+        ],
+        '_method' => 'patch',
+    ], ['Accept' => 'application/json'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['photos']);
+
+    $req->refresh();
+
+    expect($req->status)->toBe(PrintRequestStatus::PRINTING)
+        ->and($req->completed_at)->toBeNull();
 });
 
 it('allows admin to revert accepted or printing back to pending', function () {
