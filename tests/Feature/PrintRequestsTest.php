@@ -216,6 +216,32 @@ it('does not expose admin status actions to request owners', function () {
         );
 });
 
+it('exposes primary and secondary request metadata on the request detail page', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create([
+        'name' => 'Demo User 1',
+        'email' => 'demo1@example.com',
+    ]);
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/request-owner',
+    ]);
+
+    actingAs($admin);
+
+    get(route('print-requests.show', $req))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('prints/Show')
+            ->where('printRequest.status', PrintRequestStatus::PENDING)
+            ->where('printRequest.source_url', 'https://example.com/request-owner')
+            ->where('printRequest.user.name', 'Demo User 1')
+            ->where('printRequest.user.email', 'demo1@example.com')
+            ->where('printRequest.created_at', fn (?string $value) => filled($value))
+        );
+});
+
 it('prevents updating a non-pending request for non-admin users', function () {
     $user = User::factory()->create();
     $req = PrintRequest::create([

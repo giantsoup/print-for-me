@@ -5,7 +5,7 @@ import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { formatDateOnly, formatDateTime, formatFileSize, type PrintRequestActionKey } from '@/lib/prints';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ChevronDown, ChevronUp, Download, ExternalLink, ImageOff, LoaderCircle, SquarePen, Trash2, X } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface FileItem {
     id: number;
@@ -80,21 +80,12 @@ const sourceDomain = computed(() => sourcePreview.value?.domain || deriveSourceD
 const sourceLabel = computed(() => sourcePreview.value?.site_name || sourceDomain.value || 'Source Link');
 const sourceTitle = computed(() => sourcePreview.value?.title || sourcePreview.value?.site_name || sourceDomain.value || 'Open source');
 const sourceDescription = computed(() => sourcePreview.value?.description || null);
-const sourceDescriptionNeedsToggle = computed(() => (sourceDescription.value?.length ?? 0) > 280);
-const collapsedSourceDescription = computed(() => {
-    if (! sourceDescription.value) {
-        return null;
-    }
-
-    if (! sourceDescriptionNeedsToggle.value) {
-        return sourceDescription.value;
-    }
-
-    return `${sourceDescription.value.slice(0, 280).trimEnd()}...`;
-});
+const sourceDescriptionElement = ref<HTMLElement | null>(null);
+const sourceDescriptionCanExpand = ref(false);
 const sourceImageUrl = computed(() => sourcePreview.value?.image_url || null);
 const sourcePreviewPending = computed(() => Boolean(sourceUrl.value) && !sourcePreview.value && !props.printRequest.source_preview_failed_at);
 const sourcePreviewFailed = computed(() => Boolean(sourceUrl.value) && !sourcePreview.value && Boolean(props.printRequest.source_preview_failed_at));
+const pageTitle = computed(() => sourcePreview.value?.title || sourcePreview.value?.site_name || sourceDomain.value || 'Print request');
 
 const existingCount = computed(() => props.printRequest.files.length);
 const existingSize = computed(() => props.printRequest.files.reduce((sum, file) => sum + (file.size_bytes || 0), 0));
@@ -113,15 +104,48 @@ const withinTotal = computed(() => finalSize.value <= props.constraints.maxTotal
 const hasSource = computed(() => hasUrlAfter.value || hasFilesAfter.value);
 const canSave = computed(() => isEditing.value && props.can.update && withinCount.value && withinTotal.value && hasSource.value && !form.processing);
 const fileSignature = computed(() => props.printRequest.files.map((file) => `${file.id}:${file.original_name}`).join('|'));
+let sourceDescriptionResizeObserver: ResizeObserver | null = null;
 
 watch(
-    () => [props.printRequest.source_url, props.printRequest.instructions, fileSignature.value, props.printRequest.source_preview_fetched_at, props.printRequest.source_preview_failed_at],
+    () => [
+        props.printRequest.source_url,
+        props.printRequest.instructions,
+        fileSignature.value,
+        props.printRequest.source_preview_fetched_at,
+        props.printRequest.source_preview_failed_at,
+    ],
     () => {
         resetFormState();
         isEditing.value = false;
         isSourceDescriptionExpanded.value = false;
+        sourceDescriptionCanExpand.value = false;
     },
 );
+
+watch(
+    () => [sourceDescription.value, isSourceDescriptionExpanded.value],
+    () => {
+        syncSourceDescriptionOverflow();
+    },
+);
+
+onMounted(() => {
+    if (typeof ResizeObserver !== 'undefined') {
+        sourceDescriptionResizeObserver = new ResizeObserver(() => {
+            syncSourceDescriptionOverflow();
+        });
+
+        if (sourceDescriptionElement.value) {
+            sourceDescriptionResizeObserver.observe(sourceDescriptionElement.value);
+        }
+    }
+
+    syncSourceDescriptionOverflow();
+});
+
+onBeforeUnmount(() => {
+    sourceDescriptionResizeObserver?.disconnect();
+});
 
 function onPickFiles(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -204,6 +228,7 @@ function resetFormState() {
 
 function toggleSourceDescription() {
     isSourceDescriptionExpanded.value = !isSourceDescriptionExpanded.value;
+    syncSourceDescriptionOverflow();
 }
 
 function deriveSourceDomain(value?: string | null) {
@@ -217,61 +242,40 @@ function deriveSourceDomain(value?: string | null) {
         return null;
     }
 }
+
+function syncSourceDescriptionOverflow() {
+    nextTick(() => {
+        if (sourceDescriptionResizeObserver) {
+            sourceDescriptionResizeObserver.disconnect();
+
+            if (sourceDescriptionElement.value) {
+                sourceDescriptionResizeObserver.observe(sourceDescriptionElement.value);
+            }
+        }
+
+        const descriptionElement = sourceDescriptionElement.value;
+
+        if (!descriptionElement || !sourceDescription.value) {
+            sourceDescriptionCanExpand.value = false;
+
+            return;
+        }
+
+        if (isSourceDescriptionExpanded.value) {
+            sourceDescriptionCanExpand.value = true;
+
+            return;
+        }
+
+        sourceDescriptionCanExpand.value = descriptionElement.scrollHeight > descriptionElement.clientHeight + 1;
+    });
+}
 </script>
 
 <template>
-    <Head :title="`Request #${props.printRequest.id}`" />
+    <Head :title="pageTitle" />
 
-    <LuminousAppLayout
-        active-nav="requests"
-        eyebrow="Request Detail"
-        :title="`Request #${props.printRequest.id}`"
-        :intro="
-            props.can.isAdmin && props.printRequest.user
-                ? `${props.printRequest.user.name} submitted this request on ${formatDateOnly(props.printRequest.created_at)}.`
-                : `Submitted ${formatDateOnly(props.printRequest.created_at)}.`
-        "
-        wide
-        :show-dock="false"
-    >
-        <template #pageActions>
-            <div class="flex flex-wrap items-center gap-3">
-                <button
-                    v-if="isEditing"
-                    type="button"
-                    :disabled="!canSave"
-                    class="pill-button pill-button-primary disabled:cursor-not-allowed disabled:opacity-45"
-                    @click="submit"
-                >
-                    <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Save changes
-                </button>
-
-                <button
-                    v-if="props.can.update && !isEditing"
-                    type="button"
-                    class="pill-button pill-button-secondary"
-                    @click="enterEditMode"
-                >
-                    <SquarePen class="h-4 w-4" />
-                    Edit
-                </button>
-
-                <button
-                    v-if="isEditing"
-                    type="button"
-                    class="pill-button pill-button-secondary"
-                    :disabled="form.processing"
-                    @click="cancelEdit"
-                >
-                    <X class="h-4 w-4" />
-                    Cancel editing
-                </button>
-
-                <StatusBadge :status="props.printRequest.status" />
-            </div>
-        </template>
-
+    <LuminousAppLayout active-nav="requests" wide :show-dock="false">
         <div v-if="flashStatus" class="mb-6 rounded-[1.45rem] border border-primary/12 bg-primary/10 px-5 py-4 text-sm text-primary">
             {{ flashStatus }}
         </div>
@@ -279,44 +283,60 @@ function deriveSourceDomain(value?: string | null) {
         <div class="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
             <section class="space-y-6">
                 <article class="luminous-panel px-5 py-5">
-                    <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-                        <div class="flex-1">
-                            <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Request Details</p>
-                            <h2 class="mt-3 max-w-2xl text-[1.9rem] leading-tight font-semibold tracking-tight text-white sm:font-display sm:text-2xl">
-                                {{ isEditing ? 'Edit request details.' : 'Request details.' }}
-                            </h2>
-                            <p class="text-muted-soft mt-3 text-sm leading-6">
-                                {{
-                                    isEditing
-                                        ? 'Update the request and save when ready.'
-                                        : 'Source, files, and notes for this request.'
-                                }}
-                            </p>
-                        </div>
+                    <div class="rounded-[1.35rem] border border-white/6 bg-white/[0.03] px-4 py-4 sm:px-5">
+                        <div class="flex flex-col gap-4">
+                            <div class="min-w-0 rounded-[1.15rem] bg-white/[0.04] px-4 py-4">
+                                <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">For</p>
+                                <p class="mt-2 text-lg font-semibold tracking-tight text-white">
+                                    {{ props.printRequest.user?.name || 'Unknown' }}
+                                </p>
+                                <p class="mt-1 text-sm break-all text-white/58">
+                                    {{ props.printRequest.user?.email || 'No email available' }}
+                                </p>
+                            </div>
 
-                        <div
-                            v-if="props.can.isAdmin && props.printRequest.user"
-                            class="text-muted-soft rounded-[1.4rem] bg-white/[0.04] px-4 py-4 text-sm lg:max-w-xs"
-                        >
-                            <p class="text-[0.72rem] font-semibold tracking-[0.2em] text-primary/70 uppercase">Submitted By</p>
-                            <p class="mt-3 font-display text-xl font-semibold tracking-tight text-white">{{ props.printRequest.user.name }}</p>
-                            <p class="mt-1 text-sm text-white/65">{{ props.printRequest.user.email }}</p>
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div class="min-w-0">
+                                    <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Status</p>
+                                    <div class="mt-2 flex flex-wrap items-center gap-3">
+                                        <StatusBadge :status="props.printRequest.status" />
+                                        <p class="text-sm text-white/55">
+                                            {{ existingCount }} {{ existingCount === 1 ? 'attachment' : 'attachments' }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    v-if="props.can.update && !isEditing"
+                                    type="button"
+                                    class="pill-button pill-button-secondary w-full justify-center sm:w-auto"
+                                    @click="enterEditMode"
+                                >
+                                    <SquarePen class="h-4 w-4" />
+                                    Edit
+                                </button>
+
+                                <button
+                                    v-if="isEditing"
+                                    type="button"
+                                    class="pill-button pill-button-secondary w-full justify-center sm:w-auto"
+                                    :disabled="form.processing"
+                                    @click="cancelEdit"
+                                >
+                                    <X class="h-4 w-4" />
+                                    Cancel editing
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <div class="mt-6 space-y-6">
                         <div>
-                            <label v-if="isEditing" for="source_url" class="field-label">Source Link</label>
-                            <p v-else class="field-label">Source Link</p>
+                            <label v-if="isEditing" for="source_url" class="field-label">Request URL</label>
+                            <p v-else class="field-label">Request URL</p>
 
                             <div v-if="isEditing" class="space-y-2">
-                                <input
-                                    id="source_url"
-                                    v-model="form.source_url"
-                                    type="url"
-                                    placeholder="https://..."
-                                    class="luminous-input"
-                                />
+                                <input id="source_url" v-model="form.source_url" type="url" placeholder="https://..." class="luminous-input" />
                                 <p v-if="form.errors.source_url" class="text-sm text-rose-300">{{ form.errors.source_url }}</p>
                             </div>
 
@@ -328,11 +348,12 @@ function deriveSourceDomain(value?: string | null) {
                                         rel="noreferrer noopener"
                                         class="group block overflow-hidden rounded-[1.2rem] border border-white/8 bg-white/[0.03] transition-colors hover:border-primary/20 hover:bg-white/[0.05]"
                                     >
-                                        <div
-                                            v-if="sourceImageUrl"
-                                            class="relative h-32 w-full overflow-hidden sm:h-56"
-                                        >
-                                            <img :src="sourceImageUrl" :alt="sourceTitle" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
+                                        <div v-if="sourceImageUrl" class="relative h-32 w-full overflow-hidden sm:h-56">
+                                            <img
+                                                :src="sourceImageUrl"
+                                                :alt="sourceTitle"
+                                                class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                                            />
                                             <div
                                                 class="absolute right-3 bottom-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-black/30 text-white/80 backdrop-blur-sm"
                                             >
@@ -345,7 +366,9 @@ function deriveSourceDomain(value?: string | null) {
                                             class="relative flex h-32 w-full items-center justify-center bg-linear-to-br from-white/[0.06] via-white/[0.03] to-transparent sm:h-56"
                                         >
                                             <div class="flex flex-col items-center gap-3 px-6 text-center">
-                                                <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-white/70">
+                                                <div
+                                                    class="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-white/70"
+                                                >
                                                     <ImageOff class="h-5 w-5" />
                                                 </div>
                                                 <div>
@@ -384,11 +407,20 @@ function deriveSourceDomain(value?: string | null) {
                                         >
                                             {{ sourceTitle }}
                                         </a>
-                                        <p v-if="sourceDescription" class="text-muted-soft mt-2 max-w-3xl break-words text-sm leading-6">
-                                            {{ isSourceDescriptionExpanded ? sourceDescription : collapsedSourceDescription }}
+                                        <p
+                                            v-if="sourceDescription"
+                                            ref="sourceDescriptionElement"
+                                            class="text-muted-soft mt-2 max-w-3xl text-sm leading-6 break-words"
+                                            :class="
+                                                isSourceDescriptionExpanded
+                                                    ? ''
+                                                    : '[display:-webkit-box] overflow-hidden [-webkit-box-orient:vertical] [-webkit-line-clamp:4]'
+                                            "
+                                        >
+                                            {{ sourceDescription }}
                                         </p>
                                         <button
-                                            v-if="sourceDescriptionNeedsToggle"
+                                            v-if="sourceDescriptionCanExpand"
                                             type="button"
                                             class="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary"
                                             @click="toggleSourceDescription"
@@ -399,18 +431,13 @@ function deriveSourceDomain(value?: string | null) {
                                     </div>
                                 </div>
 
-                                <div
-                                    v-if="sourcePreviewPending"
-                                    class="rounded-[1.35rem] border border-white/6 bg-white/[0.03] px-4 py-4"
-                                >
+                                <div v-if="sourcePreviewPending" class="rounded-[1.35rem] border border-white/6 bg-white/[0.03] px-4 py-4">
                                     <div class="animate-pulse space-y-3">
                                         <div class="h-3 w-24 rounded-full bg-white/10" />
                                         <div class="h-5 w-2/3 rounded-full bg-white/12" />
                                         <div class="h-3 w-full rounded-full bg-white/10" />
                                     </div>
-                                    <p class="text-muted-soft mt-4 text-sm leading-6">
-                                        Loading source preview.
-                                    </p>
+                                    <p class="text-muted-soft mt-4 text-sm leading-6">Loading source preview.</p>
                                 </div>
 
                                 <p v-else-if="sourcePreviewFailed" class="text-muted-soft text-sm leading-6">
@@ -422,13 +449,13 @@ function deriveSourceDomain(value?: string | null) {
                                 v-else
                                 class="rounded-[1.35rem] border border-dashed border-white/10 bg-white/[0.02] px-4 py-4 text-sm text-white/55"
                             >
-                                No source link attached. Files below are the current source for this request.
+                                No request URL attached. Files below are the current source for this request.
                             </div>
                         </div>
 
                         <div>
-                            <label v-if="isEditing" for="instructions" class="field-label">Instructions</label>
-                            <p v-else class="field-label">Instructions</p>
+                            <label v-if="isEditing" for="instructions" class="field-label">Request Details</label>
+                            <p v-else class="field-label">Request Details</p>
 
                             <div v-if="isEditing" class="space-y-2">
                                 <textarea
@@ -436,13 +463,13 @@ function deriveSourceDomain(value?: string | null) {
                                     v-model="form.instructions"
                                     rows="6"
                                     class="luminous-textarea"
-                                    placeholder="Describe material, finish, color, tolerances, or anything else the queue should know."
+                                    placeholder="Describe the print, material, finish, color, tolerances, or anything else the queue should know."
                                 />
                                 <p v-if="form.errors.instructions" class="text-sm text-rose-300">{{ form.errors.instructions }}</p>
                             </div>
 
                             <div v-else class="rounded-[1.45rem] border border-white/6 bg-white/[0.035] px-4 py-4">
-                                <p v-if="props.printRequest.instructions" class="text-sm leading-7 whitespace-pre-line break-words text-white/85">
+                                <p v-if="props.printRequest.instructions" class="text-sm leading-7 break-words whitespace-pre-line text-white/85">
                                     {{ props.printRequest.instructions }}
                                 </p>
                                 <p v-else class="text-sm leading-6 text-white/45">No instructions provided.</p>
@@ -456,7 +483,7 @@ function deriveSourceDomain(value?: string | null) {
                         <div class="min-w-0">
                             <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Files</p>
                             <h2 class="mt-3 text-xl leading-tight font-semibold tracking-tight text-white sm:font-display sm:text-2xl">
-                                Current request assets.
+                                Attachments
                             </h2>
                         </div>
                         <p class="text-muted-soft text-sm">{{ existingCount }} attached</p>
@@ -519,6 +546,17 @@ function deriveSourceDomain(value?: string | null) {
             </section>
 
             <aside class="space-y-6">
+                <article class="luminous-panel px-5 py-5">
+                    <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Request Info</p>
+                    <div class="mt-6 grid gap-3">
+                        <div class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4">
+                            <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/45 uppercase">Submitted</p>
+                            <p class="mt-2 text-lg font-semibold tracking-tight text-white">{{ formatDateOnly(props.printRequest.created_at) }}</p>
+                            <p class="mt-1 text-sm text-white/58">{{ formatDateTime(props.printRequest.created_at) }}</p>
+                        </div>
+                    </div>
+                </article>
+
                 <article v-if="props.can.isAdmin" class="luminous-panel px-5 py-5">
                     <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Workflow Control</p>
                     <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Workflow</h2>
@@ -617,9 +655,7 @@ function deriveSourceDomain(value?: string | null) {
                         </button>
                     </div>
 
-                    <p class="text-muted-soft mt-4 text-sm leading-6">
-                        Pending requests can be edited. Later changes are limited to admins.
-                    </p>
+                    <p class="text-muted-soft mt-4 text-sm leading-6">Pending requests can be edited. Later changes are limited to admins.</p>
                 </article>
             </aside>
         </div>

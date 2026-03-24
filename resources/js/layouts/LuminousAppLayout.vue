@@ -2,12 +2,12 @@
 import BrandMark from '@/components/luminous/BrandMark.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { FolderOpen, LayoutGrid, PlusSquare, Settings2, UserRound, Users } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, useSlots } from 'vue';
 
 type NavKey = 'dashboard' | 'new' | 'requests' | 'users' | 'settings';
 
 interface Props {
-    title: string;
+    title?: string;
     intro?: string;
     eyebrow?: string;
     activeNav: NavKey;
@@ -18,13 +18,16 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
     intro: '',
     eyebrow: '',
+    title: '',
     wide: false,
     showDock: true,
 });
 
 const page = usePage();
+const slots = useSlots();
 const user = computed(() => page.props.auth.user);
 const isAdmin = computed(() => Boolean(user.value?.is_admin));
+const hasPageHeader = computed(() => Boolean(props.eyebrow || props.title || props.intro || slots.pageActions));
 
 const desktopNav = computed(() => {
     if (isAdmin.value) {
@@ -116,15 +119,15 @@ const containerClass = computed(() => (props.wide ? 'max-w-[88rem]' : 'max-w-6xl
             </header>
 
             <main :class="containerClass" class="relative z-10 mx-auto px-4 pt-4 pb-40 sm:px-6 md:pt-6 md:pb-12">
-                <section class="mb-5 flex flex-col gap-3 md:mb-7 md:flex-row md:items-end md:justify-between md:gap-5">
-                    <div class="max-w-2xl">
+                <section v-if="hasPageHeader" class="mb-5 flex flex-col gap-3 md:mb-7 md:flex-row md:items-end md:justify-between md:gap-5">
+                    <div v-if="props.eyebrow || props.title || props.intro" class="max-w-2xl">
                         <p
                             v-if="props.eyebrow"
                             class="mb-2 text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase sm:mb-3 sm:text-[0.72rem] sm:tracking-[0.24em]"
                         >
                             {{ props.eyebrow }}
                         </p>
-                        <h1 class="text-gradient-filament text-[1.8rem] font-semibold tracking-tight sm:font-display sm:text-4xl">
+                        <h1 v-if="props.title" class="text-gradient-filament text-[1.8rem] font-semibold tracking-tight sm:font-display sm:text-4xl">
                             {{ props.title }}
                         </h1>
                         <p v-if="props.intro" class="text-muted-soft mt-2.5 max-w-2xl text-sm leading-5 sm:mt-3 sm:text-base sm:leading-6">
@@ -132,7 +135,10 @@ const containerClass = computed(() => (props.wide ? 'max-w-[88rem]' : 'max-w-6xl
                         </p>
                     </div>
 
-                    <div class="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end">
+                    <div
+                        v-if="$slots.pageActions"
+                        class="grid w-full grid-cols-1 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:justify-end"
+                    >
                         <slot name="pageActions" />
                     </div>
                 </section>
