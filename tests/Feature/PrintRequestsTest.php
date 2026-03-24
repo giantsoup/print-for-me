@@ -4,8 +4,12 @@ use App\Enums\PrintRequestStatus;
 use App\Http\Middleware\EnforceAbsoluteSession;
 use App\Models\PrintRequest;
 use App\Models\User;
+use App\Support\FetchPrintRequestSourcePreview;
+use App\Support\SourcePreviewFetcher;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -21,6 +25,7 @@ beforeEach(function () {
     $this->withoutMiddleware([EnforceAbsoluteSession::class]);
     // CSRF is not relevant in tests.
     $this->withoutMiddleware([PreventRequestForgery::class]);
+    Queue::fake([FetchPrintRequestSourcePreview::class]);
 });
 
 it('creates a print request with only a source URL', function () {
@@ -42,6 +47,11 @@ it('creates a print request with only a source URL', function () {
         'source_url' => 'https://example.com/models/123',
         'status' => PrintRequestStatus::PENDING,
     ]);
+
+    Queue::assertPushed(FetchPrintRequestSourcePreview::class, function (FetchPrintRequestSourcePreview $job) use ($response) {
+        return $job->printRequestId === $response->json('id')
+            && $job->sourceUrl === 'https://example.com/models/123';
+    });
 });
 
 it('requires at least one source (url or file) on create', function () {
@@ -290,6 +300,85 @@ it('can add and remove files on update while pending, and deduplicates same cont
     // Ensure only one file with the dup hash exists
     $dupHash = hash('sha256', 'SAME_CONTENT');
     expect($files->where('sha256', $dupHash)->count())->toBe(1);
+});
+
+it('clears stale source preview metadata and queues a refresh when the source url changes', function () {
+    $user = User::factory()->create();
+    $request = PrintRequest::create([
+        'user_id' => $user->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/original',
+        'source_preview' => [
+            'url' => 'https://example.com/original',
+            'domain' => 'example.com',
+            'title' => 'Original model',
+        ],
+        'source_preview_fetched_at' => now(),
+    ]);
+
+    actingAs($user);
+
+    patch(route('print-requests.update', $request), [
+        'source_url' => 'https://example.com/updated',
+        'instructions' => 'Please keep the updated link.',
+    ], ['Accept' => 'application/json'])->assertOk();
+
+    $request->refresh();
+
+    expect($request->source_url)->toBe('https://example.com/updated');
+    expect($request->source_preview)->toBeNull();
+    expect($request->source_preview_fetched_at)->toBeNull();
+    expect($request->source_preview_failed_at)->toBeNull();
+
+    Queue::assertPushed(FetchPrintRequestSourcePreview::class, function (FetchPrintRequestSourcePreview $job) use ($request) {
+        return $job->printRequestId === $request->id
+            && $job->sourceUrl === 'https://example.com/updated';
+    });
+});
+
+it('stores fetched source preview metadata for a queued request', function () {
+    Http::preventStrayRequests();
+    $longDescription = trim(str_repeat('Low-profile mount for workshop sensors with cable relief and service access. ', 8));
+
+    Http::fake([
+        'https://example.com/model*' => Http::response(
+            <<<HTML
+            <html>
+                <head>
+                    <title>Ignored title</title>
+                    <meta property="og:title" content="Bracket Mount">
+                    <meta property="og:description" content="{$longDescription}">
+                    <meta property="og:image" content="/images/bracket.png">
+                    <meta property="og:site_name" content="Example Models">
+                </head>
+            </html>
+            HTML,
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8'],
+        ),
+    ]);
+
+    $request = PrintRequest::create([
+        'user_id' => User::factory()->create()->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/model/bracket-mount',
+    ]);
+
+    (new FetchPrintRequestSourcePreview($request->id, $request->source_url))
+        ->handle(app(SourcePreviewFetcher::class));
+
+    $request->refresh();
+
+    expect($request->source_preview)->toMatchArray([
+        'url' => 'https://example.com/model/bracket-mount',
+        'domain' => 'example.com',
+        'site_name' => 'Example Models',
+        'title' => 'Bracket Mount',
+        'description' => $longDescription,
+        'image_url' => 'https://example.com/images/bracket.png',
+    ]);
+    expect($request->source_preview_fetched_at)->not->toBeNull();
+    expect($request->source_preview_failed_at)->toBeNull();
 });
 
 it('allows owner to securely download their file and blocks non-owner', function () {

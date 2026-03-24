@@ -16,6 +16,9 @@ class PrintRequest extends Model
         'user_id',
         'status',
         'source_url',
+        'source_preview',
+        'source_preview_fetched_at',
+        'source_preview_failed_at',
         'instructions',
         'accepted_at',
         'reverted_at',
@@ -25,6 +28,9 @@ class PrintRequest extends Model
     protected function casts(): array
     {
         return [
+            'source_preview' => 'array',
+            'source_preview_fetched_at' => 'datetime',
+            'source_preview_failed_at' => 'datetime',
             'accepted_at' => 'datetime',
             'reverted_at' => 'datetime',
             'completed_at' => 'datetime',

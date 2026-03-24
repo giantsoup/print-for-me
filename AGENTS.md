@@ -41,9 +41,28 @@ This project has domain-specific skills available. You MUST activate the relevan
 - Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
 - Check for existing components to reuse before writing a new one.
 
+## Mobile-First UI Rule
+
+- MOBILE FIRST IS A HARD REQUIREMENT FOR THIS APPLICATION.
+- Every UI and UX decision must be filtered through a mobile web lens first, because most real usage will happen on phones.
+- Design the smallest-screen experience first, then let the interface expand naturally for tablet and desktop.
+- Never start with a desktop layout and then try to squeeze it down afterward.
+- On mobile, prioritize clean hierarchy, comfortable spacing, readable type, safe tap targets, obvious actions, and graceful wrapping for long content.
+- Desktop enhancements should only add space, density, or secondary affordances after the mobile experience already feels polished, modern, and complete.
+- When in doubt, protect the mobile experience first.
+
 ## Verification Scripts
 
 - Do not create verification scripts or tinker when tests cover that functionality and prove they work. Unit and feature tests are more important.
+
+## Local PHP / Composer Environment
+
+- This project must be run with PHP 8.5 from Laravel Herd.
+- Use the Herd PHP 8.5 binary for Artisan, tests, Pint, Tinker, and any other PHP CLI command.
+- Use the Herd PHP 8.5 binary when running Composer-driven tooling so platform checks and dependencies match the project requirements.
+- Do not rely on the system `php` binary if it points to another version.
+- Preferred command style: `'/Users/Taylor/Library/Application Support/Herd/bin/php85' artisan ...`
+- Preferred command style for Composer tooling: `'/Users/Taylor/Library/Application Support/Herd/bin/php85' vendor/bin/pint ...`, `'/Users/Taylor/Library/Application Support/Herd/bin/php85' artisan test ...`, and other PHP entrypoints through the Herd PHP 8.5 binary.
 
 ## Application Structure & Architecture
 

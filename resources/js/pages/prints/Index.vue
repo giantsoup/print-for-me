@@ -78,7 +78,7 @@ function filterByStatus(status: string | null) {
     <LuminousAppLayout
         active-nav="requests"
         :eyebrow="props.isAdmin ? 'Request Board' : 'My Requests'"
-        :title="props.isAdmin ? 'Review the queue, then move work forward.' : 'Every request in one clear mobile-first list.'"
+        :title="props.isAdmin ? 'Request Board' : 'My Requests'"
         :intro="
             props.isAdmin
                 ? 'Use the board to review pending work, change status inline, and jump into any request detail screen.'
@@ -86,7 +86,7 @@ function filterByStatus(status: string | null) {
         "
     >
         <template #pageActions>
-            <Link :href="route('print-requests.create')" class="pill-button pill-button-primary">
+            <Link :href="route('print-requests.create')" class="pill-button pill-button-primary w-full sm:w-auto">
                 {{ props.isAdmin ? 'Manual request' : 'New request' }}
                 <ArrowRight class="h-4 w-4" />
             </Link>
@@ -97,12 +97,14 @@ function filterByStatus(status: string | null) {
         </div>
 
         <section class="luminous-panel px-5 py-5">
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div class="min-w-0">
                     <p class="text-[0.72rem] font-semibold tracking-[0.22em] text-primary/75 uppercase">Status Filters</p>
-                    <h2 class="mt-3 font-display text-2xl font-semibold tracking-tight text-white">Filter the queue without losing context.</h2>
+                    <h2 class="mt-3 max-w-2xl text-[1.6rem] leading-tight font-semibold tracking-tight text-white sm:font-display sm:text-2xl">
+                        Filter the queue without losing context.
+                    </h2>
                 </div>
-                <div class="text-muted-soft flex items-center gap-2 text-sm">
+                <div class="text-muted-soft flex items-center gap-2 self-start text-sm">
                     <ScanSearch class="h-4 w-4 text-secondary" />
                     {{ props.items.total }} total {{ props.items.total === 1 ? 'request' : 'requests' }}
                 </div>
@@ -131,23 +133,23 @@ function filterByStatus(status: string | null) {
             <article v-for="item in props.items.data" :key="item.id" class="luminous-panel px-5 py-5">
                 <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div class="min-w-0 flex-1">
-                        <div class="flex flex-wrap items-center gap-3">
-                            <p class="font-display text-2xl font-semibold tracking-tight text-white">Request #{{ item.id }}</p>
+                        <div class="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                            <p class="text-xl leading-tight font-semibold tracking-tight text-white sm:font-display sm:text-2xl">Request #{{ item.id }}</p>
                             <StatusBadge :status="item.status" />
                         </div>
 
-                        <p class="text-muted-soft mt-3 max-w-3xl text-sm leading-6">
+                        <p class="text-muted-soft mt-3 max-w-3xl break-words text-sm leading-6">
                             {{ item.instructions || item.source_url || 'No extra notes were added to this request.' }}
                         </p>
 
-                        <div class="mt-4 flex flex-wrap items-center gap-3 text-[0.72rem] font-semibold tracking-[0.18em] text-white/42 uppercase">
+                        <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.72rem] font-semibold tracking-[0.18em] text-white/42 uppercase">
                             <span>{{ item.files_count }} {{ item.files_count === 1 ? 'file' : 'files' }}</span>
                             <span>{{ formatDateTime(item.created_at) }}</span>
                             <span v-if="props.isAdmin && item.user">{{ item.user.name }}</span>
                         </div>
                     </div>
 
-                    <div class="flex flex-col gap-3 xl:min-w-[17rem]">
+                    <div class="flex w-full flex-col gap-3 xl:min-w-[17rem] xl:max-w-[17rem]">
                         <Link
                             :href="route('print-requests.show', { print_request: item.id })"
                             class="pill-button pill-button-secondary w-full justify-between"
@@ -174,12 +176,12 @@ function filterByStatus(status: string | null) {
             </div>
         </section>
 
-        <nav v-if="props.items.links?.length" class="mt-6 flex flex-wrap items-center gap-2">
+        <nav v-if="props.items.links?.length" class="no-scrollbar mt-6 flex items-center gap-2 overflow-x-auto pb-1">
             <Link
                 v-for="linkItem in props.items.links"
                 :key="linkItem.label + linkItem.url"
                 :href="linkItem.url || '#'"
-                class="inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium"
+                class="inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-medium"
                 :class="linkItem.active ? 'bg-primary/12 text-primary' : 'bg-white/[0.05] text-white/65 hover:bg-white/[0.08] hover:text-white'"
             >
                 <span v-html="linkItem.label" />

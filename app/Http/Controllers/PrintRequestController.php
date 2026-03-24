@@ -8,6 +8,7 @@ use App\Http\Requests\UpdatePrintRequestRequest;
 use App\Models\PrintRequest;
 use App\Notifications\NewPrintRequestNotification;
 use App\Notifications\PendingRequestCanceledByUserNotification;
+use App\Support\FetchPrintRequestSourcePreview;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
@@ -137,15 +138,17 @@ class PrintRequestController extends Controller
     public function store(StorePrintRequestRequest $request)
     {
         $user = $request->user();
+        $sourceUrl = $this->normalizedSourceUrl($request->input('source_url'));
 
         $printRequest = new PrintRequest;
         $printRequest->user_id = $user->id;
         $printRequest->status = PrintRequestStatus::PENDING;
-        $printRequest->source_url = $request->input('source_url');
+        $printRequest->source_url = $sourceUrl;
         $printRequest->instructions = $request->input('instructions');
         $printRequest->save();
 
         $this->attachFiles($printRequest, $request->file('files', []));
+        $this->dispatchSourcePreviewRefresh($printRequest, $sourceUrl);
 
         // Notify admin of new print request (queued mail)
         $adminEmail = (string) config('prints.admin_email');
@@ -164,10 +167,22 @@ class PrintRequestController extends Controller
     {
         $this->authorize('update', $print_request);
 
+        $sourceUrl = $this->normalizedSourceUrl($request->input('source_url', $print_request->source_url));
+        $sourceChanged = $sourceUrl !== $print_request->source_url;
+
         $print_request->fill([
-            'source_url' => $request->input('source_url', $print_request->source_url),
+            'source_url' => $sourceUrl,
             'instructions' => $request->input('instructions', $print_request->instructions),
         ]);
+
+        if ($sourceChanged) {
+            $print_request->forceFill([
+                'source_preview' => null,
+                'source_preview_fetched_at' => null,
+                'source_preview_failed_at' => null,
+            ]);
+        }
+
         $print_request->save();
 
         // Remove selected files
@@ -184,6 +199,7 @@ class PrintRequestController extends Controller
 
         // Attach new files
         $this->attachFiles($print_request, $request->file('files', []));
+        $this->dispatchSourcePreviewRefresh($print_request, $sourceUrl, $sourceChanged);
 
         if ($request->wantsJson()) {
             return response()->json($print_request->load('files'));
@@ -311,5 +327,33 @@ class PrintRequestController extends Controller
         if ($printRequest->status !== PrintRequestStatus::PENDING) {
             abort(403, 'Only admins can modify non-pending requests.');
         }
+    }
+
+    private function dispatchSourcePreviewRefresh(PrintRequest $printRequest, ?string $sourceUrl, bool $sourceChanged = false): void
+    {
+        if (blank($sourceUrl)) {
+            return;
+        }
+
+        if (! $sourceChanged && filled($printRequest->source_preview_failed_at)) {
+            return;
+        }
+
+        if (! $sourceChanged && filled($printRequest->source_preview_fetched_at) && filled($printRequest->source_preview)) {
+            return;
+        }
+
+        FetchPrintRequestSourcePreview::dispatch($printRequest->id, $sourceUrl);
+    }
+
+    private function normalizedSourceUrl(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed !== '' ? $trimmed : null;
     }
 }
