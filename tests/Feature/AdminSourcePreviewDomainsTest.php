@@ -141,3 +141,69 @@ it('manually retries the latest tracked request URL for a domain', function () {
     expect($domain->last_attempt_status)->toBe('success');
     expect($domain->last_success_at)->not->toBeNull();
 });
+
+it('tests an arbitrary admin-provided url for a domain without a tracked request', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://printables.com/*' => Http::response(
+            <<<'HTML'
+            <html>
+                <head>
+                    <meta property="og:site_name" content="Printables">
+                    <meta property="og:title" content="Cable Clip">
+                    <meta property="og:description" content="A simple clip for routing USB cables.">
+                </head>
+            </html>
+            HTML,
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8'],
+        ),
+    ]);
+
+    $admin = previewAdmin();
+    $domain = SourcePreviewDomain::factory()->create([
+        'domain' => 'printables.com',
+        'label' => 'Printables',
+        'policy' => SourcePreviewFetchPolicy::Allow,
+        'last_seen_print_request_id' => null,
+        'last_seen_url' => null,
+        'last_seen_at' => null,
+    ]);
+
+    actingAs($admin);
+
+    post(route('admin.source-preview-domains.attempt-url', $domain), [
+        'url' => 'https://printables.com/model/123-cable-clip',
+    ])->assertRedirect()
+        ->assertSessionHas('status', 'Preview fetch succeeded for Printables.');
+
+    $domain->refresh();
+
+    expect($domain->last_attempt_status)->toBe('success');
+    expect($domain->last_attempted_at)->not->toBeNull();
+    expect($domain->last_success_at)->not->toBeNull();
+    expect($domain->last_seen_url)->toBeNull();
+});
+
+it('rejects admin-provided test urls that do not match the selected domain', function () {
+    Http::preventStrayRequests();
+
+    $admin = previewAdmin();
+    $domain = SourcePreviewDomain::factory()->create([
+        'domain' => 'printables.com',
+        'label' => 'Printables',
+        'policy' => SourcePreviewFetchPolicy::Allow,
+    ]);
+
+    actingAs($admin);
+
+    post(route('admin.source-preview-domains.attempt-url', $domain), [
+        'url' => 'https://thingiverse.com/thing:123456',
+    ])->assertRedirect()
+        ->assertSessionHas('status', 'Test URL must belong to printables.com.');
+
+    $domain->refresh();
+
+    expect($domain->last_attempt_status)->toBeNull();
+    Http::assertNothingSent();
+});

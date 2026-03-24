@@ -41,6 +41,25 @@ class AttemptSourcePreview
         return $preview;
     }
 
+    public function handleUrl(string $sourceUrl, bool $ignoreAutomaticPolicy = false): ?array
+    {
+        if (blank($sourceUrl)) {
+            return null;
+        }
+
+        if (! $ignoreAutomaticPolicy && ! $this->domains->isAutomaticFetchAllowed($sourceUrl)) {
+            $this->domains->recordAttemptForUrl($sourceUrl, null);
+
+            return null;
+        }
+
+        $preview = $this->fetcher->fetch($sourceUrl);
+
+        $this->domains->recordAttemptForUrl($sourceUrl, $preview);
+
+        return $preview;
+    }
+
     private function markRequestAsUnavailable(PrintRequest $printRequest): void
     {
         $printRequest->forceFill([

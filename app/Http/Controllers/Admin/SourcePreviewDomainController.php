@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\SourcePreviewFetchPolicy;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SourcePreviewDomains\AttemptSourcePreviewDomainRequest;
 use App\Http\Requests\Admin\SourcePreviewDomains\UpdateSourcePreviewDomainRequest;
 use App\Models\PrintRequest;
 use App\Models\SourcePreviewDomain;
@@ -88,5 +89,27 @@ class SourcePreviewDomainController extends Controller
                 ? "Preview fetch succeeded for {$sourcePreviewDomain->label}."
                 : "Preview fetch failed for {$sourcePreviewDomain->label}.",
         );
+    }
+
+    public function attemptUrl(AttemptSourcePreviewDomainRequest $request, SourcePreviewDomain $sourcePreviewDomain): RedirectResponse
+    {
+        $testUrl = (string) $request->validated('url');
+
+        if ($this->domains->extractDomain($testUrl) !== $sourcePreviewDomain->domain) {
+            return back()
+                ->withInput()
+                ->with('status', "Test URL must belong to {$sourcePreviewDomain->domain}.");
+        }
+
+        $preview = $this->attemptSourcePreview->handleUrl($testUrl, ignoreAutomaticPolicy: true);
+
+        return back()
+            ->withInput()
+            ->with(
+                'status',
+                $preview
+                    ? "Preview fetch succeeded for {$sourcePreviewDomain->label}."
+                    : "Preview fetch failed for {$sourcePreviewDomain->label}.",
+            );
     }
 }

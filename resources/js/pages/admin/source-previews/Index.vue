@@ -3,7 +3,7 @@ import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { formatDateTime } from '@/lib/prints';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ArrowRight, Globe, RefreshCcw } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 interface DomainItem {
     id: number;
@@ -34,8 +34,25 @@ const props = defineProps<Props>();
 const page = usePage();
 const pendingDomainId = ref<number | null>(null);
 const pendingAction = ref<'policy' | 'attempt' | null>(null);
+const testUrls = ref<Record<number, string>>({});
+const testUrlErrors = ref<Record<number, string>>({});
 
 const flashStatus = computed(() => page.props.flash?.status);
+
+watch(
+    () => props.domains,
+    (domains) => {
+        testUrls.value = domains.reduce(
+            (urls, domain) => {
+                urls[domain.id] = testUrls.value[domain.id] ?? domain.last_seen_url ?? '';
+
+                return urls;
+            },
+            {} as Record<number, string>,
+        );
+    },
+    { immediate: true },
+);
 
 function updatePolicy(domain: DomainItem, policy: 'allow' | 'block') {
     if (pendingDomainId.value !== null || domain.policy === policy) {
@@ -59,18 +76,27 @@ function updatePolicy(domain: DomainItem, policy: 'allow' | 'block') {
 }
 
 function attemptFetch(domain: DomainItem) {
-    if (pendingDomainId.value !== null || !domain.can_attempt) {
+    const url = (testUrls.value[domain.id] ?? '').trim();
+
+    if (pendingDomainId.value !== null || url === '') {
         return;
     }
 
     pendingDomainId.value = domain.id;
     pendingAction.value = 'attempt';
+    testUrlErrors.value[domain.id] = '';
 
     router.post(
-        route('admin.source-preview-domains.attempt', { source_preview_domain: domain.id }),
-        {},
+        route('admin.source-preview-domains.attempt-url', { source_preview_domain: domain.id }),
+        { url },
         {
             preserveScroll: true,
+            onError: (errors) => {
+                testUrlErrors.value[domain.id] = errors.url || '';
+            },
+            onSuccess: () => {
+                testUrlErrors.value[domain.id] = '';
+            },
             onFinish: () => {
                 pendingDomainId.value = null;
                 pendingAction.value = null;
@@ -82,6 +108,15 @@ function attemptFetch(domain: DomainItem) {
 function isBusy(domainId: number, action: 'policy' | 'attempt') {
     return pendingDomainId.value === domainId && pendingAction.value === action;
 }
+
+function useLatestUrl(domain: DomainItem) {
+    if (!domain.last_seen_url) {
+        return;
+    }
+
+    testUrls.value[domain.id] = domain.last_seen_url;
+    testUrlErrors.value[domain.id] = '';
+}
 </script>
 
 <template>
@@ -91,7 +126,7 @@ function isBusy(domainId: number, action: 'policy' | 'attempt') {
         active-nav="requests"
         eyebrow="Admin"
         title="Preview domains"
-        intro="Allow or block automatic preview fetching by domain, then retry the latest seen URL instantly when you need to test one."
+        intro="Allow or block automatic preview fetching by domain, then paste any URL from that site to test preview fetching synchronously before new requests come in."
         wide
     >
         <template #pageActions>
@@ -164,30 +199,61 @@ function isBusy(domainId: number, action: 'policy' | 'attempt') {
                             </button>
                             <button
                                 type="button"
-                                class="pill-button pill-button-secondary w-full justify-center sm:w-auto"
-                                :disabled="pendingDomainId !== null || !domain.can_attempt"
+                                class="pill-button pill-button-secondary w-full justify-center sm:hidden"
+                                :disabled="pendingDomainId !== null || !(testUrls[domain.id] || '').trim()"
                                 @click="attemptFetch(domain)"
                             >
                                 <RefreshCcw class="h-4 w-4" />
-                                {{ isBusy(domain.id, 'attempt') ? 'Trying latest URL...' : 'Try latest URL' }}
+                                {{ isBusy(domain.id, 'attempt') ? 'Testing...' : 'Test URL' }}
                             </button>
                         </div>
                     </div>
 
                     <div class="grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
                         <div class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4">
-                            <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Latest URL</p>
-                            <a
-                                v-if="domain.last_seen_url"
-                                :href="domain.last_seen_url"
-                                target="_blank"
-                                rel="noreferrer noopener"
-                                class="mt-3 flex items-start gap-3 text-sm leading-6 break-all text-white/78 hover:text-white"
-                            >
-                                <Globe class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                                <span>{{ domain.last_seen_url }}</span>
-                            </a>
-                            <p v-else class="mt-3 text-sm leading-6 text-white/45">No request URL has been seen for this domain yet.</p>
+                            <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Test URL</p>
+                            <p class="mt-3 text-sm leading-6 text-white/55">
+                                Paste any {{ domain.domain }} URL to test preview fetching immediately from the admin panel.
+                            </p>
+                            <div class="mt-4 flex flex-col gap-3 sm:flex-row">
+                                <input
+                                    v-model="testUrls[domain.id]"
+                                    type="url"
+                                    inputmode="url"
+                                    placeholder="https://"
+                                    class="luminous-input min-w-0 flex-1"
+                                />
+                                <button
+                                    type="button"
+                                    class="pill-button pill-button-secondary hidden shrink-0 justify-center sm:inline-flex"
+                                    :disabled="pendingDomainId !== null || !(testUrls[domain.id] || '').trim()"
+                                    @click="attemptFetch(domain)"
+                                >
+                                    <RefreshCcw class="h-4 w-4" />
+                                    {{ isBusy(domain.id, 'attempt') ? 'Testing...' : 'Test URL' }}
+                                </button>
+                            </div>
+                            <p v-if="testUrlErrors[domain.id]" class="mt-3 text-sm text-rose-300">{{ testUrlErrors[domain.id] }}</p>
+                            <div v-if="domain.last_seen_url" class="mt-4 rounded-[1.1rem] bg-white/[0.04] px-3 py-3">
+                                <div class="flex items-start gap-3">
+                                    <Globe class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                                    <div class="min-w-0">
+                                        <p class="text-[0.68rem] font-semibold tracking-[0.16em] text-white/42 uppercase">Latest request URL</p>
+                                        <a
+                                            :href="domain.last_seen_url"
+                                            target="_blank"
+                                            rel="noreferrer noopener"
+                                            class="mt-2 block text-sm leading-6 break-all text-white/78 hover:text-white"
+                                        >
+                                            {{ domain.last_seen_url }}
+                                        </a>
+                                        <button type="button" class="mt-3 text-sm font-medium text-primary" @click="useLatestUrl(domain)">
+                                            Use latest request URL
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <p v-else class="mt-4 text-sm leading-6 text-white/45">No request URL has been seen for this domain yet.</p>
                             <p v-if="domain.last_seen_at" class="mt-3 text-xs tracking-[0.14em] text-white/35 uppercase">
                                 Seen {{ formatDateTime(domain.last_seen_at) }}
                             </p>

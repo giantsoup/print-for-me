@@ -41,4 +41,6 @@ Route::group(['middleware' => ['auth', 'absolute', 'session_version', 'admin']],
         ->name('admin.source-preview-domains.update');
     Route::post('admin/source-preview-domains/{source_preview_domain}/attempt', [SourcePreviewDomainController::class, 'attempt'])
         ->name('admin.source-preview-domains.attempt');
+    Route::post('admin/source-preview-domains/{source_preview_domain}/attempt-url', [SourcePreviewDomainController::class, 'attemptUrl'])
+        ->name('admin.source-preview-domains.attempt-url');
 });

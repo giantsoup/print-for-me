@@ -108,19 +108,12 @@ class SourcePreviewDomainManager
 
     public function registerSeenPrintRequest(PrintRequest $printRequest): ?SourcePreviewDomain
     {
-        $domain = $this->extractDomain($printRequest->source_url);
+        $record = $this->ensureDomainRecord($printRequest->source_url);
 
-        if ($domain === null) {
+        if (! $record) {
             return null;
         }
 
-        $record = SourcePreviewDomain::query()->firstOrNew(['domain' => $domain]);
-
-        if (! $record->exists) {
-            $record->policy = $this->defaultPolicyForDomain($domain);
-        }
-
-        $record->label = $record->label ?: $this->defaultLabelForDomain($domain);
         $record->last_seen_print_request_id = $printRequest->id;
         $record->last_seen_url = $printRequest->source_url;
         $record->last_seen_at = now();
@@ -137,6 +130,42 @@ class SourcePreviewDomainManager
             return null;
         }
 
+        return $this->saveAttemptState($record, $preview);
+    }
+
+    public function ensureDomainRecord(?string $sourceUrl): ?SourcePreviewDomain
+    {
+        $domain = $this->extractDomain($sourceUrl);
+
+        if ($domain === null) {
+            return null;
+        }
+
+        $record = SourcePreviewDomain::query()->firstOrNew(['domain' => $domain]);
+
+        if (! $record->exists) {
+            $record->policy = $this->defaultPolicyForDomain($domain);
+        }
+
+        $record->label = $record->label ?: $this->defaultLabelForDomain($domain);
+        $record->save();
+
+        return $record;
+    }
+
+    public function recordAttemptForUrl(string $sourceUrl, ?array $preview): ?SourcePreviewDomain
+    {
+        $record = $this->ensureDomainRecord($sourceUrl);
+
+        if (! $record) {
+            return null;
+        }
+
+        return $this->saveAttemptState($record, $preview);
+    }
+
+    private function saveAttemptState(SourcePreviewDomain $record, ?array $preview): SourcePreviewDomain
+    {
         $record->last_attempted_at = now();
         $record->last_attempt_status = $preview ? 'success' : 'failure';
 
