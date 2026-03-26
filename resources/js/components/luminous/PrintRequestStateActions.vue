@@ -279,13 +279,7 @@ onBeforeUnmount(() => {
 
         <div
             v-if="visibleActions.length"
-            :class="
-                props.variant === 'panel'
-                    ? 'grid gap-3'
-                    : visibleActions.length > 1
-                      ? 'grid gap-2 xl:grid-cols-2'
-                      : 'grid gap-2'
-            "
+            :class="props.variant === 'panel' ? 'grid gap-3' : visibleActions.length > 1 ? 'grid gap-2 xl:grid-cols-2' : 'grid gap-2'"
         >
             <button
                 v-for="action in visibleActions"
@@ -328,8 +322,8 @@ onBeforeUnmount(() => {
                 <div class="min-w-0">
                     <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-emerald-200/80 uppercase">Optional completion photos</p>
                     <p class="mt-2 text-sm leading-6 text-white/78">
-                        Add a few final photos before closing the request. Images are resized to a web-friendly size, compressed before storage,
-                        and full-size originals are not retained.
+                        Add a few final photos before closing the request. Images are resized to a web-friendly size, compressed before storage, and
+                        full-size originals are not retained.
                     </p>
                 </div>
 
