@@ -4,7 +4,7 @@ import StatusBadge from '@/components/luminous/StatusBadge.vue';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { formatDateOnly, formatDateTime, formatFileSize, type PrintRequestActionKey } from '@/lib/prints';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { ChevronDown, ChevronUp, Download, ExternalLink, LoaderCircle, RefreshCcw, SquarePen, Trash2, X } from 'lucide-vue-next';
+import { ChevronDown, ChevronUp, Download, ExternalLink, LoaderCircle, Mail, RefreshCcw, SquarePen, Trash2, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface FileItem {
@@ -79,6 +79,7 @@ const page = usePage();
 const isEditing = ref(false);
 const isSourceDescriptionExpanded = ref(false);
 const isRefetchingSourcePreview = ref(false);
+const isResendingCompletedNotice = ref(false);
 const pickedFiles = ref<File[]>([]);
 
 const form = useForm<{ source_url: string | null; instructions: string | null; files: File[]; remove_file_ids: number[] }>({
@@ -107,6 +108,9 @@ const sourcePreviewFailed = computed(
 );
 const pageTitle = computed(() => sourcePreview.value?.title || sourcePreview.value?.site_name || sourceDomain.value || 'Print request');
 const completionPhotoCount = computed(() => props.completionPhotos.length);
+const canResendCompletedNotice = computed(
+    () => props.can.isAdmin && props.printRequest.status === 'complete' && Boolean(props.printRequest.user?.email),
+);
 
 const existingCount = computed(() => props.printRequest.files.length);
 const existingSize = computed(() => props.printRequest.files.reduce((sum, file) => sum + (file.size_bytes || 0), 0));
@@ -245,6 +249,25 @@ function refetchSourcePreview() {
             preserveScroll: true,
             onFinish: () => {
                 isRefetchingSourcePreview.value = false;
+            },
+        },
+    );
+}
+
+function resendCompletedNotice() {
+    if (!canResendCompletedNotice.value || isResendingCompletedNotice.value) {
+        return;
+    }
+
+    isResendingCompletedNotice.value = true;
+
+    router.post(
+        route('admin.print-requests.notifications.completed.resend', { print_request: props.printRequest.id }),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                isResendingCompletedNotice.value = false;
             },
         },
     );
@@ -643,6 +666,24 @@ function syncSourceDescriptionOverflow() {
                             :actions="props.availableStatusActions"
                             :completion-photo-constraints="props.completionPhotoConstraints"
                         />
+                    </div>
+
+                    <div v-if="canResendCompletedNotice" class="mt-6 rounded-[1.35rem] border border-primary/12 bg-primary/[0.05] px-4 py-4">
+                        <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Delivery Check</p>
+                        <p class="mt-2 text-sm leading-6 text-white/72">
+                            Queue the completion notice again to confirm the production mail flow after an issue or deploy update.
+                        </p>
+
+                        <button
+                            type="button"
+                            class="pill-button pill-button-secondary mt-4 w-full justify-center sm:w-auto"
+                            :disabled="isResendingCompletedNotice"
+                            @click="resendCompletedNotice"
+                        >
+                            <LoaderCircle v-if="isResendingCompletedNotice" class="h-4 w-4 animate-spin" />
+                            <Mail v-else class="h-4 w-4" />
+                            Resend completion email
+                        </button>
                     </div>
                 </article>
 

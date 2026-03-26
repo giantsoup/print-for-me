@@ -99,6 +99,27 @@ class PrintRequestStatusController extends Controller
         return $this->respond($request, $print_request, 'Request returned to pending.');
     }
 
+    public function resendCompletedNotification(Request $request, PrintRequest $print_request): JsonResponse|RedirectResponse
+    {
+        if ($print_request->status !== PrintRequestStatus::COMPLETE) {
+            throw ValidationException::withMessages([
+                'status' => 'Only completed requests can resend the completion notice.',
+            ]);
+        }
+
+        $print_request->loadMissing(['user', 'completionPhotos', 'files']);
+
+        if (blank($print_request->user?->email)) {
+            throw ValidationException::withMessages([
+                'status' => 'This request does not have a deliverable recipient email.',
+            ]);
+        }
+
+        $print_request->user->notify(new PrintRequestCompletedNotification($print_request));
+
+        return $this->respond($request, $print_request, 'Completion email queued again.');
+    }
+
     private function respond(Request $request, PrintRequest $printRequest, string $message): JsonResponse|RedirectResponse
     {
         if ($request->wantsJson()) {
