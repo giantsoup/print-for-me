@@ -74,37 +74,38 @@ jobs:
           manifest_path="${GITHUB_WORKSPACE}/.release-manifest"
           release_sha_path="${GITHUB_WORKSPACE}/.release-sha"
 
-          git ls-files -z \
-            | python3 -c "
-import sys
+          python3 - "${package_list_path}" <<'PY'
+          import subprocess
+          import sys
 
-excluded = (
-    '.github/',
-    '.codex/',
-    '.agents/',
-    '.junie/',
-    'node_modules/',
-    'tests/',
-    'vendor/',
-)
+          excluded = (
+              '.github/',
+              '.codex/',
+              '.agents/',
+              '.junie/',
+              'node_modules/',
+              'tests/',
+              'vendor/',
+          )
 
-entries = []
+          output = subprocess.check_output(['git', 'ls-files', '-z'])
+          entries = []
 
-for path in sys.stdin.buffer.read().split(b'\0'):
-    if not path:
-        continue
+          for path in output.split(b'\0'):
+              if not path:
+                  continue
 
-    value = path.decode('utf-8')
+              value = path.decode('utf-8')
 
-    if value.startswith(excluded):
-        continue
+              if value.startswith(excluded):
+                  continue
 
-    entries.append(value)
+              entries.append(value)
 
-for value in sorted(entries):
-    print(value)
-" \
-            > "${package_list_path}"
+          with open(sys.argv[1], 'w', encoding='utf-8') as handle:
+              for value in sorted(entries):
+                  handle.write(f'{value}\n')
+          PY
 
           find public/build -type f | sort >> "${package_list_path}"
           sort -u "${package_list_path}" -o "${package_list_path}"
