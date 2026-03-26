@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\PrintRequest;
 use App\Support\MailSubject;
+use App\Support\PrintRequestMailData;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -24,14 +25,20 @@ class PendingRequestCanceledByUserNotification extends Notification implements S
 
     public function toMail(object $notifiable): MailMessage
     {
-        $subject = MailSubject::make('Pending request canceled by user');
+        $subject = MailSubject::make('Pending print request canceled');
 
         return (new MailMessage)
             ->subject($subject)
-            ->greeting('Pending request canceled by user')
-            ->line('A user has canceled their pending print request.')
-            ->line('Request ID: '.$this->printRequest->id)
-            ->line('User ID: '.$this->printRequest->user_id)
-            ->line('Source URL: '.($this->printRequest->source_url ?: '(none)'));
+            ->markdown('mail.notifications.print-request-update', [
+                'headline' => 'A pending print request was canceled',
+                'greeting' => PrintRequestMailData::greetingFor($notifiable),
+                'intro' => 'The requester canceled this print job before production began.',
+                'details' => PrintRequestMailData::adminDetails($this->printRequest),
+                'instructions' => PrintRequestMailData::instructionsExcerpt($this->printRequest->instructions),
+                'nextSteps' => 'No further action is required unless your team needs to follow up with the requester.',
+                'actionLabel' => 'Review active queue',
+                'actionUrl' => PrintRequestMailData::queueUrl(),
+                'closing' => 'This notice is for operational visibility in the print queue.',
+            ]);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\PrintRequest;
 use App\Support\MailSubject;
+use App\Support\PrintRequestMailData;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -24,15 +25,20 @@ class NewPrintRequestNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $subject = MailSubject::make('New print request');
+        $subject = MailSubject::make('New print request ready for review');
 
         return (new MailMessage)
             ->subject($subject)
-            ->greeting('New print request received')
-            ->line('A new print request has been submitted.')
-            ->line('Request ID: '.$this->printRequest->id)
-            ->line('User ID: '.$this->printRequest->user_id)
-            ->line('Status: '.$this->printRequest->status)
-            ->line('Source URL: '.($this->printRequest->source_url ?: '(none)'));
+            ->markdown('mail.notifications.print-request-update', [
+                'headline' => 'A new print request is ready for review',
+                'greeting' => PrintRequestMailData::greetingFor($notifiable),
+                'intro' => 'A requester submitted a new print job and it is waiting in the queue for review.',
+                'details' => PrintRequestMailData::adminDetails($this->printRequest),
+                'instructions' => PrintRequestMailData::instructionsExcerpt($this->printRequest->instructions),
+                'nextSteps' => 'Open the request to review the files, source reference, and notes before moving it into production.',
+                'actionLabel' => 'Review request',
+                'actionUrl' => PrintRequestMailData::requestUrl($this->printRequest),
+                'closing' => 'This message was sent because the print queue received a new submission.',
+            ]);
     }
 }

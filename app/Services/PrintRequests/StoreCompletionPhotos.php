@@ -15,6 +15,12 @@ class StoreCompletionPhotos
 
     private const int QUALITY = 78;
 
+    private const int MIN_QUALITY = 54;
+
+    private const int QUALITY_STEP = 8;
+
+    private const int TARGET_SIZE_BYTES = 900 * 1024;
+
     public function handle(PrintRequest $printRequest, array $photos): void
     {
         if ($photos === []) {
@@ -67,6 +73,17 @@ class StoreCompletionPhotos
         }
     }
 
+    /**
+     * @return array{
+     *     contents: string,
+     *     extension: string,
+     *     mime_type: string,
+     *     size_bytes: int,
+     *     width: int,
+     *     height: int,
+     *     sha256: string
+     * }
+     */
     private function process(UploadedFile $photo): array
     {
         if (class_exists(\Imagick::class)) {
@@ -86,20 +103,42 @@ class StoreCompletionPhotos
         return $this->processWithGd($photo);
     }
 
+    /**
+     * @return array{
+     *     contents: string,
+     *     extension: string,
+     *     mime_type: string,
+     *     size_bytes: int,
+     *     width: int,
+     *     height: int,
+     *     sha256: string
+     * }
+     */
     private function processWithImagick(UploadedFile $photo): array
     {
         $image = new \Imagick;
         $image->readImage($photo->getRealPath());
         $image->setIteratorIndex(0);
         $image->autoOrient();
-        $image->thumbnailImage(self::MAX_DIMENSION, self::MAX_DIMENSION, true, true);
+        $image->thumbnailImage(self::MAX_DIMENSION, self::MAX_DIMENSION, true);
         $image->stripImage();
-        $image->setImageCompressionQuality(self::QUALITY);
 
         $format = $this->imagickSupportsWebp() ? 'webp' : 'jpeg';
-        $image->setImageFormat($format);
+        $contents = $this->optimizeEncodedContents(function (int $quality) use ($image, $format): string {
+            $candidate = clone $image;
+            $candidate->setImageFormat($format);
+            $candidate->setImageCompressionQuality($quality);
 
-        $contents = $image->getImageBlob();
+            if ($format === 'jpeg') {
+                $candidate->setImageCompression(\Imagick::COMPRESSION_JPEG);
+            }
+
+            $encodedContents = $candidate->getImagesBlob();
+            $candidate->destroy();
+
+            return $encodedContents;
+        });
+
         $width = $image->getImageWidth();
         $height = $image->getImageHeight();
         $image->destroy();
@@ -115,6 +154,17 @@ class StoreCompletionPhotos
         ];
     }
 
+    /**
+     * @return array{
+     *     contents: string,
+     *     extension: string,
+     *     mime_type: string,
+     *     size_bytes: int,
+     *     width: int,
+     *     height: int,
+     *     sha256: string
+     * }
+     */
     private function processWithGd(UploadedFile $photo): array
     {
         $contents = file_get_contents($photo->getRealPath());
@@ -137,8 +187,6 @@ class StoreCompletionPhotos
         $canvas = imagecreatetruecolor($targetWidth, $targetHeight);
 
         if ($canvas === false) {
-            imagedestroy($source);
-
             throw new RuntimeException('Unable to prepare the optimized completion photo.');
         }
 
@@ -149,20 +197,22 @@ class StoreCompletionPhotos
         imagefilledrectangle($canvas, 0, 0, $targetWidth, $targetHeight, $background);
         imagecopyresampled($canvas, $source, 0, 0, 0, 0, $targetWidth, $targetHeight, $width, $height);
 
-        ob_start();
-
         $supportsWebp = function_exists('imagewebp');
+        $optimizedContents = $this->optimizeEncodedContents(function (int $quality) use ($canvas, $supportsWebp): string {
+            ob_start();
 
-        if ($supportsWebp) {
-            imagewebp($canvas, null, self::QUALITY);
-        } else {
-            imagejpeg($canvas, null, self::QUALITY);
-        }
+            $encoded = $supportsWebp
+                ? imagewebp($canvas, null, $quality)
+                : imagejpeg($canvas, null, $quality);
 
-        $optimizedContents = (string) ob_get_clean();
+            $contents = (string) ob_get_clean();
 
-        imagedestroy($canvas);
-        imagedestroy($source);
+            if (! $encoded) {
+                return '';
+            }
+
+            return $contents;
+        });
 
         return [
             'contents' => $optimizedContents,
@@ -175,6 +225,36 @@ class StoreCompletionPhotos
         ];
     }
 
+    private function optimizeEncodedContents(callable $encoder): string
+    {
+        $bestContents = '';
+
+        for ($quality = self::QUALITY; $quality >= self::MIN_QUALITY; $quality -= self::QUALITY_STEP) {
+            $contents = $encoder($quality);
+
+            if ($contents === '') {
+                continue;
+            }
+
+            if ($bestContents === '' || strlen($contents) < strlen($bestContents)) {
+                $bestContents = $contents;
+            }
+
+            if (strlen($contents) <= self::TARGET_SIZE_BYTES) {
+                return $contents;
+            }
+        }
+
+        if ($bestContents === '') {
+            throw new RuntimeException('Unable to prepare the optimized completion photo.');
+        }
+
+        return $bestContents;
+    }
+
+    /**
+     * @return array{0: int, 1: int}
+     */
     private function constrainedDimensions(int $width, int $height): array
     {
         $maxDimension = max($width, $height);

@@ -277,14 +277,17 @@ onBeforeUnmount(() => {
             </div>
         </div>
 
-        <div v-if="visibleActions.length" :class="props.variant === 'panel' ? 'grid gap-3' : 'grid gap-2 sm:grid-cols-2'">
+        <div
+            v-if="visibleActions.length"
+            :class="props.variant === 'panel' ? 'grid gap-3' : visibleActions.length > 1 ? 'grid gap-2 xl:grid-cols-2' : 'grid gap-2'"
+        >
             <button
                 v-for="action in visibleActions"
                 :key="action.key"
                 type="button"
                 :disabled="isWorking"
-                class="w-full rounded-[1.35rem] border border-white/8 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-55"
-                :class="props.variant === 'panel' ? 'px-4 py-4 hover:bg-white/[0.06]' : 'px-4 py-3 hover:bg-white/[0.05]'"
+                class="w-full rounded-[1.35rem] border border-white/8 bg-white/[0.03] text-left transition-colors disabled:cursor-not-allowed disabled:opacity-55"
+                :class="props.variant === 'panel' ? 'px-4 py-4 hover:bg-white/[0.06]' : 'px-4 py-3.5 hover:bg-white/[0.08]'"
                 @click="runAction(action)"
             >
                 <div class="flex items-start gap-3">
@@ -293,22 +296,20 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div class="min-w-0 flex-1">
-                        <div class="flex flex-wrap items-center justify-between gap-3">
-                            <p class="font-medium text-white">{{ action.label }}</p>
-                            <span
-                                class="text-[0.68rem] font-semibold tracking-[0.18em] uppercase"
-                                :class="props.variant === 'panel' ? 'text-white/42' : 'text-white/35'"
-                            >
-                                To {{ statusLabel(action.targetStatus) }}
-                            </span>
-                        </div>
+                        <p class="font-medium text-white">{{ action.label }}</p>
+                        <p
+                            class="mt-1 text-[0.68rem] font-semibold tracking-[0.18em] uppercase"
+                            :class="props.variant === 'panel' ? 'text-white/42' : 'text-white/35'"
+                        >
+                            To {{ statusLabel(action.targetStatus) }}
+                        </p>
 
                         <p v-if="props.variant === 'panel'" class="text-muted-soft mt-2 text-sm leading-6">
                             {{ action.description }}
                         </p>
                     </div>
 
-                    <LoaderCircle v-if="activeAction === action.key" class="mt-0.5 h-4 w-4 animate-spin text-white/65" />
+                    <LoaderCircle v-if="activeAction === action.key" class="mt-0.5 h-4 w-4 shrink-0 animate-spin text-white/65" />
                 </div>
             </button>
         </div>
@@ -321,8 +322,8 @@ onBeforeUnmount(() => {
                 <div class="min-w-0">
                     <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-emerald-200/80 uppercase">Optional completion photos</p>
                     <p class="mt-2 text-sm leading-6 text-white/78">
-                        Add a few final photos before closing the request. Images are resized for mobile viewing and full-size originals are not
-                        retained.
+                        Add a few final photos before closing the request. Images are resized to a web-friendly size, compressed before storage, and
+                        full-size originals are not retained.
                     </p>
                 </div>
 

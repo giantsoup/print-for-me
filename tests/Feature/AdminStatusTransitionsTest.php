@@ -74,10 +74,21 @@ it('stores optimized completion photos when an admin completes a request', funct
 
     actingAs($admin);
 
+    $firstUpload = realisticImageData(2400, 1800, 'png');
+    $secondUpload = realisticImageData(2200, 1600, 'png');
+    $originalSizes = [
+        'finished-print.png' => strlen($firstUpload),
+        'finished-print-2.png' => strlen($secondUpload),
+    ];
+    $expectedDimensions = [
+        'finished-print.png' => [1600, 1200],
+        'finished-print-2.png' => [1600, 1164],
+    ];
+
     patch(route('admin.print-requests.complete', $req), [
         'photos' => [
-            UploadedFile::fake()->image('finished-print.jpg', 2400, 1800)->size(6000),
-            UploadedFile::fake()->image('finished-print-2.png', 2200, 1600)->size(5000),
+            UploadedFile::fake()->createWithContent('finished-print.png', $firstUpload),
+            UploadedFile::fake()->createWithContent('finished-print-2.png', $secondUpload),
         ],
         '_method' => 'patch',
     ], ['Accept' => 'application/json'])->assertSuccessful();
@@ -90,13 +101,21 @@ it('stores optimized completion photos when an admin completes a request', funct
         ->and($photos)->toHaveCount(2);
 
     foreach ($photos as $photo) {
+        [$expectedWidth, $expectedHeight] = $expectedDimensions[$photo->original_name];
+
         expect(Storage::disk('local')->exists($photo->path))->toBeTrue()
             ->and($photo->size_bytes)->toBeGreaterThan(0)
+            ->and($photo->size_bytes)->toBeLessThan($originalSizes[$photo->original_name])
+            ->and($photo->mime_type)->toBeIn(['image/webp', 'image/jpeg'])
+            ->and(pathinfo($photo->path, PATHINFO_EXTENSION))->toBeIn(['webp', 'jpg'])
+            ->and($photo->width)->toBe($expectedWidth)
+            ->and($photo->height)->toBe($expectedHeight)
             ->and(max($photo->width ?? 0, $photo->height ?? 0))->toBeLessThanOrEqual(1600);
 
         [$width, $height] = getimagesizefromstring(Storage::disk('local')->get($photo->path));
 
-        expect(max($width, $height))->toBeLessThanOrEqual(1600);
+        expect($width)->toBe($expectedWidth)
+            ->and($height)->toBe($expectedHeight);
     }
 
     actingAs($owner);

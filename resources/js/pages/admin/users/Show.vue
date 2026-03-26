@@ -674,7 +674,7 @@ function accessTone(value: string) {
 
             <div class="mt-6 grid gap-3">
                 <article v-for="item in requests.data" :key="item.id" class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4">
-                    <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,28rem)] xl:items-start">
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
                                 <p class="text-lg font-semibold tracking-tight text-white sm:font-display sm:text-xl">Request #{{ item.id }}</p>
@@ -708,7 +708,7 @@ function accessTone(value: string) {
                             </p>
                         </div>
 
-                        <div class="flex w-full flex-col gap-3 xl:w-[18rem]">
+                        <div class="flex w-full flex-col gap-3 xl:self-start">
                             <Link
                                 :href="route('print-requests.show', { print_request: item.id })"
                                 class="pill-button pill-button-secondary w-full justify-between"
