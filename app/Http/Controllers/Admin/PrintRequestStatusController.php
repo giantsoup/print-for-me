@@ -120,6 +120,27 @@ class PrintRequestStatusController extends Controller
         return $this->respond($request, $print_request, 'Completion email queued again.');
     }
 
+    public function sendCompletedNotificationPreview(Request $request, PrintRequest $print_request): JsonResponse|RedirectResponse
+    {
+        if ($print_request->status !== PrintRequestStatus::COMPLETE) {
+            throw ValidationException::withMessages([
+                'status' => 'Only completed requests can send a completion email preview.',
+            ]);
+        }
+
+        $print_request->loadMissing(['completionPhotos', 'files']);
+
+        if (blank($request->user()?->email)) {
+            throw ValidationException::withMessages([
+                'status' => 'Your admin account does not have a deliverable email address.',
+            ]);
+        }
+
+        $request->user()->notify(new PrintRequestCompletedNotification($print_request));
+
+        return $this->respond($request, $print_request, 'Completion email preview queued to your inbox.');
+    }
+
     private function respond(Request $request, PrintRequest $printRequest, string $message): JsonResponse|RedirectResponse
     {
         if ($request->wantsJson()) {

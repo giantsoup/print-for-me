@@ -80,6 +80,7 @@ const isEditing = ref(false);
 const isSourceDescriptionExpanded = ref(false);
 const isRefetchingSourcePreview = ref(false);
 const isResendingCompletedNotice = ref(false);
+const isSendingCompletedNoticePreview = ref(false);
 const pickedFiles = ref<File[]>([]);
 
 const form = useForm<{ source_url: string | null; instructions: string | null; files: File[]; remove_file_ids: number[] }>({
@@ -111,6 +112,7 @@ const completionPhotoCount = computed(() => props.completionPhotos.length);
 const canResendCompletedNotice = computed(
     () => props.can.isAdmin && props.printRequest.status === 'complete' && Boolean(props.printRequest.user?.email),
 );
+const canSendCompletedNoticePreview = computed(() => props.can.isAdmin && props.printRequest.status === 'complete');
 
 const existingCount = computed(() => props.printRequest.files.length);
 const existingSize = computed(() => props.printRequest.files.reduce((sum, file) => sum + (file.size_bytes || 0), 0));
@@ -268,6 +270,25 @@ function resendCompletedNotice() {
             preserveScroll: true,
             onFinish: () => {
                 isResendingCompletedNotice.value = false;
+            },
+        },
+    );
+}
+
+function sendCompletedNoticePreview() {
+    if (!canSendCompletedNoticePreview.value || isSendingCompletedNoticePreview.value) {
+        return;
+    }
+
+    isSendingCompletedNoticePreview.value = true;
+
+    router.post(
+        route('admin.print-requests.notifications.completed.send-test', { print_request: props.printRequest.id }),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                isSendingCompletedNoticePreview.value = false;
             },
         },
     );
@@ -668,22 +689,41 @@ function syncSourceDescriptionOverflow() {
                         />
                     </div>
 
-                    <div v-if="canResendCompletedNotice" class="mt-6 rounded-[1.35rem] border border-primary/12 bg-primary/[0.05] px-4 py-4">
+                    <div
+                        v-if="canResendCompletedNotice || canSendCompletedNoticePreview"
+                        class="mt-6 rounded-[1.35rem] border border-primary/12 bg-primary/[0.05] px-4 py-4"
+                    >
                         <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Delivery Check</p>
                         <p class="mt-2 text-sm leading-6 text-white/72">
-                            Queue the completion notice again to confirm the production mail flow after an issue or deploy update.
+                            Queue the completion notice again for the requester or send the same message to your own inbox to validate delivery after
+                            an issue or deploy update.
                         </p>
 
-                        <button
-                            type="button"
-                            class="pill-button pill-button-secondary mt-4 w-full justify-center sm:w-auto"
-                            :disabled="isResendingCompletedNotice"
-                            @click="resendCompletedNotice"
-                        >
-                            <LoaderCircle v-if="isResendingCompletedNotice" class="h-4 w-4 animate-spin" />
-                            <Mail v-else class="h-4 w-4" />
-                            Resend completion email
-                        </button>
+                        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                            <button
+                                v-if="canResendCompletedNotice"
+                                type="button"
+                                class="pill-button pill-button-secondary w-full justify-center"
+                                :disabled="isResendingCompletedNotice"
+                                @click="resendCompletedNotice"
+                            >
+                                <LoaderCircle v-if="isResendingCompletedNotice" class="h-4 w-4 animate-spin" />
+                                <Mail v-else class="h-4 w-4" />
+                                Resend to requester
+                            </button>
+
+                            <button
+                                v-if="canSendCompletedNoticePreview"
+                                type="button"
+                                class="pill-button pill-button-secondary w-full justify-center"
+                                :disabled="isSendingCompletedNoticePreview"
+                                @click="sendCompletedNoticePreview"
+                            >
+                                <LoaderCircle v-if="isSendingCompletedNoticePreview" class="h-4 w-4 animate-spin" />
+                                <Mail v-else class="h-4 w-4" />
+                                Send test to me
+                            </button>
+                        </div>
                     </div>
                 </article>
 

@@ -117,3 +117,47 @@ it('does not resend the completion notification for a request that is not comple
 
     Notification::assertNothingSent();
 });
+
+it('allows an admin to send the completion notification preview to their own inbox', function () {
+    Notification::fake();
+
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::COMPLETE,
+        'source_url' => 'https://example.com/preview-complete',
+        'completed_at' => now(),
+    ]);
+
+    actingAs($admin);
+
+    post(route('admin.print-requests.notifications.completed.send-test', $req))
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Completion email preview queued to your inbox.');
+
+    Notification::assertSentTo($admin, PrintRequestCompletedNotification::class);
+    Notification::assertNotSentTo($owner, PrintRequestCompletedNotification::class);
+});
+
+it('does not send the completion preview email for a request that is not complete', function () {
+    Notification::fake();
+
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PRINTING,
+        'source_url' => 'https://example.com/preview-invalid',
+    ]);
+
+    actingAs($admin);
+
+    postJson(route('admin.print-requests.notifications.completed.send-test', $req))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['status']);
+
+    Notification::assertNothingSent();
+});

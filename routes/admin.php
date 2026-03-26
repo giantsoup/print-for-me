@@ -37,6 +37,8 @@ Route::group(['middleware' => ['auth', 'absolute', 'session_version', 'admin']],
         ->name('admin.print-requests.revert');
     Route::post('admin/print-requests/{print_request}/notifications/completed/resend', [PrintRequestStatusController::class, 'resendCompletedNotification'])
         ->name('admin.print-requests.notifications.completed.resend');
+    Route::post('admin/print-requests/{print_request}/notifications/completed/send-test', [PrintRequestStatusController::class, 'sendCompletedNotificationPreview'])
+        ->name('admin.print-requests.notifications.completed.send-test');
     Route::post('admin/print-requests/{print_request}/source-preview/refetch', PrintRequestSourcePreviewController::class)
         ->name('admin.print-requests.source-preview.refetch');
 
