@@ -131,7 +131,7 @@ function filterByStatus(status: string | null) {
 
         <section class="mt-6 grid gap-3">
             <article v-for="item in props.items.data" :key="item.id" class="luminous-panel px-5 py-5">
-                <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,28rem)] xl:items-start">
                     <div class="min-w-0 flex-1">
                         <div class="flex flex-col items-start gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
                             <p class="text-xl leading-tight font-semibold tracking-tight text-white sm:font-display sm:text-2xl">
@@ -153,7 +153,7 @@ function filterByStatus(status: string | null) {
                         </div>
                     </div>
 
-                    <div class="flex w-full flex-col gap-3 xl:max-w-[17rem] xl:min-w-[17rem]">
+                    <div class="flex w-full flex-col gap-3 xl:self-start">
                         <Link
                             :href="route('print-requests.show', { print_request: item.id })"
                             class="pill-button pill-button-secondary w-full justify-between"
