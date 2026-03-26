@@ -25,6 +25,7 @@ trap cleanup_failed_release ERR
 
 mkdir -p "${DEPLOY_PATH}/releases"
 mkdir -p "${shared_dir}/storage/app/private"
+mkdir -p "${shared_dir}/storage/app/private/prints"
 mkdir -p "${shared_dir}/storage/app/public"
 mkdir -p "${shared_dir}/storage/logs"
 
@@ -58,26 +59,26 @@ ln -sfn "${shared_dir}/.env" "${release_dir}/.env"
 
 mkdir -p "${release_dir}/bootstrap/cache"
 rm -f "${release_dir}/bootstrap/cache/"*.php
-chgrp -R www-data \
-    "${shared_dir}/storage/app/private" \
-    "${shared_dir}/storage/app/public" \
-    "${shared_dir}/storage/logs" \
-    "${release_dir}/storage" \
+
+writable_paths=(
+    "${shared_dir}/storage"
+    "${shared_dir}/storage/app"
+    "${shared_dir}/storage/app/private"
+    "${shared_dir}/storage/app/private/prints"
+    "${shared_dir}/storage/app/public"
+    "${shared_dir}/storage/logs"
+    "${release_dir}/storage"
+    "${release_dir}/storage/framework"
+    "${release_dir}/storage/framework/cache"
+    "${release_dir}/storage/framework/cache/data"
+    "${release_dir}/storage/framework/sessions"
+    "${release_dir}/storage/framework/views"
     "${release_dir}/bootstrap/cache"
-chmod ug+rwx \
-    "${shared_dir}/storage/app/private" \
-    "${shared_dir}/storage/app/public" \
-    "${shared_dir}/storage/logs" \
-    "${release_dir}/storage" \
-    "${release_dir}/storage/framework" \
-    "${release_dir}/storage/framework/cache" \
-    "${release_dir}/storage/framework/cache/data" \
-    "${release_dir}/storage/framework/sessions" \
-    "${release_dir}/storage/framework/views" \
-    "${release_dir}/bootstrap/cache"
-find "${shared_dir}/storage" -type d -exec chmod g+s {} \;
-find "${release_dir}/storage" -type d -exec chmod g+s {} \;
-find "${release_dir}/bootstrap/cache" -type d -exec chmod g+s {} \;
+)
+
+chgrp www-data "${writable_paths[@]}"
+chmod ug+rwx "${writable_paths[@]}"
+chmod g+s "${writable_paths[@]}"
 chmod -R a+rX "${release_dir}/public/build"
 
 cd "${release_dir}"
