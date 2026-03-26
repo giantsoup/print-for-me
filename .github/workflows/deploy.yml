@@ -70,18 +70,57 @@ jobs:
       - name: Package Release Artifact
         run: |
           archive_path="${RUNNER_TEMP}/print-for-me-release.tar.gz"
+          package_list_path="${RUNNER_TEMP}/print-for-me-package-list.txt"
+          manifest_path="${GITHUB_WORKSPACE}/.release-manifest"
+          release_sha_path="${GITHUB_WORKSPACE}/.release-sha"
 
-          tar \
-            --exclude=.git \
-            --exclude=.github \
-            --exclude=.codex \
-            --exclude=.agents \
-            --exclude=.junie \
-            --exclude=node_modules \
-            --exclude=tests \
-            --exclude=vendor \
-            -czf "${archive_path}" \
-            -C "${GITHUB_WORKSPACE}" .
+          git ls-files -z \
+            | python3 -c "
+import sys
+
+excluded = (
+    '.github/',
+    '.codex/',
+    '.agents/',
+    '.junie/',
+    'node_modules/',
+    'tests/',
+    'vendor/',
+)
+
+entries = []
+
+for path in sys.stdin.buffer.read().split(b'\0'):
+    if not path:
+        continue
+
+    value = path.decode('utf-8')
+
+    if value.startswith(excluded):
+        continue
+
+    entries.append(value)
+
+for value in sorted(entries):
+    print(value)
+" \
+            > "${package_list_path}"
+
+          find public/build -type f | sort >> "${package_list_path}"
+          sort -u "${package_list_path}" -o "${package_list_path}"
+
+          while IFS= read -r path; do
+            sha256sum "${path}"
+          done < "${package_list_path}" > "${manifest_path}"
+
+          printf '%s\n' "${GITHUB_SHA}" > "${release_sha_path}"
+          printf '%s\n' ".release-manifest" ".release-sha" >> "${package_list_path}"
+
+          tar -czf "${archive_path}" -C "${GITHUB_WORKSPACE}" -T "${package_list_path}"
+
+          tar -tzf "${archive_path}" | grep -Fx '.release-manifest'
+          tar -tzf "${archive_path}" | grep -Fx '.release-sha'
+          tar -tzf "${archive_path}" | grep -Fx 'resources/views/vendor/mail/html/themes/print-for-me.css'
 
       - name: Upload Release Artifact
         uses: actions/upload-artifact@v6
@@ -112,6 +151,11 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           printf '%s\n' "${{ secrets.PROD_SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
 
+      - name: Guard Against Stale Deploys
+        run: |
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "${GITHUB_SHA}"
+
       - name: Upload release artifact to server
         run: |
           scp -i ~/.ssh/id_ed25519 -P "${{ secrets.PROD_PORT }}" print-for-me-release.tar.gz \
@@ -120,7 +164,8 @@ jobs:
       - name: Deploy release on server
         env:
           DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH }}
+          RELEASE_SHA: ${{ github.sha }}
         run: |
           ssh -i ~/.ssh/id_ed25519 -p "${{ secrets.PROD_PORT }}" \
             "${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}" \
-            "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" < .github/scripts/deploy.sh
+            "DEPLOY_PATH='${DEPLOY_PATH}' RELEASE_SHA='${RELEASE_SHA}' bash -s" < .github/scripts/deploy.sh

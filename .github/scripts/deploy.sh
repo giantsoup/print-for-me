@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 
 : "${DEPLOY_PATH:?DEPLOY_PATH must be set.}"
+: "${RELEASE_SHA:?RELEASE_SHA must be set.}"
 
 RELEASE_ARCHIVE="${RELEASE_ARCHIVE:-/tmp/print-for-me-release.tar.gz}"
 KEEP_RELEASES="${KEEP_RELEASES:-5}"
@@ -41,6 +42,31 @@ rm -f "${release_dir}/public/hot"
 
 if [[ ! -f "${release_dir}/public/build/manifest.json" ]]; then
     echo "Missing Vite manifest at ${release_dir}/public/build/manifest.json" >&2
+    exit 1
+fi
+
+if [[ ! -f "${release_dir}/.release-sha" ]]; then
+    echo "Missing release SHA marker at ${release_dir}/.release-sha" >&2
+    exit 1
+fi
+
+if [[ "$(<"${release_dir}/.release-sha")" != "${RELEASE_SHA}" ]]; then
+    echo "Release SHA mismatch for ${release_dir}" >&2
+    exit 1
+fi
+
+if [[ ! -f "${release_dir}/.release-manifest" ]]; then
+    echo "Missing release manifest at ${release_dir}/.release-manifest" >&2
+    exit 1
+fi
+
+(
+    cd "${release_dir}"
+    sha256sum -c .release-manifest
+)
+
+if [[ ! -f "${release_dir}/resources/views/vendor/mail/html/themes/print-for-me.css" ]]; then
+    echo "Missing custom mail theme at ${release_dir}/resources/views/vendor/mail/html/themes/print-for-me.css" >&2
     exit 1
 fi
 
