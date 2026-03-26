@@ -165,6 +165,49 @@ it('renders the completed request email with one inline completion photo when av
     $mail->assertSeeInText('Your print request is complete');
 });
 
+it('renders the completed request email with a jpeg inline preview when the stored completion photo is webp', function () {
+    if (! function_exists('imagewebp')) {
+        $this->markTestSkipped('WebP generation is not available in this environment.');
+    }
+
+    Storage::fake('local');
+
+    $requester = User::factory()->create([
+        'name' => 'Taylor Example',
+        'email' => 'taylor@example.com',
+    ]);
+
+    $printRequest = PrintRequest::create([
+        'user_id' => $requester->id,
+        'status' => PrintRequestStatus::COMPLETE,
+        'source_url' => 'https://example.com/projects/webp-preview',
+        'instructions' => 'Embed the completion preview in a client-safe format.',
+        'completed_at' => now(),
+    ]);
+
+    $webpData = realisticImageData(1280, 960, 'webp');
+
+    Storage::disk('local')->put('prints/completions/2026/03/preview.webp', $webpData);
+
+    $printRequest->completionPhotos()->create([
+        'disk' => 'local',
+        'path' => 'prints/completions/2026/03/preview.webp',
+        'original_name' => 'preview.webp',
+        'mime_type' => 'image/webp',
+        'size_bytes' => strlen($webpData),
+        'width' => 1280,
+        'height' => 960,
+        'sort_order' => 1,
+        'sha256' => hash('sha256', $webpData),
+    ]);
+
+    $mail = new PrintRequestCompletedMail($printRequest, $requester);
+
+    $mail->assertSeeInHtml('Completion preview');
+    $mail->assertSeeInHtml('data:image/jpeg;base64');
+    $mail->assertDontSeeInHtml('data:image/webp;base64');
+});
+
 it('does not render a completion preview section when no completion photo exists', function () {
     $requester = User::factory()->create([
         'name' => 'Taylor Example',

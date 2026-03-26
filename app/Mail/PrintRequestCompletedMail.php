@@ -12,10 +12,18 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 class PrintRequestCompletedMail extends Mailable
 {
     use Queueable, SerializesModels;
+
+    /**
+     * @var array{data: string, filename: string, mime_type: string, alt: string}|null
+     */
+    private ?array $inlinePhotoPayload = null;
+
+    private bool $hasResolvedInlinePhotoPayload = false;
 
     public function __construct(
         protected PrintRequest $printRequest,
@@ -43,32 +51,32 @@ class PrintRequestCompletedMail extends Mailable
                 'actionLabel' => 'Open completed request',
                 'actionUrl' => PrintRequestMailData::requestUrl($this->printRequest),
                 'closing' => 'We appreciate the opportunity to help with your project.',
-                'inlinePhotoPath' => $this->inlinePhotoPath(),
+                'inlinePhotoData' => $this->inlinePhotoData(),
+                'inlinePhotoFilename' => $this->inlinePhotoFilename(),
+                'inlinePhotoMimeType' => $this->inlinePhotoMimeType(),
                 'inlinePhotoAlt' => $this->inlinePhotoAlt(),
             ],
         );
     }
 
-    private function inlinePhotoPath(): ?string
+    private function inlinePhotoData(): ?string
     {
-        $photo = $this->inlinePhoto();
+        return $this->inlinePhotoPayload()['data'] ?? null;
+    }
 
-        if ($photo === null) {
-            return null;
-        }
+    private function inlinePhotoFilename(): ?string
+    {
+        return $this->inlinePhotoPayload()['filename'] ?? null;
+    }
 
-        return Storage::disk($photo->disk)->path($photo->path);
+    private function inlinePhotoMimeType(): ?string
+    {
+        return $this->inlinePhotoPayload()['mime_type'] ?? null;
     }
 
     private function inlinePhotoAlt(): string
     {
-        $photo = $this->inlinePhoto();
-
-        if ($photo === null) {
-            return 'Completion preview';
-        }
-
-        return $photo->original_name ?: 'Completion preview';
+        return $this->inlinePhotoPayload()['alt'] ?? 'Completion preview';
     }
 
     private function inlinePhoto(): ?PrintRequestCompletionPhoto
@@ -87,5 +95,125 @@ class PrintRequestCompletedMail extends Mailable
         }
 
         return $photo;
+    }
+
+    /**
+     * @return array{data: string, filename: string, mime_type: string, alt: string}|null
+     */
+    private function inlinePhotoPayload(): ?array
+    {
+        if ($this->hasResolvedInlinePhotoPayload) {
+            return $this->inlinePhotoPayload;
+        }
+
+        $this->hasResolvedInlinePhotoPayload = true;
+
+        $photo = $this->inlinePhoto();
+
+        if ($photo === null) {
+            return null;
+        }
+
+        $contents = Storage::disk($photo->disk)->get($photo->path);
+
+        if (! is_string($contents) || $contents === '') {
+            return null;
+        }
+
+        $filename = $photo->original_name ?: basename($photo->path);
+        $mimeType = $photo->mime_type ?: Storage::disk($photo->disk)->mimeType($photo->path) ?: 'application/octet-stream';
+
+        if ($mimeType === 'image/webp') {
+            $jpegContents = $this->convertInlinePhotoToJpeg($contents);
+
+            if ($jpegContents !== null) {
+                return $this->inlinePhotoPayload = [
+                    'data' => $jpegContents,
+                    'filename' => $this->jpegFilename($filename),
+                    'mime_type' => 'image/jpeg',
+                    'alt' => $filename,
+                ];
+            }
+        }
+
+        return $this->inlinePhotoPayload = [
+            'data' => $contents,
+            'filename' => $filename,
+            'mime_type' => $mimeType,
+            'alt' => $filename,
+        ];
+    }
+
+    private function jpegFilename(string $filename): string
+    {
+        $basename = pathinfo($filename, PATHINFO_FILENAME);
+
+        if ($basename === '') {
+            return 'completion-preview.jpg';
+        }
+
+        return $basename.'.jpg';
+    }
+
+    private function convertInlinePhotoToJpeg(string $contents): ?string
+    {
+        if (class_exists(\Imagick::class)) {
+            try {
+                $image = new \Imagick;
+                $image->readImageBlob($contents);
+                $image->setIteratorIndex(0);
+                $image = $image->mergeImageLayers(\Imagick::LAYERMETHOD_FLATTEN);
+                $image->setImageBackgroundColor('white');
+                $image->setImageFormat('jpeg');
+                $image->setImageCompression(\Imagick::COMPRESSION_JPEG);
+                $image->setImageCompressionQuality(82);
+                $image->stripImage();
+
+                $jpegContents = $image->getImagesBlob();
+                $image->destroy();
+
+                if ($jpegContents !== '') {
+                    return $jpegContents;
+                }
+            } catch (RuntimeException|\ImagickException) {
+            }
+        }
+
+        if (! function_exists('imagecreatefromstring')) {
+            return null;
+        }
+
+        $source = imagecreatefromstring($contents);
+
+        if ($source === false) {
+            return null;
+        }
+
+        $width = imagesx($source);
+        $height = imagesy($source);
+        $canvas = imagecreatetruecolor($width, $height);
+
+        if ($canvas === false) {
+            imagedestroy($source);
+
+            return null;
+        }
+
+        $background = imagecolorallocate($canvas, 255, 255, 255);
+        imagefilledrectangle($canvas, 0, 0, $width, $height, $background);
+        imagecopy($canvas, $source, 0, 0, 0, 0, $width, $height);
+
+        ob_start();
+        $encoded = imagejpeg($canvas, null, 82);
+        $jpegContents = (string) ob_get_clean();
+
+        imagedestroy($canvas);
+        imagedestroy($source);
+
+        if (! $encoded || $jpegContents === '') {
+            return null;
+        }
+
+        return $jpegContents;
     }
 }

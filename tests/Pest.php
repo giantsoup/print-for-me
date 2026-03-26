@@ -83,6 +83,7 @@ function realisticImageData(int $width = 1600, int $height = 1200, string $forma
 
     $encoded = match ($format) {
         'png' => imagepng($image, null, 4),
+        'webp' => function_exists('imagewebp') ? imagewebp($image, null, 86) : false,
         default => imagejpeg($image, null, 92),
     };
 

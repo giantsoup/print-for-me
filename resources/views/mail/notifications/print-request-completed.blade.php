@@ -17,11 +17,11 @@
 </p>
 @endif
 
-@if (filled($inlinePhotoPath ?? null))
+@if (filled($inlinePhotoData ?? null))
 ## Completion preview
 
 <div class="inline-photo">
-    <img src="{{ $message->embed($inlinePhotoPath) }}" alt="{{ $inlinePhotoAlt ?? 'Completion preview' }}" class="inline-photo-image">
+    <img src="{{ $message->embedData($inlinePhotoData, $inlinePhotoFilename ?? 'completion-preview.jpg', $inlinePhotoMimeType ?? 'image/jpeg') }}" alt="{{ $inlinePhotoAlt ?? 'Completion preview' }}" class="inline-photo-image">
 </div>
 @endif
 
