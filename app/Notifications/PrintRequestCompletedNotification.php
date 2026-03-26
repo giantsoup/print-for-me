@@ -2,10 +2,11 @@
 
 namespace App\Notifications;
 
+use App\Mail\PrintRequestCompletedMail;
 use App\Models\PrintRequest;
-use App\Support\MailSubject;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -22,12 +23,9 @@ class PrintRequestCompletedNotification extends Notification implements ShouldQu
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(object $notifiable): Mailable|MailMessage
     {
-        return (new MailMessage)
-            ->subject(MailSubject::make('Your print request is complete'))
-            ->greeting('Your request is complete')
-            ->line('Your print request has been completed.')
-            ->line('Request ID: '.$this->printRequest->id);
+        return (new PrintRequestCompletedMail($this->printRequest, $notifiable))
+            ->to($notifiable->routeNotificationFor('mail', $this));
     }
 }

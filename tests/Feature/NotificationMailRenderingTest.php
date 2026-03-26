@@ -1,0 +1,204 @@
+<?php
+
+use App\Enums\PrintRequestStatus;
+use App\Mail\PrintRequestCompletedMail;
+use App\Models\PrintRequest;
+use App\Models\User;
+use App\Notifications\MagicLoginLinkNotification;
+use App\Notifications\NewPrintRequestNotification;
+use App\Notifications\PendingRequestCanceledByUserNotification;
+use App\Notifications\PrintRequestAcceptedNotification;
+use App\Notifications\PrintRequestCompletedNotification;
+use App\Notifications\PrintRequestRevertedToPendingNotification;
+use App\Notifications\PrintRequestSoftDeletedPurgeWarningNotification;
+use Illuminate\Mail\Mailable;
+use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Support\Facades\Storage;
+
+dataset('print request mail notifications', [
+    'accepted' => [
+        PrintRequestAcceptedNotification::class,
+        'Your print request has been accepted',
+        'View request details',
+        ['Accepted', 'example.com/projects/clean-enclosure', 'Please prioritize a clean finish'],
+    ],
+    'reverted' => [
+        PrintRequestRevertedToPendingNotification::class,
+        'Your print request needs another review',
+        'Review request',
+        ['Pending review', 'example.com/projects/clean-enclosure', 'Please prioritize a clean finish'],
+    ],
+    'new request' => [
+        NewPrintRequestNotification::class,
+        'A new print request is ready for review',
+        'Review request',
+        ['Taylor Example (taylor@example.com)', 'example.com/projects/clean-enclosure', 'Please prioritize a clean finish'],
+    ],
+    'canceled' => [
+        PendingRequestCanceledByUserNotification::class,
+        'A pending print request was canceled',
+        'Review active queue',
+        ['Taylor Example (taylor@example.com)', 'example.com/projects/clean-enclosure', 'Please prioritize a clean finish'],
+    ],
+    'purge warning' => [
+        PrintRequestSoftDeletedPurgeWarningNotification::class,
+        'Your deleted print request will be removed in 7 days',
+        'Start a new request',
+        ['Permanent removal date', 'example.com/projects/clean-enclosure', 'Please prioritize a clean finish'],
+    ],
+]);
+
+it('renders print request emails with professional summaries instead of raw record labels', function (string $notificationClass, string $headline, string $actionLabel, array $expectedFragments) {
+    $requester = User::factory()->create([
+        'name' => 'Taylor Example',
+        'email' => 'taylor@example.com',
+    ]);
+
+    $printRequest = PrintRequest::create([
+        'user_id' => $requester->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/projects/clean-enclosure',
+        'instructions' => 'Please prioritize a clean finish and keep support scarring away from the front face.',
+    ]);
+
+    $printRequest->files()->create([
+        'disk' => 'local',
+        'path' => 'prints/2026/03/enclosure.stl',
+        'original_name' => 'clean-enclosure.stl',
+        'mime_type' => 'application/sla',
+        'size_bytes' => 1024,
+        'sha256' => hash('sha256', 'clean-enclosure'),
+    ]);
+
+    match ($notificationClass) {
+        PrintRequestAcceptedNotification::class => $printRequest->forceFill([
+            'status' => PrintRequestStatus::ACCEPTED,
+            'accepted_at' => now(),
+        ])->save(),
+        PrintRequestCompletedNotification::class => $printRequest->forceFill([
+            'status' => PrintRequestStatus::COMPLETE,
+            'completed_at' => now(),
+        ])->save(),
+        PrintRequestRevertedToPendingNotification::class => $printRequest->forceFill([
+            'status' => PrintRequestStatus::PENDING,
+            'reverted_at' => now(),
+        ])->save(),
+        PendingRequestCanceledByUserNotification::class,
+        PrintRequestSoftDeletedPurgeWarningNotification::class => tap($printRequest, function (PrintRequest $request): void {
+            $request->delete();
+            $request->forceFill(['deleted_at' => now()->subDays(83)])->save();
+        }),
+        default => null,
+    };
+
+    $notifiable = in_array($notificationClass, [
+        NewPrintRequestNotification::class,
+        PendingRequestCanceledByUserNotification::class,
+    ], true)
+        ? new AnonymousNotifiable
+        : $requester;
+
+    $mail = (new $notificationClass($printRequest))->toMail($notifiable);
+    $html = $mail instanceof Mailable
+        ? $mail->render()
+        : $mail->render()->toHtml();
+
+    expect($html)
+        ->toContain($headline)
+        ->toContain('Request overview')
+        ->toContain($actionLabel)
+        ->not->toContain('Request ID:')
+        ->not->toContain('User ID:');
+
+    foreach ($expectedFragments as $expectedFragment) {
+        expect($html)->toContain($expectedFragment);
+    }
+})->with('print request mail notifications');
+
+it('renders the completed request email with one inline completion photo when available', function () {
+    Storage::fake('local');
+
+    $requester = User::factory()->create([
+        'name' => 'Taylor Example',
+        'email' => 'taylor@example.com',
+    ]);
+
+    $printRequest = PrintRequest::create([
+        'user_id' => $requester->id,
+        'status' => PrintRequestStatus::COMPLETE,
+        'source_url' => 'https://example.com/projects/finished-enclosure',
+        'instructions' => 'Final finish looks great. Please include the completion preview in the email.',
+        'completed_at' => now(),
+    ]);
+
+    $printRequest->files()->create([
+        'disk' => 'local',
+        'path' => 'prints/2026/03/finished-enclosure.stl',
+        'original_name' => 'finished-enclosure.stl',
+        'mime_type' => 'application/sla',
+        'size_bytes' => 1024,
+        'sha256' => hash('sha256', 'finished-enclosure'),
+    ]);
+
+    $jpegData = realisticImageData(1280, 960);
+
+    Storage::disk('local')->put('prints/completions/2026/03/preview.jpg', $jpegData);
+
+    $printRequest->completionPhotos()->create([
+        'disk' => 'local',
+        'path' => 'prints/completions/2026/03/preview.jpg',
+        'original_name' => 'preview.jpg',
+        'mime_type' => 'image/jpeg',
+        'size_bytes' => strlen($jpegData),
+        'width' => 1280,
+        'height' => 960,
+        'sort_order' => 1,
+        'sha256' => hash('sha256', $jpegData),
+    ]);
+
+    $mail = new PrintRequestCompletedMail($printRequest, $requester);
+
+    $mail->assertHasSubject('[Print for Me] Your print request is complete');
+    $mail->assertSeeInHtml('Completion preview');
+    $mail->assertSeeInHtml('data:image/jpeg;base64');
+    $mail->assertSeeInHtml('preview.jpg');
+    $mail->assertSeeInText('Your print request is complete');
+});
+
+it('does not render a completion preview section when no completion photo exists', function () {
+    $requester = User::factory()->create([
+        'name' => 'Taylor Example',
+        'email' => 'taylor@example.com',
+    ]);
+
+    $printRequest = PrintRequest::create([
+        'user_id' => $requester->id,
+        'status' => PrintRequestStatus::COMPLETE,
+        'source_url' => 'https://example.com/projects/no-photo',
+        'instructions' => 'This request completed without a photo.',
+        'completed_at' => now(),
+    ]);
+
+    $mail = new PrintRequestCompletedMail($printRequest, $requester);
+
+    $mail->assertDontSeeInHtml('Completion preview');
+    $mail->assertDontSeeInHtml('data:image/');
+});
+
+it('renders the magic login email with security guidance and a clear call to action', function () {
+    $user = User::factory()->create([
+        'name' => 'Taylor Example',
+    ]);
+
+    $html = (new MagicLoginLinkNotification('https://print-for-me.test/magic-login?token=abc123'))
+        ->toMail($user)
+        ->render()
+        ->toHtml();
+
+    expect($html)
+        ->toContain('Sign in to')
+        ->toContain('Sign in securely')
+        ->toContain('Link validity')
+        ->toContain('One sign-in attempt for this email address')
+        ->not->toContain('Log in now');
+});

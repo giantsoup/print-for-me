@@ -328,8 +328,8 @@ onBeforeUnmount(() => {
                 <div class="min-w-0">
                     <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-emerald-200/80 uppercase">Optional completion photos</p>
                     <p class="mt-2 text-sm leading-6 text-white/78">
-                        Add a few final photos before closing the request. Images are resized for mobile viewing and full-size originals are not
-                        retained.
+                        Add a few final photos before closing the request. Images are resized to a web-friendly size, compressed before storage,
+                        and full-size originals are not retained.
                     </p>
                 </div>
 
