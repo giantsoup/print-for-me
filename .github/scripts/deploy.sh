@@ -60,13 +60,15 @@ ln -sfn "${shared_dir}/.env" "${release_dir}/.env"
 mkdir -p "${release_dir}/bootstrap/cache"
 rm -f "${release_dir}/bootstrap/cache/"*.php
 
-writable_paths=(
+shared_writable_paths=(
     "${shared_dir}/storage"
     "${shared_dir}/storage/app"
     "${shared_dir}/storage/app/private"
-    "${shared_dir}/storage/app/private/prints"
     "${shared_dir}/storage/app/public"
     "${shared_dir}/storage/logs"
+)
+
+release_writable_paths=(
     "${release_dir}/storage"
     "${release_dir}/storage/framework"
     "${release_dir}/storage/framework/cache"
@@ -76,9 +78,19 @@ writable_paths=(
     "${release_dir}/bootstrap/cache"
 )
 
-chgrp www-data "${writable_paths[@]}"
-chmod ug+rwx "${writable_paths[@]}"
-chmod g+s "${writable_paths[@]}"
+if ! chgrp www-data "${shared_writable_paths[@]}"; then
+    echo "Warning: unable to normalize shared storage group ownership; continuing." >&2
+fi
+if ! chmod ug+rwx "${shared_writable_paths[@]}"; then
+    echo "Warning: unable to normalize shared storage permissions; continuing." >&2
+fi
+if ! chmod g+s "${shared_writable_paths[@]}"; then
+    echo "Warning: unable to normalize shared storage setgid bits; continuing." >&2
+fi
+
+chgrp www-data "${release_writable_paths[@]}"
+chmod ug+rwx "${release_writable_paths[@]}"
+chmod g+s "${release_writable_paths[@]}"
 chmod -R a+rX "${release_dir}/public/build"
 
 cd "${release_dir}"
