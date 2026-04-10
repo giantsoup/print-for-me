@@ -2,6 +2,13 @@
 
 use Illuminate\Console\Scheduling\Schedule;
 
+test('local private filesystem permissions stay group-shareable for background workers', function () {
+    $localDisk = config('filesystems.disks.local');
+
+    expect($localDisk['permissions']['file']['private'])->toBe(0660)
+        ->and($localDisk['permissions']['dir']['private'])->toBe(02770);
+});
+
 test('workflow php versions stay aligned with composer requirements', function () {
     $composer = json_decode(
         file_get_contents(base_path('composer.json')),

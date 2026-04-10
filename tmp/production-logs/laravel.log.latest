@@ -1,0 +1,1 @@
+[2026-04-10 20:16:24] production.INFO: completion_email.notification_dispatch_requested {"delivery_mode":"admin_preview_delivery","print_request_id":12,"print_request_status":"complete","completion_photo_count":2,"recipient_user_id":1,"recipient_email":"tayloroyer@mac.com","actor_user_id":1,"actor_email":"tayloroyer@mac.com","queue_connection":"database"} 
