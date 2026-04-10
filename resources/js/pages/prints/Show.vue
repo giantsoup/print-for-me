@@ -12,8 +12,8 @@ import {
     stripNonDigits,
     type PrintRequestActionKey,
 } from '@/lib/prints';
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { ChevronDown, ChevronUp, Download, ExternalLink, LoaderCircle, Mail, RefreshCcw, SquarePen, Trash2, X } from 'lucide-vue-next';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { ArrowLeft, ChevronDown, ChevronUp, Download, ExternalLink, LoaderCircle, Mail, RefreshCcw, SquarePen, Trash2, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface FileItem {
@@ -402,6 +402,13 @@ function syncSourceDescriptionOverflow() {
     <Head :title="pageTitle" />
 
     <LuminousAppLayout active-nav="requests" wide :show-dock="false">
+        <template #pageActions>
+            <Link :href="route('print-requests.index')" prefetch class="pill-button pill-button-secondary w-full sm:w-auto">
+                <ArrowLeft class="h-4 w-4" />
+                {{ props.can.isAdmin ? 'Back to requests' : 'Back to my requests' }}
+            </Link>
+        </template>
+
         <div v-if="flashStatus" class="mb-6 rounded-[1.45rem] border border-primary/12 bg-primary/10 px-5 py-4 text-sm text-primary">
             {{ flashStatus }}
         </div>
