@@ -381,6 +381,11 @@ it('can add and remove files on update while pending, and deduplicates same cont
     // Ensure only one file with the dup hash exists
     $dupHash = hash('sha256', 'SAME_CONTENT');
     expect($files->where('sha256', $dupHash)->count())->toBe(1);
+
+    $storedDuplicate = $files->firstWhere('sha256', $dupHash);
+
+    expect($storedDuplicate)->not->toBeNull()
+        ->and(Storage::disk('local')->getVisibility($storedDuplicate->path))->toBe('private');
 });
 
 it('clears stale source preview metadata and queues a refresh when the source url changes', function () {

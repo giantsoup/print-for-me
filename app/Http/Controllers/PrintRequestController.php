@@ -314,7 +314,10 @@ class PrintRequestController extends Controller
             $filename = (string) Str::uuid().'.'.$ext;
 
             // Store on private local disk
-            $storedPath = $file->storeAs($dir, $filename, 'local');
+            $storedPath = $file->storeAs($dir, $filename, [
+                'disk' => 'local',
+                'visibility' => 'private',
+            ]);
 
             $printRequest->files()->create([
                 'disk' => 'local',

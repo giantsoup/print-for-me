@@ -104,6 +104,7 @@ it('stores optimized completion photos when an admin completes a request', funct
         [$expectedWidth, $expectedHeight] = $expectedDimensions[$photo->original_name];
 
         expect(Storage::disk('local')->exists($photo->path))->toBeTrue()
+            ->and(Storage::disk('local')->getVisibility($photo->path))->toBe('private')
             ->and($photo->size_bytes)->toBeGreaterThan(0)
             ->and($photo->size_bytes)->toBeLessThan($originalSizes[$photo->original_name])
             ->and($photo->mime_type)->toBeIn(['image/webp', 'image/jpeg'])

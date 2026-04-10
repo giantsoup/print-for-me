@@ -63,8 +63,17 @@ test('deploy script preserves private uploads across releases', function () {
     $deployScript = file_get_contents(base_path('.github/scripts/deploy.sh'));
 
     expect($deployScript)
+        ->toContain('APP_GROUP="${APP_GROUP:-pfm}"')
+        ->toContain('WEB_USER="${WEB_USER:-www-data}"')
         ->toContain('${shared_dir}/storage/app/private')
         ->toContain('ln -sfn "${shared_dir}/storage/app/private" "${release_dir}/storage/app/private"')
+        ->toContain('chgrp "${APP_GROUP}" "${shared_dir}/.env"')
+        ->toContain('chmod 640 "${shared_dir}/.env"')
+        ->toContain('chmod o-rwx "${shared_sensitive_paths[@]}"')
+        ->toContain('chmod 2750 "${runtime_boundary_paths[@]}"')
+        ->toContain('chmod o-rwx "${release_writable_paths[@]}"')
+        ->toContain('setfacl -m "u:${WEB_USER}:rx" "${DEPLOY_PATH}" "${DEPLOY_PATH}/releases" "${release_dir}"')
+        ->toContain('setfacl -R -m "u:${WEB_USER}:rX" "${release_dir}/public"')
         ->toContain('mkdir -p "${release_dir}/storage/framework/cache/data"')
         ->toContain('rm -f "${release_dir}/bootstrap/cache/"*.php');
 });

@@ -9,6 +9,8 @@ RELEASE_ARCHIVE="${RELEASE_ARCHIVE:-/tmp/print-for-me-release.tar.gz}"
 KEEP_RELEASES="${KEEP_RELEASES:-5}"
 PHP_BIN="${PHP_BIN:-php}"
 COMPOSER_BIN="${COMPOSER_BIN:-composer}"
+APP_GROUP="${APP_GROUP:-pfm}"
+WEB_USER="${WEB_USER:-www-data}"
 
 release_name="$(date +%Y%m%d%H%M%S)"
 release_dir="${DEPLOY_PATH}/releases/${release_name}"
@@ -33,6 +35,13 @@ mkdir -p "${shared_dir}/storage/logs"
 if [[ ! -f "${shared_dir}/.env" ]]; then
     echo "Missing shared environment file at ${shared_dir}/.env" >&2
     exit 1
+fi
+
+if ! chgrp "${APP_GROUP}" "${shared_dir}/.env"; then
+    echo "Warning: unable to normalize shared environment file group ownership; continuing." >&2
+fi
+if ! chmod 640 "${shared_dir}/.env"; then
+    echo "Warning: unable to normalize shared environment file permissions; continuing." >&2
 fi
 
 mkdir -p "${release_dir}"
@@ -94,6 +103,18 @@ shared_writable_paths=(
     "${shared_dir}/storage/logs"
 )
 
+shared_sensitive_paths=(
+    "${shared_dir}/storage/app/private"
+    "${shared_dir}/storage/logs"
+)
+
+runtime_boundary_paths=(
+    "${DEPLOY_PATH}"
+    "${DEPLOY_PATH}/releases"
+    "${shared_dir}"
+    "${release_dir}"
+)
+
 release_writable_paths=(
     "${release_dir}/storage"
     "${release_dir}/storage/framework"
@@ -104,7 +125,7 @@ release_writable_paths=(
     "${release_dir}/bootstrap/cache"
 )
 
-if ! chgrp www-data "${shared_writable_paths[@]}"; then
+if ! chgrp "${APP_GROUP}" "${shared_writable_paths[@]}"; then
     echo "Warning: unable to normalize shared storage group ownership; continuing." >&2
 fi
 if ! chmod ug+rwx "${shared_writable_paths[@]}"; then
@@ -114,10 +135,42 @@ if ! chmod g+s "${shared_writable_paths[@]}"; then
     echo "Warning: unable to normalize shared storage setgid bits; continuing." >&2
 fi
 
-chgrp www-data "${release_writable_paths[@]}"
+if ! chmod o-rwx "${shared_sensitive_paths[@]}"; then
+    echo "Warning: unable to remove world access from shared sensitive paths; continuing." >&2
+fi
+
+if ! chgrp "${APP_GROUP}" "${runtime_boundary_paths[@]}"; then
+    echo "Warning: unable to normalize runtime boundary group ownership; continuing." >&2
+fi
+if ! chmod 2750 "${runtime_boundary_paths[@]}"; then
+    echo "Warning: unable to normalize runtime boundary permissions; continuing." >&2
+fi
+
+chgrp "${APP_GROUP}" "${release_writable_paths[@]}"
 chmod ug+rwx "${release_writable_paths[@]}"
 chmod g+s "${release_writable_paths[@]}"
+chmod o-rwx "${release_writable_paths[@]}"
 chmod -R a+rX "${release_dir}/public/build"
+
+if command -v setfacl >/dev/null 2>&1; then
+    if ! setfacl -m "u:${WEB_USER}:rx" "${DEPLOY_PATH}" "${DEPLOY_PATH}/releases" "${release_dir}"; then
+        echo "Warning: unable to grant web user release traversal access; continuing." >&2
+    fi
+
+    if ! setfacl -R -m "u:${WEB_USER}:rX" "${release_dir}/public"; then
+        echo "Warning: unable to grant web user public asset access; continuing." >&2
+    fi
+
+    if [[ -d "${shared_dir}/storage/app/public" ]]; then
+        if ! setfacl -m "u:${WEB_USER}:rx" "${shared_dir}" "${shared_dir}/storage" "${shared_dir}/storage/app" "${shared_dir}/storage/app/public"; then
+            echo "Warning: unable to grant web user public storage traversal access; continuing." >&2
+        fi
+
+        if ! setfacl -R -m "u:${WEB_USER}:rX" "${shared_dir}/storage/app/public"; then
+            echo "Warning: unable to grant web user public storage asset access; continuing." >&2
+        fi
+    fi
+fi
 
 cd "${release_dir}"
 

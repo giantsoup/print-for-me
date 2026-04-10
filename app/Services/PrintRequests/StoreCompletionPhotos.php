@@ -45,7 +45,9 @@ class StoreCompletionPhotos
                 $directory = 'prints/completions/'.now()->format('Y/m');
                 $path = $directory.'/'.Str::uuid().'.'.$processed['extension'];
 
-                if (! Storage::disk('local')->put($path, $processed['contents'])) {
+                if (! Storage::disk('local')->put($path, $processed['contents'], [
+                    'visibility' => 'private',
+                ])) {
                     throw new RuntimeException('Unable to store the optimized completion photo.');
                 }
 
