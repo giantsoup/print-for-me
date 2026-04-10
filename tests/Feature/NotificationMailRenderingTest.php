@@ -428,3 +428,23 @@ it('renders the magic login email with security guidance and a clear call to act
         ->toContain('One sign-in attempt for this email address')
         ->not->toContain('Log in now');
 });
+
+it('renders the configured mail logo in markdown email headers', function () {
+    config([
+        'mail.branding.logo_path' => 'apple-touch-icon.png',
+        'mail.branding.logo_alt' => 'Print for Me logo',
+    ]);
+
+    $user = User::factory()->create([
+        'name' => 'Taylor Example',
+    ]);
+
+    $html = (new MagicLoginLinkNotification('https://print-for-me.test/magic-login?token=abc123'))
+        ->toMail($user)
+        ->render()
+        ->toHtml();
+
+    expect($html)
+        ->toContain('apple-touch-icon.png')
+        ->toContain('alt="Print for Me logo"');
+});

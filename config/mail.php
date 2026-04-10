@@ -113,6 +113,11 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    'branding' => [
+        'logo_path' => env('MAIL_LOGO_PATH', 'apple-touch-icon.png'),
+        'logo_alt' => env('MAIL_LOGO_ALT', env('APP_NAME', 'Example').' logo'),
+    ],
+
     'markdown' => [
         'theme' => env('MAIL_MARKDOWN_THEME', 'print-for-me'),
         'paths' => [
