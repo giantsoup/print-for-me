@@ -30,3 +30,18 @@ it('uses a masked text input for the needed-by date on the create page', functio
         ->toContain('placeholder="MM/DD/YYYY"')
         ->not->toContain('type="date"');
 });
+
+it('places the needed-by field before the file upload section on the create page', function () {
+    $page = file_get_contents(resource_path('js/pages/prints/Create.vue'));
+
+    $sourceLinkPosition = strpos($page, 'for="source_url"');
+    $neededByPosition = strpos($page, 'for="needed_by_date"');
+    $uploadFilesPosition = strpos($page, 'for="files"');
+
+    expect($sourceLinkPosition)
+        ->not->toBeFalse()
+        ->and($neededByPosition)->not->toBeFalse()
+        ->and($uploadFilesPosition)->not->toBeFalse()
+        ->and($sourceLinkPosition)->toBeLessThan($neededByPosition)
+        ->and($neededByPosition)->toBeLessThan($uploadFilesPosition);
+});

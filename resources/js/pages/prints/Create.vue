@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
-import { formatDateOnly, formatFileSize, maskedDateToIso, maskDateInput, stripNonDigits } from '@/lib/prints';
+import { formatDateOnly, formatFileSize, maskDateInput, maskedDateToIso, stripNonDigits } from '@/lib/prints';
 import { Head, useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Upload, WandSparkles } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -88,8 +88,8 @@ function onNeededByDateInput(event: Event) {
     <LuminousAppLayout
         active-nav="new"
         eyebrow="New Request"
-        title="Upload first, then dial in the details."
-        intro="This flow is built for mobile: source link, files, instructions, and limits all stay visible before you submit."
+        title="Start with the link, then add timing or files."
+        intro="This mobile-first flow keeps the source link, needed-by timing, upload options, and instructions easy to scan before you submit."
         :show-dock="false"
     >
         <form class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]" @submit.prevent="submit">
@@ -104,6 +104,26 @@ function onNeededByDateInput(event: Event) {
                         class="luminous-input"
                     />
                     <p v-if="form.errors.source_url" class="mt-2 text-sm text-rose-300">{{ form.errors.source_url }}</p>
+                </article>
+
+                <article class="luminous-panel px-5 py-5">
+                    <label for="needed_by_date" class="field-label">Needed By</label>
+                    <input
+                        id="needed_by_date"
+                        :value="form.needed_by_date"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="10"
+                        placeholder="MM/DD/YYYY"
+                        class="luminous-input"
+                        @input="onNeededByDateInput"
+                    />
+                    <p class="text-muted-soft mt-3 text-sm leading-6">
+                        Optional. Add this when the request is tied to an event, deadline, or pickup window.
+                    </p>
+                    <p v-if="neededByDateClientError || form.errors.needed_by_date" class="mt-2 text-sm text-rose-300">
+                        {{ neededByDateClientError || form.errors.needed_by_date }}
+                    </p>
                 </article>
 
                 <article class="luminous-panel px-5 py-5">
@@ -144,26 +164,6 @@ function onNeededByDateInput(event: Event) {
 
                         <p v-if="form.errors.files" class="text-sm text-rose-300">{{ form.errors.files }}</p>
                     </div>
-                </article>
-
-                <article class="luminous-panel px-5 py-5">
-                    <label for="needed_by_date" class="field-label">Needed By</label>
-                    <input
-                        id="needed_by_date"
-                        :value="form.needed_by_date"
-                        type="text"
-                        inputmode="numeric"
-                        maxlength="10"
-                        placeholder="MM/DD/YYYY"
-                        class="luminous-input"
-                        @input="onNeededByDateInput"
-                    />
-                    <p class="text-muted-soft mt-3 text-sm leading-6">
-                        Optional. Add this when the request is tied to an event, deadline, or pickup window.
-                    </p>
-                    <p v-if="neededByDateClientError || form.errors.needed_by_date" class="mt-2 text-sm text-rose-300">
-                        {{ neededByDateClientError || form.errors.needed_by_date }}
-                    </p>
                 </article>
 
                 <article class="luminous-panel px-5 py-5">
