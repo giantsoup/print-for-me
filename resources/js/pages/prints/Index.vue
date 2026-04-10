@@ -110,12 +110,12 @@ function filterByStatus(status: string | null) {
                 </div>
             </div>
 
-            <div class="no-scrollbar mt-6 flex gap-2 overflow-x-auto pb-2">
+            <div class="mt-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
                 <button
                     v-for="filter in statusFilters"
                     :key="filter.label"
                     type="button"
-                    class="inline-flex min-h-12 items-center gap-3 rounded-full px-5 py-3 text-sm font-semibold"
+                    class="inline-flex min-h-12 w-full items-center justify-between gap-3 rounded-full px-4 py-3 text-sm font-semibold sm:w-auto sm:justify-start sm:px-5"
                     :class="
                         (props.filters.status || '') === filter.value
                             ? 'bg-primary/12 text-primary'
@@ -124,7 +124,7 @@ function filterByStatus(status: string | null) {
                     @click="filterByStatus(filter.value || null)"
                 >
                     <span>{{ filter.label }}</span>
-                    <span class="rounded-full bg-black/20 px-2 py-0.5 text-[0.72rem]">{{ filter.count }}</span>
+                    <span class="shrink-0 rounded-full bg-black/20 px-2 py-0.5 text-[0.72rem]">{{ filter.count }}</span>
                 </button>
             </div>
         </section>

@@ -280,6 +280,11 @@ img {
     width: 100%;
 }
 
+.inline-photo-copy-gap {
+    font-size: 20px;
+    line-height: 20px;
+}
+
 /* Buttons */
 
 .action {

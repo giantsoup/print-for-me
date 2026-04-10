@@ -163,6 +163,7 @@ it('renders the completed request email with one inline completion photo when av
     $mail->assertHasSubject('[Print for Me] Your print request is complete');
     $mail->assertSeeInHtml('Completion preview');
     $mail->assertSeeInHtml('data:image/jpeg;base64');
+    $mail->assertSeeInHtml('inline-photo-copy-gap');
     $mail->assertSeeInHtml('preview.jpg');
     $mail->assertSeeInText('Your print request is complete');
 
@@ -389,6 +390,7 @@ it('does not render a completion preview section when no completion photo exists
 
     $mail->assertDontSeeInHtml('Completion preview');
     $mail->assertDontSeeInHtml('data:image/');
+    $mail->assertDontSeeInHtml('inline-photo-copy-gap');
 });
 
 it('queues completed request notifications after the surrounding transaction commits', function () {

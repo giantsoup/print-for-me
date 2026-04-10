@@ -94,6 +94,22 @@ const canAttachCompletionPhotos = computed(
 );
 const completionPhotoLimit = computed(() => props.completionPhotoConstraints?.maxFiles ?? 0);
 
+function isCompletedStep(index: number): boolean {
+    return index < currentStepIndex.value || (props.status === 'complete' && index === currentStepIndex.value);
+}
+
+function stepStatusText(index: number): string | null {
+    if (isCompletedStep(index)) {
+        return 'Completed';
+    }
+
+    if (index > currentStepIndex.value) {
+        return 'Upcoming';
+    }
+
+    return null;
+}
+
 function runAction(action: ActionDefinition) {
     if (isWorking.value) {
         return;
@@ -263,7 +279,7 @@ onBeforeUnmount(() => {
                 :key="step.key"
                 class="rounded-[1.35rem] border px-4 py-4"
                 :class="
-                    index < currentStepIndex
+                    isCompletedStep(index)
                         ? 'border-primary/16 bg-primary/10'
                         : index === currentStepIndex
                           ? 'border-white/14 bg-white/[0.06]'
@@ -271,8 +287,12 @@ onBeforeUnmount(() => {
                 "
             >
                 <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/42 uppercase">{{ step.label }}</p>
-                <p class="mt-3 text-sm font-semibold" :class="index <= currentStepIndex ? 'text-white' : 'text-white/45'">
-                    {{ index < currentStepIndex ? 'Completed' : index === currentStepIndex ? 'Current state' : 'Upcoming' }}
+                <p
+                    v-if="stepStatusText(index)"
+                    class="mt-3 text-sm font-semibold"
+                    :class="index <= currentStepIndex ? 'text-white' : 'text-white/45'"
+                >
+                    {{ stepStatusText(index) }}
                 </p>
             </div>
         </div>
@@ -412,11 +432,6 @@ onBeforeUnmount(() => {
                 </div>
                 <p class="text-xs tracking-[0.16em] text-white/45 uppercase">Uploading {{ Math.round(uploadProgress) }}%</p>
             </div>
-        </div>
-
-        <div v-if="!visibleActions.length" class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4">
-            <p class="font-medium text-white">No further state changes are available.</p>
-            <p class="text-muted-soft mt-2 text-sm leading-6">This request is currently {{ statusLabel(props.status).toLowerCase() }}.</p>
         </div>
 
         <p v-if="localError" class="text-sm text-rose-300">{{ localError }}</p>

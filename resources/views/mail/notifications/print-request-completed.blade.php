@@ -7,6 +7,8 @@
 <div class="inline-photo">
     <img src="{{ $message->embedData($inlinePhotoData, $inlinePhotoFilename ?? 'completion-preview.jpg', $inlinePhotoMimeType ?? 'image/jpeg') }}" alt="{{ $inlinePhotoAlt ?? 'Completion preview' }}" class="inline-photo-image">
 </div>
+
+<div class="inline-photo-copy-gap" aria-hidden="true">&nbsp;</div>
 @endif
 
 {{ $greeting }}
