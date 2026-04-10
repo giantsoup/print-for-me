@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class PrintRequestStatusController extends Controller
@@ -73,6 +74,8 @@ class PrintRequestStatusController extends Controller
         });
 
         if ($print_request->user) {
+            $print_request->loadMissing(['user', 'completionPhotos']);
+            $this->logCompletionEmailDispatch($request, $print_request, 'initial_requester_delivery');
             $print_request->user->notify(new PrintRequestCompletedNotification($print_request));
         }
 
@@ -115,6 +118,7 @@ class PrintRequestStatusController extends Controller
             ]);
         }
 
+        $this->logCompletionEmailDispatch($request, $print_request, 'resend_requester_delivery');
         $print_request->user->notify(new PrintRequestCompletedNotification($print_request));
 
         return $this->respond($request, $print_request, 'Completion email queued again.');
@@ -136,6 +140,7 @@ class PrintRequestStatusController extends Controller
             ]);
         }
 
+        $this->logCompletionEmailDispatch($request, $print_request, 'admin_preview_delivery');
         $request->user()->notify(new PrintRequestCompletedNotification($print_request));
 
         return $this->respond($request, $print_request, 'Completion email preview queued to your inbox.');
@@ -148,5 +153,33 @@ class PrintRequestStatusController extends Controller
         }
 
         return back()->with('status', $message);
+    }
+
+    private function shouldLogCompletionEmailDebug(): bool
+    {
+        return (bool) config('prints.log_completion_email_debug', false);
+    }
+
+    private function logCompletionEmailDispatch(Request $request, PrintRequest $printRequest, string $deliveryMode): void
+    {
+        if (! $this->shouldLogCompletionEmailDebug()) {
+            return;
+        }
+
+        Log::info('completion_email.notification_dispatch_requested', [
+            'delivery_mode' => $deliveryMode,
+            'print_request_id' => $printRequest->getKey(),
+            'print_request_status' => (string) $printRequest->status,
+            'completion_photo_count' => $printRequest->completionPhotos()->count(),
+            'recipient_user_id' => $deliveryMode === 'admin_preview_delivery'
+                ? $request->user()?->getKey()
+                : $printRequest->user?->getKey(),
+            'recipient_email' => $deliveryMode === 'admin_preview_delivery'
+                ? $request->user()?->email
+                : $printRequest->user?->email,
+            'actor_user_id' => $request->user()?->getKey(),
+            'actor_email' => $request->user()?->email,
+            'queue_connection' => config('queue.default'),
+        ]);
     }
 }

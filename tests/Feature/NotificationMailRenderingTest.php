@@ -13,6 +13,7 @@ use App\Notifications\PrintRequestRevertedToPendingNotification;
 use App\Notifications\PrintRequestSoftDeletedPurgeWarningNotification;
 use Illuminate\Mail\Mailable;
 use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 dataset('print request mail notifications', [
@@ -163,6 +164,75 @@ it('renders the completed request email with one inline completion photo when av
     $mail->assertSeeInHtml('data:image/jpeg;base64');
     $mail->assertSeeInHtml('preview.jpg');
     $mail->assertSeeInText('Your print request is complete');
+});
+
+it('logs inline photo resolution and symfony message details when completion email debug logging is enabled', function () {
+    Storage::fake('local');
+    Log::spy();
+
+    config([
+        'prints.log_completion_email_debug' => true,
+        'mail.default' => 'array',
+    ]);
+
+    app()->forgetInstance('mail.manager');
+    app()->forgetInstance('mailer');
+
+    $requester = User::factory()->create([
+        'name' => 'Taylor Example',
+        'email' => 'taylor@example.com',
+    ]);
+
+    $printRequest = PrintRequest::create([
+        'user_id' => $requester->id,
+        'status' => PrintRequestStatus::COMPLETE,
+        'source_url' => 'https://example.com/projects/logged-preview',
+        'instructions' => 'Capture embedded image diagnostics.',
+        'completed_at' => now(),
+    ]);
+
+    $jpegData = realisticImageData(1280, 960);
+
+    Storage::disk('local')->put('prints/completions/2026/03/preview.jpg', $jpegData);
+
+    $printRequest->completionPhotos()->create([
+        'disk' => 'local',
+        'path' => 'prints/completions/2026/03/preview.jpg',
+        'original_name' => 'preview.jpg',
+        'mime_type' => 'image/jpeg',
+        'size_bytes' => strlen($jpegData),
+        'width' => 1280,
+        'height' => 960,
+        'sort_order' => 1,
+        'sha256' => hash('sha256', $jpegData),
+    ]);
+
+    $mailer = app('mail.manager')->mailer('array');
+    $transport = $mailer->getSymfonyTransport();
+
+    if (method_exists($transport, 'flush')) {
+        $transport->flush();
+    }
+
+    $mailer->sendNow(
+        (new PrintRequestCompletedMail($printRequest, $requester))->to($requester->email)
+    );
+
+    Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+        return $message === 'completion_email.inline_photo_ready'
+            && $context['print_request_id'] > 0
+            && $context['photo_original_name'] === 'preview.jpg'
+            && $context['embedded_mime_type'] === 'image/jpeg';
+    })->once();
+
+    Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+        return $message === 'completion_email.symfony_message_built'
+            && $context['recipient_email'] === 'taylor@example.com'
+            && $context['attachment_count'] === 1
+            && $context['html_contains_cid'] === true
+            && count($context['html_cid_matches']) === 1
+            && $context['attachments'][0]['content_type'] === 'image/jpeg';
+    })->once();
 });
 
 it('renders the completed request email with a jpeg inline preview when the stored completion photo is webp', function () {

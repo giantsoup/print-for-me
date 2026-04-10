@@ -131,8 +131,8 @@ ln -sfn "${release_dir}" "${current_dir}"
 release_activated=true
 
 cd "${current_dir}"
-"${PHP_BIN}" artisan reload || "${PHP_BIN}" artisan queue:restart
-"${PHP_BIN}" artisan schedule:interrupt || true
+"${PHP_BIN}" artisan queue:restart --no-interaction
+"${PHP_BIN}" artisan schedule:interrupt --no-interaction || true
 
 releases=()
 

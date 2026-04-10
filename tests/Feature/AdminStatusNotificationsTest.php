@@ -8,9 +8,13 @@ use App\Notifications\PrintRequestAcceptedNotification;
 use App\Notifications\PrintRequestCompletedNotification;
 use App\Notifications\PrintRequestRevertedToPendingNotification;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\actingAs;
+use function Pest\Laravel\patch;
 use function Pest\Laravel\patchJson;
 use function Pest\Laravel\post;
 use function Pest\Laravel\postJson;
@@ -55,6 +59,102 @@ it('sends notification to requester when admin completes the request', function 
     patchJson(route('admin.print-requests.complete', $req))->assertSuccessful();
 
     Notification::assertSentTo($owner, PrintRequestCompletedNotification::class);
+});
+
+it('logs completion email dispatch context when debug logging is enabled', function () {
+    Storage::fake('local');
+    Notification::fake();
+    Log::spy();
+
+    config(['prints.log_completion_email_debug' => true]);
+
+    $admin = User::factory()->create([
+        'is_admin' => true,
+        'email' => 'admin@example.com',
+    ]);
+    $owner = User::factory()->create([
+        'email' => 'owner@example.com',
+    ]);
+
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PRINTING,
+        'source_url' => 'https://example.com/complete-log-debug',
+    ]);
+
+    actingAs($admin);
+
+    patch(route('admin.print-requests.complete', $req), [
+        'photos' => [
+            UploadedFile::fake()->createWithContent('finished-print.png', realisticImageData(2400, 1800, 'png')),
+        ],
+        '_method' => 'patch',
+    ], ['Accept' => 'application/json'])->assertSuccessful();
+
+    Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+        return $message === 'completion_email.notification_dispatch_requested'
+            && $context['delivery_mode'] === 'initial_requester_delivery'
+            && $context['completion_photo_count'] === 1
+            && $context['recipient_email'] === 'owner@example.com'
+            && $context['actor_email'] === 'admin@example.com';
+    })->once();
+});
+
+it('embeds a completion preview image in the outgoing completion email after an admin completes a request with photos', function () {
+    Storage::fake('local');
+
+    config([
+        'mail.default' => 'array',
+        'queue.default' => 'sync',
+    ]);
+
+    app()->forgetInstance('mail.manager');
+    app()->forgetInstance('mailer');
+
+    $mailer = app('mail.manager')->mailer('array');
+    $transport = $mailer->getSymfonyTransport();
+
+    if (method_exists($transport, 'flush')) {
+        $transport->flush();
+    }
+
+    $admin = User::factory()->create([
+        'is_admin' => true,
+        'email' => 'admin@example.com',
+    ]);
+    $owner = User::factory()->create([
+        'email' => 'owner@example.com',
+    ]);
+
+    $req = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PRINTING,
+        'source_url' => 'https://example.com/complete-with-photo',
+    ]);
+
+    actingAs($admin);
+
+    patch(route('admin.print-requests.complete', $req), [
+        'photos' => [
+            UploadedFile::fake()->createWithContent('finished-print.png', realisticImageData(2400, 1800, 'png')),
+        ],
+        '_method' => 'patch',
+    ], ['Accept' => 'application/json'])->assertSuccessful();
+
+    $messages = $transport->messages();
+
+    expect($messages)->toHaveCount(1);
+
+    $message = $messages->last()->getOriginalMessage();
+    $html = (string) $message->getHtmlBody();
+    $raw = $message->toString();
+
+    expect($html)
+        ->toContain('Completion preview')
+        ->toContain('src="cid:')
+        ->and($raw)->toContain('Content-Type: multipart/related;')
+        ->toContain('Content-Disposition: inline;')
+        ->toContain('Content-Type: image/jpeg;');
 });
 
 it('sends notification to requester when admin reverts to pending', function () {

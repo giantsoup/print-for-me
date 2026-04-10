@@ -11,8 +11,11 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Part\DataPart;
 
 class PrintRequestCompletedMail extends Mailable
 {
@@ -28,7 +31,11 @@ class PrintRequestCompletedMail extends Mailable
     public function __construct(
         protected PrintRequest $printRequest,
         protected object $notifiable,
-    ) {}
+    ) {
+        if ($this->shouldLogCompletionEmailDebug()) {
+            $this->withSymfonyMessage([$this, 'logSymfonyMessageDebug']);
+        }
+    }
 
     public function envelope(): Envelope
     {
@@ -39,6 +46,17 @@ class PrintRequestCompletedMail extends Mailable
 
     public function content(): Content
     {
+        $inlinePhotoPayload = $this->inlinePhotoPayload();
+
+        $this->logCompletionEmailDebug('completion_email.preparing', [
+            'recipient_email' => $this->recipientEmail(),
+            'recipient_type' => $this->notifiable::class,
+            'has_inline_photo_payload' => $inlinePhotoPayload !== null,
+            'inline_photo_filename' => $inlinePhotoPayload['filename'] ?? null,
+            'inline_photo_mime_type' => $inlinePhotoPayload['mime_type'] ?? null,
+            'inline_photo_size_bytes' => isset($inlinePhotoPayload['data']) ? strlen($inlinePhotoPayload['data']) : null,
+        ]);
+
         return new Content(
             markdown: 'mail.notifications.print-request-completed',
             with: [
@@ -51,10 +69,10 @@ class PrintRequestCompletedMail extends Mailable
                 'actionLabel' => 'Open completed request',
                 'actionUrl' => PrintRequestMailData::requestUrl($this->printRequest),
                 'closing' => 'We appreciate the opportunity to help with your project.',
-                'inlinePhotoData' => $this->inlinePhotoData(),
-                'inlinePhotoFilename' => $this->inlinePhotoFilename(),
-                'inlinePhotoMimeType' => $this->inlinePhotoMimeType(),
-                'inlinePhotoAlt' => $this->inlinePhotoAlt(),
+                'inlinePhotoData' => $inlinePhotoPayload['data'] ?? null,
+                'inlinePhotoFilename' => $inlinePhotoPayload['filename'] ?? null,
+                'inlinePhotoMimeType' => $inlinePhotoPayload['mime_type'] ?? null,
+                'inlinePhotoAlt' => $inlinePhotoPayload['alt'] ?? 'Completion preview',
             ],
         );
     }
@@ -87,10 +105,22 @@ class PrintRequestCompletedMail extends Mailable
         $photo = $this->printRequest->completionPhotos->first();
 
         if ($photo === null) {
+            $this->logCompletionEmailDebug('completion_email.inline_photo_unavailable', [
+                'reason' => 'missing_completion_photo_record',
+            ]);
+
             return null;
         }
 
         if (! Storage::disk($photo->disk)->exists($photo->path)) {
+            $this->logCompletionEmailDebug('completion_email.inline_photo_unavailable', [
+                'reason' => 'missing_storage_file',
+                'photo_id' => $photo->id,
+                'photo_disk' => $photo->disk,
+                'photo_path' => $photo->path,
+                'photo_original_name' => $photo->original_name,
+            ]);
+
             return null;
         }
 
@@ -117,6 +147,14 @@ class PrintRequestCompletedMail extends Mailable
         $contents = Storage::disk($photo->disk)->get($photo->path);
 
         if (! is_string($contents) || $contents === '') {
+            $this->logCompletionEmailDebug('completion_email.inline_photo_unavailable', [
+                'reason' => 'empty_storage_contents',
+                'photo_id' => $photo->id,
+                'photo_disk' => $photo->disk,
+                'photo_path' => $photo->path,
+                'photo_original_name' => $photo->original_name,
+            ]);
+
             return null;
         }
 
@@ -127,21 +165,49 @@ class PrintRequestCompletedMail extends Mailable
             $jpegContents = $this->convertInlinePhotoToJpeg($contents);
 
             if ($jpegContents !== null) {
-                return $this->inlinePhotoPayload = [
+                $payload = [
                     'data' => $jpegContents,
                     'filename' => $this->jpegFilename($filename),
                     'mime_type' => 'image/jpeg',
                     'alt' => $filename,
                 ];
+
+                $this->logCompletionEmailDebug('completion_email.inline_photo_ready', [
+                    'photo_id' => $photo->id,
+                    'photo_disk' => $photo->disk,
+                    'photo_path' => $photo->path,
+                    'photo_original_name' => $photo->original_name,
+                    'photo_stored_mime_type' => $mimeType,
+                    'embedded_filename' => $payload['filename'],
+                    'embedded_mime_type' => $payload['mime_type'],
+                    'embedded_size_bytes' => strlen($payload['data']),
+                    'converted_from_webp' => true,
+                ]);
+
+                return $this->inlinePhotoPayload = $payload;
             }
         }
 
-        return $this->inlinePhotoPayload = [
+        $payload = [
             'data' => $contents,
             'filename' => $filename,
             'mime_type' => $mimeType,
             'alt' => $filename,
         ];
+
+        $this->logCompletionEmailDebug('completion_email.inline_photo_ready', [
+            'photo_id' => $photo->id,
+            'photo_disk' => $photo->disk,
+            'photo_path' => $photo->path,
+            'photo_original_name' => $photo->original_name,
+            'photo_stored_mime_type' => $mimeType,
+            'embedded_filename' => $payload['filename'],
+            'embedded_mime_type' => $payload['mime_type'],
+            'embedded_size_bytes' => strlen($payload['data']),
+            'converted_from_webp' => false,
+        ]);
+
+        return $this->inlinePhotoPayload = $payload;
     }
 
     private function jpegFilename(string $filename): string
@@ -215,5 +281,58 @@ class PrintRequestCompletedMail extends Mailable
         }
 
         return $jpegContents;
+    }
+
+    public function logSymfonyMessageDebug(Email $message): void
+    {
+        $attachments = collect($message->getAttachments())
+            ->map(function (DataPart $attachment): array {
+                return [
+                    'content_id' => $attachment->getContentId(),
+                    'content_type' => $attachment->getContentType(),
+                    'filename' => $attachment->getFilename(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $htmlBody = (string) ($message->getHtmlBody() ?? '');
+
+        $this->logCompletionEmailDebug('completion_email.symfony_message_built', [
+            'recipient_email' => $this->recipientEmail(),
+            'attachment_count' => count($attachments),
+            'attachments' => $attachments,
+            'html_contains_cid' => str_contains($htmlBody, 'cid:'),
+            'html_cid_matches' => preg_match_all('/cid:([^"\']+)/', $htmlBody, $matches) ? array_values(array_unique($matches[1])) : [],
+        ]);
+    }
+
+    private function shouldLogCompletionEmailDebug(): bool
+    {
+        return (bool) config('prints.log_completion_email_debug', false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function logCompletionEmailDebug(string $message, array $context = []): void
+    {
+        if (! $this->shouldLogCompletionEmailDebug()) {
+            return;
+        }
+
+        Log::info($message, array_merge([
+            'print_request_id' => $this->printRequest->getKey(),
+            'print_request_status' => (string) $this->printRequest->status,
+            'completion_photo_count' => $this->printRequest->completionPhotos()->count(),
+            'queue_connection' => config('queue.default'),
+        ], $context));
+    }
+
+    private function recipientEmail(): ?string
+    {
+        $email = trim((string) data_get($this->notifiable, 'email', ''));
+
+        return $email !== '' ? $email : null;
     }
 }
