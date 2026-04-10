@@ -32,9 +32,7 @@ class PrintRequestCompletedMail extends Mailable
         protected PrintRequest $printRequest,
         protected object $notifiable,
     ) {
-        if ($this->shouldLogCompletionEmailDebug()) {
-            $this->withSymfonyMessage([$this, 'logSymfonyMessageDebug']);
-        }
+        $this->withSymfonyMessage([$this, 'logSymfonyMessageDebug']);
     }
 
     public function envelope(): Envelope
@@ -307,20 +305,11 @@ class PrintRequestCompletedMail extends Mailable
         ]);
     }
 
-    private function shouldLogCompletionEmailDebug(): bool
-    {
-        return (bool) config('prints.log_completion_email_debug', false);
-    }
-
     /**
      * @param  array<string, mixed>  $context
      */
     private function logCompletionEmailDebug(string $message, array $context = []): void
     {
-        if (! $this->shouldLogCompletionEmailDebug()) {
-            return;
-        }
-
         Log::info($message, array_merge([
             'print_request_id' => $this->printRequest->getKey(),
             'print_request_status' => (string) $this->printRequest->status,

@@ -155,17 +155,8 @@ class PrintRequestStatusController extends Controller
         return back()->with('status', $message);
     }
 
-    private function shouldLogCompletionEmailDebug(): bool
-    {
-        return (bool) config('prints.log_completion_email_debug', false);
-    }
-
     private function logCompletionEmailDispatch(Request $request, PrintRequest $printRequest, string $deliveryMode): void
     {
-        if (! $this->shouldLogCompletionEmailDebug()) {
-            return;
-        }
-
         Log::info('completion_email.notification_dispatch_requested', [
             'delivery_mode' => $deliveryMode,
             'print_request_id' => $printRequest->getKey(),

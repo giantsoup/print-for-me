@@ -166,12 +166,11 @@ it('renders the completed request email with one inline completion photo when av
     $mail->assertSeeInText('Your print request is complete');
 });
 
-it('logs inline photo resolution and symfony message details when completion email debug logging is enabled', function () {
+it('logs inline photo resolution and symfony message details', function () {
     Storage::fake('local');
     Log::spy();
 
     config([
-        'prints.log_completion_email_debug' => true,
         'mail.default' => 'array',
     ]);
 

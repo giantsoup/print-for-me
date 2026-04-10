@@ -61,12 +61,10 @@ it('sends notification to requester when admin completes the request', function 
     Notification::assertSentTo($owner, PrintRequestCompletedNotification::class);
 });
 
-it('logs completion email dispatch context when debug logging is enabled', function () {
+it('logs completion email dispatch context', function () {
     Storage::fake('local');
     Notification::fake();
     Log::spy();
-
-    config(['prints.log_completion_email_debug' => true]);
 
     $admin = User::factory()->create([
         'is_admin' => true,
