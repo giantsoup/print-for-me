@@ -95,36 +95,6 @@ class PrintRequestCompletedMail extends Mailable
         return $this->inlinePhotoPayload()['alt'] ?? 'Completion preview';
     }
 
-    private function inlinePhoto(): ?PrintRequestCompletionPhoto
-    {
-        $this->printRequest->loadMissing(['completionPhotos', 'files']);
-
-        /** @var PrintRequestCompletionPhoto|null $photo */
-        $photo = $this->printRequest->completionPhotos->first();
-
-        if ($photo === null) {
-            $this->logCompletionEmailDebug('completion_email.inline_photo_unavailable', [
-                'reason' => 'missing_completion_photo_record',
-            ]);
-
-            return null;
-        }
-
-        if (! Storage::disk($photo->disk)->exists($photo->path)) {
-            $this->logCompletionEmailDebug('completion_email.inline_photo_unavailable', [
-                'reason' => 'missing_storage_file',
-                'photo_id' => $photo->id,
-                'photo_disk' => $photo->disk,
-                'photo_path' => $photo->path,
-                'photo_original_name' => $photo->original_name,
-            ]);
-
-            return null;
-        }
-
-        return $photo;
-    }
-
     /**
      * @return array{data: string, filename: string, mime_type: string, alt: string}|null
      */
@@ -136,9 +106,49 @@ class PrintRequestCompletedMail extends Mailable
 
         $this->hasResolvedInlinePhotoPayload = true;
 
-        $photo = $this->inlinePhoto();
+        $this->printRequest->loadMissing(['completionPhotos', 'files']);
 
-        if ($photo === null) {
+        $photos = $this->printRequest->completionPhotos->values();
+
+        if ($photos->isEmpty()) {
+            $this->logCompletionEmailDebug('completion_email.inline_photo_unavailable', [
+                'reason' => 'missing_completion_photo_record',
+            ]);
+
+            return null;
+        }
+
+        foreach ($photos as $index => $photo) {
+            $payload = $this->inlinePhotoPayloadForPhoto($photo, $index + 1, $photos->count());
+
+            if ($payload !== null) {
+                return $this->inlinePhotoPayload = $payload;
+            }
+        }
+
+        $this->logCompletionEmailDebug('completion_email.inline_photo_unavailable', [
+            'reason' => 'no_usable_completion_photo_records',
+            'attempted_photo_count' => $photos->count(),
+        ]);
+
+        return null;
+    }
+
+    /**
+     * @return array{data: string, filename: string, mime_type: string, alt: string}|null
+     */
+    private function inlinePhotoPayloadForPhoto(PrintRequestCompletionPhoto $photo, int $photoPosition, int $photoCount): ?array
+    {
+        $diskExists = Storage::disk($photo->disk)->exists($photo->path);
+
+        if (! $diskExists) {
+            $this->logCompletionEmailDebug('completion_email.inline_photo_unavailable', [
+                'reason' => 'missing_storage_file',
+                'photo_position' => $photoPosition,
+                'photo_count' => $photoCount,
+                ...$this->completionPhotoLogContext($photo, $diskExists),
+            ]);
+
             return null;
         }
 
@@ -147,10 +157,9 @@ class PrintRequestCompletedMail extends Mailable
         if (! is_string($contents) || $contents === '') {
             $this->logCompletionEmailDebug('completion_email.inline_photo_unavailable', [
                 'reason' => 'empty_storage_contents',
-                'photo_id' => $photo->id,
-                'photo_disk' => $photo->disk,
-                'photo_path' => $photo->path,
-                'photo_original_name' => $photo->original_name,
+                'photo_position' => $photoPosition,
+                'photo_count' => $photoCount,
+                ...$this->completionPhotoLogContext($photo, $diskExists),
             ]);
 
             return null;
@@ -171,18 +180,17 @@ class PrintRequestCompletedMail extends Mailable
                 ];
 
                 $this->logCompletionEmailDebug('completion_email.inline_photo_ready', [
-                    'photo_id' => $photo->id,
-                    'photo_disk' => $photo->disk,
-                    'photo_path' => $photo->path,
-                    'photo_original_name' => $photo->original_name,
+                    'photo_position' => $photoPosition,
+                    'photo_count' => $photoCount,
                     'photo_stored_mime_type' => $mimeType,
                     'embedded_filename' => $payload['filename'],
                     'embedded_mime_type' => $payload['mime_type'],
                     'embedded_size_bytes' => strlen($payload['data']),
                     'converted_from_webp' => true,
+                    ...$this->completionPhotoLogContext($photo, $diskExists),
                 ]);
 
-                return $this->inlinePhotoPayload = $payload;
+                return $payload;
             }
         }
 
@@ -194,18 +202,17 @@ class PrintRequestCompletedMail extends Mailable
         ];
 
         $this->logCompletionEmailDebug('completion_email.inline_photo_ready', [
-            'photo_id' => $photo->id,
-            'photo_disk' => $photo->disk,
-            'photo_path' => $photo->path,
-            'photo_original_name' => $photo->original_name,
+            'photo_position' => $photoPosition,
+            'photo_count' => $photoCount,
             'photo_stored_mime_type' => $mimeType,
             'embedded_filename' => $payload['filename'],
             'embedded_mime_type' => $payload['mime_type'],
             'embedded_size_bytes' => strlen($payload['data']),
             'converted_from_webp' => false,
+            ...$this->completionPhotoLogContext($photo, $diskExists),
         ]);
 
-        return $this->inlinePhotoPayload = $payload;
+        return $payload;
     }
 
     private function jpegFilename(string $filename): string
@@ -323,5 +330,130 @@ class PrintRequestCompletedMail extends Mailable
         $email = trim((string) data_get($this->notifiable, 'email', ''));
 
         return $email !== '' ? $email : null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function completionPhotoLogContext(PrintRequestCompletionPhoto $photo, ?bool $diskExists = null): array
+    {
+        $context = [
+            'photo_id' => $photo->id,
+            'photo_disk' => $photo->disk,
+            'photo_path' => $photo->path,
+            'photo_original_name' => $photo->original_name,
+        ];
+
+        if ($diskExists !== null) {
+            $context['photo_disk_exists_result'] = $diskExists;
+        }
+
+        $storageRoot = config("filesystems.disks.{$photo->disk}.root");
+
+        if (is_string($storageRoot) && $storageRoot !== '') {
+            $context['photo_disk_root'] = $storageRoot;
+        }
+
+        $resolvedStoragePath = $this->resolvedStoragePath($photo);
+
+        if ($resolvedStoragePath !== null) {
+            clearstatcache(true, $resolvedStoragePath);
+
+            $resolvedParentDirectory = dirname($resolvedStoragePath);
+            $resolvedStorageExists = is_file($resolvedStoragePath);
+            $resolvedStorageIsReadable = is_readable($resolvedStoragePath);
+            $resolvedParentDirectoryExists = is_dir($resolvedParentDirectory);
+            $resolvedParentDirectoryIsReadable = is_readable($resolvedParentDirectory);
+            $resolvedParentDirectoryIsExecutable = is_executable($resolvedParentDirectory);
+
+            $context['resolved_storage_path'] = $resolvedStoragePath;
+            $context['resolved_storage_exists'] = $resolvedStorageExists;
+            $context['resolved_storage_is_readable'] = $resolvedStorageIsReadable;
+            $context['resolved_storage_parent_directory'] = $resolvedParentDirectory;
+            $context['resolved_storage_parent_directory_exists'] = $resolvedParentDirectoryExists;
+            $context['resolved_storage_parent_directory_is_readable'] = $resolvedParentDirectoryIsReadable;
+            $context['resolved_storage_parent_directory_is_executable'] = $resolvedParentDirectoryIsExecutable;
+            $context['suspected_read_permission_issue'] = $this->suspectedReadPermissionIssue(
+                $resolvedStorageExists,
+                $resolvedStorageIsReadable,
+                $resolvedParentDirectoryExists,
+                $resolvedParentDirectoryIsReadable,
+                $resolvedParentDirectoryIsExecutable,
+            );
+
+            $resolvedStoragePermissions = $this->permissionsOctal($resolvedStoragePath);
+
+            if ($resolvedStoragePermissions !== null) {
+                $context['resolved_storage_permissions'] = $resolvedStoragePermissions;
+            }
+
+            $resolvedParentPermissions = $this->permissionsOctal($resolvedParentDirectory);
+
+            if ($resolvedParentPermissions !== null) {
+                $context['resolved_storage_parent_directory_permissions'] = $resolvedParentPermissions;
+            }
+        }
+
+        return array_merge($context, $this->workerIdentityLogContext());
+    }
+
+    private function resolvedStoragePath(PrintRequestCompletionPhoto $photo): ?string
+    {
+        try {
+            return Storage::disk($photo->disk)->path($photo->path);
+        } catch (RuntimeException) {
+            return null;
+        }
+    }
+
+    private function suspectedReadPermissionIssue(
+        bool $resolvedStorageExists,
+        bool $resolvedStorageIsReadable,
+        bool $resolvedParentDirectoryExists,
+        bool $resolvedParentDirectoryIsReadable,
+        bool $resolvedParentDirectoryIsExecutable,
+    ): bool {
+        if ($resolvedStorageExists && ! $resolvedStorageIsReadable) {
+            return true;
+        }
+
+        if ($resolvedParentDirectoryExists && (! $resolvedParentDirectoryIsReadable || ! $resolvedParentDirectoryIsExecutable)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function workerIdentityLogContext(): array
+    {
+        if (! function_exists('posix_geteuid') || ! function_exists('posix_getegid')) {
+            return [];
+        }
+
+        $effectiveUserId = posix_geteuid();
+        $effectiveGroupId = posix_getegid();
+        $effectiveUser = function_exists('posix_getpwuid') ? posix_getpwuid($effectiveUserId) : false;
+        $effectiveGroup = function_exists('posix_getgrgid') ? posix_getgrgid($effectiveGroupId) : false;
+
+        return [
+            'worker_effective_user_id' => $effectiveUserId,
+            'worker_effective_group_id' => $effectiveGroupId,
+            'worker_effective_user_name' => is_array($effectiveUser) ? ($effectiveUser['name'] ?? null) : null,
+            'worker_effective_group_name' => is_array($effectiveGroup) ? ($effectiveGroup['name'] ?? null) : null,
+        ];
+    }
+
+    private function permissionsOctal(string $path): ?string
+    {
+        $permissions = @fileperms($path);
+
+        if ($permissions === false) {
+            return null;
+        }
+
+        return substr(sprintf('%o', $permissions), -4);
     }
 }

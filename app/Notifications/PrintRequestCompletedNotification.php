@@ -16,7 +16,9 @@ class PrintRequestCompletedNotification extends Notification implements ShouldQu
 
     public function __construct(
         protected PrintRequest $printRequest
-    ) {}
+    ) {
+        $this->afterCommit();
+    }
 
     public function via(object $notifiable): array
     {

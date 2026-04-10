@@ -166,6 +166,97 @@ it('renders the completed request email with one inline completion photo when av
     $mail->assertSeeInText('Your print request is complete');
 });
 
+it('falls back to the next completion photo when the first stored photo is missing', function () {
+    Storage::fake('local');
+    Log::spy();
+
+    config([
+        'mail.default' => 'array',
+    ]);
+
+    app()->forgetInstance('mail.manager');
+    app()->forgetInstance('mailer');
+
+    $requester = User::factory()->create([
+        'name' => 'Taylor Example',
+        'email' => 'taylor@example.com',
+    ]);
+
+    $printRequest = PrintRequest::create([
+        'user_id' => $requester->id,
+        'status' => PrintRequestStatus::COMPLETE,
+        'source_url' => 'https://example.com/projects/fallback-preview',
+        'instructions' => 'Use the next available completion preview if the first file is unavailable.',
+        'completed_at' => now(),
+    ]);
+
+    $printRequest->completionPhotos()->create([
+        'disk' => 'local',
+        'path' => 'prints/completions/2026/04/missing-preview.jpg',
+        'original_name' => 'missing-preview.jpg',
+        'mime_type' => 'image/jpeg',
+        'size_bytes' => 1024,
+        'width' => 1280,
+        'height' => 960,
+        'sort_order' => 1,
+        'sha256' => hash('sha256', 'missing-preview'),
+    ]);
+
+    $jpegData = realisticImageData(1280, 960);
+
+    Storage::disk('local')->put('prints/completions/2026/04/fallback-preview.jpg', $jpegData);
+
+    $printRequest->completionPhotos()->create([
+        'disk' => 'local',
+        'path' => 'prints/completions/2026/04/fallback-preview.jpg',
+        'original_name' => 'fallback-preview.jpg',
+        'mime_type' => 'image/jpeg',
+        'size_bytes' => strlen($jpegData),
+        'width' => 1280,
+        'height' => 960,
+        'sort_order' => 2,
+        'sha256' => hash('sha256', $jpegData),
+    ]);
+
+    $mailer = app('mail.manager')->mailer('array');
+    $transport = $mailer->getSymfonyTransport();
+
+    if (method_exists($transport, 'flush')) {
+        $transport->flush();
+    }
+
+    $mailer->sendNow(
+        (new PrintRequestCompletedMail($printRequest, $requester))->to($requester->email)
+    );
+
+    $message = $transport->messages()->last()->getOriginalMessage();
+    $html = (string) $message->getHtmlBody();
+
+    expect($html)
+        ->toContain('Completion preview')
+        ->toContain('src="cid:');
+
+    Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+        return $message === 'completion_email.inline_photo_unavailable'
+            && $context['reason'] === 'missing_storage_file'
+            && $context['photo_original_name'] === 'missing-preview.jpg'
+            && $context['photo_position'] === 1
+            && $context['photo_count'] === 2
+            && $context['photo_disk_exists_result'] === false
+            && $context['resolved_storage_parent_directory_exists'] === true
+            && array_key_exists('suspected_read_permission_issue', $context)
+            && array_key_exists('worker_effective_user_id', $context);
+    })->once();
+
+    Log::shouldHaveReceived('info')->withArgs(function (string $message, array $context): bool {
+        return $message === 'completion_email.inline_photo_ready'
+            && $context['photo_original_name'] === 'fallback-preview.jpg'
+            && $context['photo_position'] === 2
+            && $context['photo_count'] === 2
+            && $context['embedded_mime_type'] === 'image/jpeg';
+    })->once();
+});
+
 it('logs inline photo resolution and symfony message details', function () {
     Storage::fake('local');
     Log::spy();
@@ -295,6 +386,24 @@ it('does not render a completion preview section when no completion photo exists
 
     $mail->assertDontSeeInHtml('Completion preview');
     $mail->assertDontSeeInHtml('data:image/');
+});
+
+it('queues completed request notifications after the surrounding transaction commits', function () {
+    $requester = User::factory()->create([
+        'name' => 'Taylor Example',
+        'email' => 'taylor@example.com',
+    ]);
+
+    $printRequest = PrintRequest::create([
+        'user_id' => $requester->id,
+        'status' => PrintRequestStatus::COMPLETE,
+        'source_url' => 'https://example.com/projects/after-commit-preview',
+        'completed_at' => now(),
+    ]);
+
+    $notification = new PrintRequestCompletedNotification($printRequest);
+
+    expect($notification->afterCommit)->toBeTrue();
 });
 
 it('renders the magic login email with security guidance and a clear call to action', function () {
