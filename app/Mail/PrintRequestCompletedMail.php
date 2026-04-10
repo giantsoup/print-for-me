@@ -60,7 +60,7 @@ class PrintRequestCompletedMail extends Mailable
             with: [
                 'headline' => 'Your print request is complete',
                 'greeting' => PrintRequestMailData::greetingFor($this->notifiable),
-                'intro' => 'Your print request has been marked complete. Open the request to review the latest details and any completion photos that were added.',
+                'intro' => 'Your print request has been marked complete. Open the request any time to review the full details, original files, and any additional completion photos.',
                 'details' => PrintRequestMailData::requesterDetails($this->printRequest),
                 'instructions' => PrintRequestMailData::instructionsExcerpt($this->printRequest->instructions),
                 'nextSteps' => 'If you need to reference the original files or notes, they remain available from the request page.',

@@ -1,6 +1,14 @@
 <x-mail::message>
 # {{ $headline }}
 
+@if (filled($inlinePhotoData ?? null))
+## Completion preview
+
+<div class="inline-photo">
+    <img src="{{ $message->embedData($inlinePhotoData, $inlinePhotoFilename ?? 'completion-preview.jpg', $inlinePhotoMimeType ?? 'image/jpeg') }}" alt="{{ $inlinePhotoAlt ?? 'Completion preview' }}" class="inline-photo-image">
+</div>
+@endif
+
 {{ $greeting }}
 
 {{ $intro }}
@@ -15,14 +23,6 @@
 <p class="section-copy">
 {{ $instructions }}
 </p>
-@endif
-
-@if (filled($inlinePhotoData ?? null))
-## Completion preview
-
-<div class="inline-photo">
-    <img src="{{ $message->embedData($inlinePhotoData, $inlinePhotoFilename ?? 'completion-preview.jpg', $inlinePhotoMimeType ?? 'image/jpeg') }}" alt="{{ $inlinePhotoAlt ?? 'Completion preview' }}" class="inline-photo-image">
-</div>
 @endif
 
 @if (filled($nextSteps ?? null))

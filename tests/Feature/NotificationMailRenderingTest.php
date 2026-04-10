@@ -158,12 +158,15 @@ it('renders the completed request email with one inline completion photo when av
     ]);
 
     $mail = new PrintRequestCompletedMail($printRequest, $requester);
+    $html = $mail->render();
 
     $mail->assertHasSubject('[Print for Me] Your print request is complete');
     $mail->assertSeeInHtml('Completion preview');
     $mail->assertSeeInHtml('data:image/jpeg;base64');
     $mail->assertSeeInHtml('preview.jpg');
     $mail->assertSeeInText('Your print request is complete');
+
+    expect(mb_strpos($html, 'Completion preview'))->toBeLessThan(mb_strpos($html, 'Request overview'));
 });
 
 it('falls back to the next completion photo when the first stored photo is missing', function () {
