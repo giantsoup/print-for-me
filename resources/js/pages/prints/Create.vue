@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
-import { formatFileSize } from '@/lib/prints';
+import { formatDateOnly, formatFileSize, maskedDateToIso, maskDateInput, stripNonDigits } from '@/lib/prints';
 import { Head, useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Upload, WandSparkles } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -15,8 +15,9 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const form = useForm<{ source_url: string | null; instructions: string | null; files: File[] | null }>({
+const form = useForm<{ source_url: string | null; needed_by_date: string; instructions: string | null; files: File[] | null }>({
     source_url: '',
+    needed_by_date: '',
     instructions: '',
     files: [],
 });
@@ -38,7 +39,24 @@ const hasFiles = computed(() => fileCount.value > 0);
 const withinCount = computed(() => fileCount.value <= props.constraints.maxFiles);
 const withinTotal = computed(() => totalBytes.value <= props.constraints.maxTotalBytes);
 const hasSource = computed(() => hasUrl.value || hasFiles.value);
-const canSubmit = computed(() => withinCount.value && withinTotal.value && hasSource.value && !form.processing);
+const neededByDateDigits = computed(() => stripNonDigits(form.needed_by_date).length);
+const neededByDateIso = computed(() => maskedDateToIso(form.needed_by_date.trim()));
+const neededByDateClientError = computed(() => {
+    if (form.needed_by_date.trim() === '') {
+        return null;
+    }
+
+    if (neededByDateDigits.value < 8) {
+        return 'Finish the needed-by date as MM/DD/YYYY.';
+    }
+
+    if (!neededByDateIso.value) {
+        return 'Enter a real calendar date as MM/DD/YYYY.';
+    }
+
+    return null;
+});
+const canSubmit = computed(() => withinCount.value && withinTotal.value && hasSource.value && !neededByDateClientError.value && !form.processing);
 
 function submit() {
     if (!canSubmit.value) {
@@ -52,6 +70,15 @@ function submit() {
             form.reset();
         },
     });
+}
+
+function onNeededByDateInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const maskedValue = maskDateInput(input.value);
+
+    form.needed_by_date = maskedValue;
+    input.value = maskedValue;
+    form.clearErrors('needed_by_date');
 }
 </script>
 
@@ -120,6 +147,26 @@ function submit() {
                 </article>
 
                 <article class="luminous-panel px-5 py-5">
+                    <label for="needed_by_date" class="field-label">Needed By</label>
+                    <input
+                        id="needed_by_date"
+                        :value="form.needed_by_date"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="10"
+                        placeholder="MM/DD/YYYY"
+                        class="luminous-input"
+                        @input="onNeededByDateInput"
+                    />
+                    <p class="text-muted-soft mt-3 text-sm leading-6">
+                        Optional. Add this when the request is tied to an event, deadline, or pickup window.
+                    </p>
+                    <p v-if="neededByDateClientError || form.errors.needed_by_date" class="mt-2 text-sm text-rose-300">
+                        {{ neededByDateClientError || form.errors.needed_by_date }}
+                    </p>
+                </article>
+
+                <article class="luminous-panel px-5 py-5">
                     <label for="instructions" class="field-label">Instructions</label>
                     <textarea
                         id="instructions"
@@ -152,12 +199,19 @@ function submit() {
                                 {{ hasSource ? 'Ready' : 'Required' }}
                             </dd>
                         </div>
+                        <div class="flex items-center justify-between rounded-2xl bg-white/[0.04] px-4 py-4">
+                            <dt class="text-muted-soft text-sm">Needed by</dt>
+                            <dd class="text-right text-sm font-semibold text-white">
+                                {{ neededByDateIso ? formatDateOnly(neededByDateIso) : 'Flexible timing' }}
+                            </dd>
+                        </div>
                     </dl>
 
                     <div class="text-muted-soft mt-6 space-y-2 text-sm leading-6">
                         <p v-if="!withinCount">You have selected more than {{ props.constraints.maxFiles }} files.</p>
                         <p v-if="!withinTotal">The total upload size is above 50 MB.</p>
                         <p v-if="!hasSource">Add a source link or upload at least one file before submitting.</p>
+                        <p v-if="neededByDateClientError">{{ neededByDateClientError }}</p>
                     </div>
                 </article>
 

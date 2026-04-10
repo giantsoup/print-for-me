@@ -10,6 +10,7 @@ use App\Services\SourcePreviews\AttemptSourcePreview;
 use App\Support\FetchPrintRequestSourcePreview;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -54,6 +55,56 @@ it('creates a print request with only a source URL', function () {
         return $job->printRequestId === $response->json('id')
             && $job->sourceUrl === 'https://example.com/models/123';
     });
+});
+
+it('creates a print request with a valid masked needed-by date', function () {
+    $user = User::factory()->create();
+    actingAs($user);
+
+    $response = post(route('print-requests.store'), [
+        'source_url' => 'https://example.com/models/date-mask',
+        'needed_by_date' => '04/18/2026',
+    ], ['Accept' => 'application/json']);
+
+    $response->assertCreated();
+    expect($response->json('needed_by_date'))->toBe('2026-04-18');
+
+    assertDatabaseHas('print_requests', [
+        'id' => $response->json('id'),
+        'needed_by_date' => '2026-04-18',
+    ]);
+});
+
+it('creates a print request with a blank needed-by date', function () {
+    $user = User::factory()->create();
+    actingAs($user);
+
+    $response = post(route('print-requests.store'), [
+        'source_url' => 'https://example.com/models/blank-date',
+        'needed_by_date' => '',
+    ], ['Accept' => 'application/json']);
+
+    $response->assertCreated();
+    expect($response->json('needed_by_date'))->toBeNull();
+
+    assertDatabaseHas('print_requests', [
+        'id' => $response->json('id'),
+        'needed_by_date' => null,
+    ]);
+});
+
+it('rejects an invalid masked needed-by date on create', function () {
+    $user = User::factory()->create();
+    actingAs($user);
+
+    $response = post(route('print-requests.store'), [
+        'source_url' => 'https://example.com/models/bad-date',
+        'needed_by_date' => '02/30/2026',
+    ], ['Accept' => 'application/json']);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['needed_by_date'])
+        ->assertJsonPath('errors.needed_by_date.0', 'Enter the needed-by date as MM/DD/YYYY.');
 });
 
 it('requires at least one source (url or file) on create', function () {
@@ -214,6 +265,39 @@ it('lists only the authenticated user\'s print requests (non-admin)', function (
     expect(count($data))->toBe(2);
 });
 
+it('returns needed-by dates and urgency counts in the admin request board props', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+
+    $dated = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/dated',
+        'needed_by_date' => today()->addDay()->toDateString(),
+    ]);
+
+    PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::ACCEPTED,
+        'source_url' => 'https://example.com/no-date',
+        'needed_by_date' => null,
+    ]);
+
+    actingAs($admin);
+
+    get(route('print-requests.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('prints/Index')
+            ->where('items.data.0.id', $dated->id)
+            ->where('items.data.0.needed_by_date', today()->addDay()->toDateString())
+            ->where('filters.urgency', '')
+            ->where('urgencyCounts.all', 2)
+            ->where('urgencyCounts.due_soon', 1)
+            ->where('urgencyCounts.no_due_date', 1)
+        );
+});
+
 it('exposes available status actions on the request board for admins', function () {
     $admin = User::factory()->create(['is_admin' => true]);
     $owner = User::factory()->create();
@@ -314,6 +398,80 @@ it('prevents updating a non-pending request for non-admin users', function () {
     $response->assertStatus(403);
 });
 
+it('allows pending requests to add, change, and clear a needed-by date', function () {
+    $user = User::factory()->create();
+    $request = PrintRequest::create([
+        'user_id' => $user->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/pending-date',
+    ]);
+
+    actingAs($user);
+
+    patch(route('print-requests.update', $request), [
+        'needed_by_date' => '04/18/2026',
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('needed_by_date', '2026-04-18');
+
+    $request->refresh();
+    expect($request->needed_by_date?->format('Y-m-d'))->toBe('2026-04-18');
+
+    patch(route('print-requests.update', $request), [
+        'needed_by_date' => '04/25/2026',
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('needed_by_date', '2026-04-25');
+
+    $request->refresh();
+    expect($request->needed_by_date?->format('Y-m-d'))->toBe('2026-04-25');
+
+    patch(route('print-requests.update', $request), [
+        'needed_by_date' => '',
+    ], ['Accept' => 'application/json'])
+        ->assertOk()
+        ->assertJsonPath('needed_by_date', null);
+
+    $request->refresh();
+    expect($request->needed_by_date)->toBeNull();
+});
+
+it('prevents admins from changing the needed-by date on non-pending requests while allowing other edits', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+    $request = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::ACCEPTED,
+        'source_url' => 'https://example.com/admin-edit',
+        'instructions' => 'Original instructions.',
+        'needed_by_date' => '2026-04-18',
+    ]);
+
+    actingAs($admin);
+
+    patch(route('print-requests.update', $request), [
+        'instructions' => 'Updated without moving the due date.',
+        'needed_by_date' => '04/18/2026',
+    ], ['Accept' => 'application/json'])->assertOk();
+
+    $request->refresh();
+
+    expect($request->instructions)->toBe('Updated without moving the due date.')
+        ->and($request->needed_by_date?->format('Y-m-d'))->toBe('2026-04-18');
+
+    patch(route('print-requests.update', $request), [
+        'instructions' => 'This change should fail.',
+        'needed_by_date' => '04/25/2026',
+    ], ['Accept' => 'application/json'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['needed_by_date']);
+
+    $request->refresh();
+
+    expect($request->instructions)->toBe('Updated without moving the due date.')
+        ->and($request->needed_by_date?->format('Y-m-d'))->toBe('2026-04-18');
+});
+
 it('allows owner to soft delete a pending request', function () {
     $user = User::factory()->create();
     $req = PrintRequest::create([
@@ -386,6 +544,209 @@ it('can add and remove files on update while pending, and deduplicates same cont
 
     expect($storedDuplicate)->not->toBeNull()
         ->and(Storage::disk('local')->getVisibility($storedDuplicate->path))->toBe('private');
+});
+
+it('filters active requests due soon for admins', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+
+    $overdue = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PRINTING,
+        'source_url' => 'https://example.com/overdue',
+        'needed_by_date' => today()->subDay()->toDateString(),
+    ]);
+    $today = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/today',
+        'needed_by_date' => today()->toDateString(),
+    ]);
+    $withinWeek = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::ACCEPTED,
+        'source_url' => 'https://example.com/within-week',
+        'needed_by_date' => today()->addDays(7)->toDateString(),
+    ]);
+    PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/later',
+        'needed_by_date' => today()->addDays(8)->toDateString(),
+    ]);
+    PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/no-date',
+        'needed_by_date' => null,
+    ]);
+    PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::COMPLETE,
+        'source_url' => 'https://example.com/complete-due-soon',
+        'needed_by_date' => today()->addDays(2)->toDateString(),
+    ]);
+
+    actingAs($admin);
+
+    $response = get(route('print-requests.index', ['urgency' => 'due_soon']), ['Accept' => 'application/json']);
+
+    $response->assertOk();
+    expect(collect($response->json('data'))->pluck('id')->all())->toBe([
+        $overdue->id,
+        $today->id,
+        $withinWeek->id,
+    ]);
+});
+
+it('filters active requests with no due date for admins', function () {
+    $admin = User::factory()->create(['is_admin' => true]);
+    $owner = User::factory()->create();
+
+    $pendingNoDate = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/pending-no-date',
+        'needed_by_date' => null,
+    ]);
+    $acceptedNoDate = PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::ACCEPTED,
+        'source_url' => 'https://example.com/accepted-no-date',
+        'needed_by_date' => null,
+    ]);
+    PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::PRINTING,
+        'source_url' => 'https://example.com/dated-active',
+        'needed_by_date' => today()->addDay()->toDateString(),
+    ]);
+    PrintRequest::create([
+        'user_id' => $owner->id,
+        'status' => PrintRequestStatus::COMPLETE,
+        'source_url' => 'https://example.com/complete-no-date',
+        'needed_by_date' => null,
+    ]);
+
+    actingAs($admin);
+
+    $response = get(route('print-requests.index', ['urgency' => 'no_due_date']), ['Accept' => 'application/json']);
+
+    $response->assertOk();
+
+    expect(collect($response->json('data'))->pluck('id')->sort()->values()->all())
+        ->toBe(collect([$pendingNoDate->id, $acceptedNoDate->id])->sort()->values()->all());
+});
+
+it('ignores urgency filters for non-admin users', function () {
+    $user = User::factory()->create();
+    $other = User::factory()->create();
+
+    $ownDueSoon = PrintRequest::create([
+        'user_id' => $user->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/own-due-soon',
+        'needed_by_date' => today()->addDay()->toDateString(),
+    ]);
+    $ownNoDate = PrintRequest::create([
+        'user_id' => $user->id,
+        'status' => PrintRequestStatus::ACCEPTED,
+        'source_url' => 'https://example.com/own-no-date',
+        'needed_by_date' => null,
+    ]);
+    PrintRequest::create([
+        'user_id' => $other->id,
+        'status' => PrintRequestStatus::PENDING,
+        'source_url' => 'https://example.com/other-due-soon',
+        'needed_by_date' => today()->addDay()->toDateString(),
+    ]);
+
+    actingAs($user);
+
+    $response = get(route('print-requests.index', ['urgency' => 'due_soon']), ['Accept' => 'application/json']);
+
+    $response->assertOk();
+    expect(collect($response->json('data'))->pluck('id')->sort()->values()->all())
+        ->toBe(collect([$ownDueSoon->id, $ownNoDate->id])->sort()->values()->all());
+});
+
+it('prioritizes active dated work before undated active work and completed work on the admin board', function () {
+    Carbon::setTestNow('2026-04-10 12:00:00');
+
+    try {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $owner = User::factory()->create();
+
+        $createRequest = function (array $attributes, string $createdAt): PrintRequest {
+            $request = PrintRequest::create([
+                'user_id' => $attributes['user_id'],
+                'status' => $attributes['status'],
+                'source_url' => $attributes['source_url'],
+                'needed_by_date' => $attributes['needed_by_date'] ?? null,
+                'instructions' => $attributes['instructions'] ?? null,
+            ]);
+
+            $request->forceFill([
+                'created_at' => Carbon::parse($createdAt),
+                'updated_at' => Carbon::parse($createdAt),
+            ])->saveQuietly();
+
+            return $request->fresh();
+        };
+
+        $datedNewer = $createRequest([
+            'user_id' => $owner->id,
+            'status' => PrintRequestStatus::PRINTING,
+            'source_url' => 'https://example.com/dated-newer',
+            'needed_by_date' => '2026-04-11',
+        ], '2026-04-10 09:00:00');
+        $datedOlder = $createRequest([
+            'user_id' => $owner->id,
+            'status' => PrintRequestStatus::ACCEPTED,
+            'source_url' => 'https://example.com/dated-older',
+            'needed_by_date' => '2026-04-11',
+        ], '2026-04-10 07:00:00');
+        $datedLater = $createRequest([
+            'user_id' => $owner->id,
+            'status' => PrintRequestStatus::PENDING,
+            'source_url' => 'https://example.com/dated-later',
+            'needed_by_date' => '2026-04-16',
+        ], '2026-04-10 08:00:00');
+        $activeUndated = $createRequest([
+            'user_id' => $owner->id,
+            'status' => PrintRequestStatus::PENDING,
+            'source_url' => 'https://example.com/active-undated',
+            'needed_by_date' => null,
+        ], '2026-04-10 10:00:00');
+        $completeNewest = $createRequest([
+            'user_id' => $owner->id,
+            'status' => PrintRequestStatus::COMPLETE,
+            'source_url' => 'https://example.com/complete-newest',
+            'needed_by_date' => '2026-04-12',
+        ], '2026-04-10 11:00:00');
+        $completeOlder = $createRequest([
+            'user_id' => $owner->id,
+            'status' => PrintRequestStatus::COMPLETE,
+            'source_url' => 'https://example.com/complete-older',
+            'needed_by_date' => null,
+        ], '2026-04-10 06:00:00');
+
+        actingAs($admin);
+
+        $response = get(route('print-requests.index'), ['Accept' => 'application/json']);
+
+        $response->assertOk();
+        expect(collect($response->json('data'))->pluck('id')->all())->toBe([
+            $datedNewer->id,
+            $datedOlder->id,
+            $datedLater->id,
+            $activeUndated->id,
+            $completeNewest->id,
+            $completeOlder->id,
+        ]);
+    } finally {
+        Carbon::setTestNow();
+    }
 });
 
 it('clears stale source preview metadata and queues a refresh when the source url changes', function () {

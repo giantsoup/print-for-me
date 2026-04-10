@@ -21,4 +21,13 @@ final class PrintRequestStatus
             self::COMPLETE,
         ];
     }
+
+    public static function active(): array
+    {
+        return [
+            self::PENDING,
+            self::ACCEPTED,
+            self::PRINTING,
+        ];
+    }
 }

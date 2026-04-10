@@ -2,7 +2,7 @@
 import PrintRequestStateActions from '@/components/luminous/PrintRequestStateActions.vue';
 import StatusBadge from '@/components/luminous/StatusBadge.vue';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
-import { formatDateTime, type PrintRequestActionKey } from '@/lib/prints';
+import { differenceInCalendarDaysFromToday, formatDateOnly, formatDateTime, type PrintRequestActionKey } from '@/lib/prints';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ArrowRight, ScanSearch, Sparkles } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -23,6 +23,7 @@ interface PrintRequestItem {
     status: string;
     source_url?: string | null;
     instructions?: string | null;
+    needed_by_date?: string | null;
     created_at?: string;
     files?: PrintRequestFile[];
     files_count: number;
@@ -40,9 +41,10 @@ interface Props {
         links: { url: string | null; label: string; active: boolean }[];
     };
     isAdmin: boolean;
-    filters: { status?: string | null };
+    filters: { status?: string | null; urgency?: string | null };
     statuses: string[];
     statusCounts: Record<string, number>;
+    urgencyCounts?: Record<string, number> | null;
 }
 
 const props = defineProps<Props>();
@@ -56,19 +58,76 @@ const statusFilters = computed(() => [
         count: props.statusCounts[status] ?? 0,
     })),
 ]);
+const urgencyFilters = computed(() => [
+    { value: '', label: 'All', count: props.urgencyCounts?.all ?? props.items.total },
+    { value: 'due_soon', label: 'Due Soon', count: props.urgencyCounts?.due_soon ?? 0 },
+    { value: 'no_due_date', label: 'No Due Date', count: props.urgencyCounts?.no_due_date ?? 0 },
+]);
 const flashStatus = computed(() => page.props.flash?.status);
+const showUrgencyFilters = computed(() => props.isAdmin && (props.filters.status || '') !== 'complete');
 
 function filterByStatus(status: string | null) {
+    router.get(route('print-requests.index'), buildFilterQuery(status, status === 'complete' ? null : props.filters.urgency || null), {
+        preserveState: true,
+        preserveScroll: true,
+    });
+}
+
+function filterByUrgency(urgency: string | null) {
+    router.get(route('print-requests.index'), buildFilterQuery(props.filters.status || null, urgency), {
+        preserveState: true,
+        preserveScroll: true,
+    });
+}
+
+function buildFilterQuery(status: string | null, urgency: string | null) {
     const query: Record<string, string> = {};
 
     if (status) {
         query.status = status;
     }
 
-    router.get(route('print-requests.index'), query, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+    if (props.isAdmin && status !== 'complete' && urgency) {
+        query.urgency = urgency;
+    }
+
+    return query;
+}
+
+function adminUrgencyLabel(item: PrintRequestItem) {
+    if (!item.needed_by_date) {
+        return 'No due date';
+    }
+
+    const daysUntil = differenceInCalendarDaysFromToday(item.needed_by_date);
+
+    if (daysUntil !== null && daysUntil < 0) {
+        return `Overdue · ${formatDateOnly(item.needed_by_date)}`;
+    }
+
+    if (daysUntil !== null && daysUntil <= 7) {
+        return `Due soon · ${formatDateOnly(item.needed_by_date)}`;
+    }
+
+    return `Needed by ${formatDateOnly(item.needed_by_date)}`;
+}
+
+function adminUrgencyClass(item: PrintRequestItem) {
+    if (!item.needed_by_date) {
+        return 'text-white/42';
+    }
+
+    const daysUntil = differenceInCalendarDaysFromToday(item.needed_by_date);
+
+    if (daysUntil !== null && daysUntil < 0) {
+        return 'text-rose-300';
+    }
+
+    if (daysUntil !== null && daysUntil <= 7) {
+        return 'text-secondary';
+    }
+
+    return 'text-white/58';
 }
 </script>
 
@@ -110,22 +169,48 @@ function filterByStatus(status: string | null) {
                 </div>
             </div>
 
-            <div class="mt-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
-                <button
-                    v-for="filter in statusFilters"
-                    :key="filter.label"
-                    type="button"
-                    class="inline-flex min-h-12 w-full items-center justify-between gap-3 rounded-full px-4 py-3 text-sm font-semibold sm:w-auto sm:justify-start sm:px-5"
-                    :class="
-                        (props.filters.status || '') === filter.value
-                            ? 'bg-primary/12 text-primary'
-                            : 'bg-white/[0.05] text-white/68 hover:bg-white/[0.08] hover:text-white'
-                    "
-                    @click="filterByStatus(filter.value || null)"
-                >
-                    <span>{{ filter.label }}</span>
-                    <span class="shrink-0 rounded-full bg-black/20 px-2 py-0.5 text-[0.72rem]">{{ filter.count }}</span>
-                </button>
+            <div class="mt-6 space-y-4">
+                <div>
+                    <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/42 uppercase">Status</p>
+                    <div class="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
+                        <button
+                            v-for="filter in statusFilters"
+                            :key="filter.label"
+                            type="button"
+                            class="inline-flex min-h-12 w-full items-center justify-between gap-3 rounded-full px-4 py-3 text-sm font-semibold sm:w-auto sm:justify-start sm:px-5"
+                            :class="
+                                (props.filters.status || '') === filter.value
+                                    ? 'bg-primary/12 text-primary'
+                                    : 'bg-white/[0.05] text-white/68 hover:bg-white/[0.08] hover:text-white'
+                            "
+                            @click="filterByStatus(filter.value || null)"
+                        >
+                            <span>{{ filter.label }}</span>
+                            <span class="shrink-0 rounded-full bg-black/20 px-2 py-0.5 text-[0.72rem]">{{ filter.count }}</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="showUrgencyFilters">
+                    <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/42 uppercase">Scheduling</p>
+                    <div class="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2">
+                        <button
+                            v-for="filter in urgencyFilters"
+                            :key="filter.label"
+                            type="button"
+                            class="inline-flex min-h-12 w-full items-center justify-between gap-3 rounded-full px-4 py-3 text-sm font-semibold sm:w-auto sm:justify-start sm:px-5"
+                            :class="
+                                (props.filters.urgency || '') === filter.value
+                                    ? 'bg-secondary/12 text-secondary'
+                                    : 'bg-white/[0.05] text-white/68 hover:bg-white/[0.08] hover:text-white'
+                            "
+                            @click="filterByUrgency(filter.value || null)"
+                        >
+                            <span>{{ filter.label }}</span>
+                            <span class="shrink-0 rounded-full bg-black/20 px-2 py-0.5 text-[0.72rem]">{{ filter.count }}</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -144,11 +229,20 @@ function filterByStatus(status: string | null) {
                             {{ item.instructions || item.source_url || 'No extra notes were added to this request.' }}
                         </p>
 
+                        <p
+                            v-if="props.isAdmin"
+                            class="mt-4 text-sm font-medium"
+                            :class="adminUrgencyClass(item)"
+                        >
+                            {{ adminUrgencyLabel(item) }}
+                        </p>
+
                         <div
                             class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[0.72rem] font-semibold tracking-[0.18em] text-white/42 uppercase"
                         >
                             <span>{{ item.files_count }} {{ item.files_count === 1 ? 'file' : 'files' }}</span>
                             <span>{{ formatDateTime(item.created_at) }}</span>
+                            <span v-if="!props.isAdmin && item.needed_by_date">Needed by {{ formatDateOnly(item.needed_by_date) }}</span>
                             <span v-if="props.isAdmin && item.user">{{ item.user.name }}</span>
                         </div>
                     </div>

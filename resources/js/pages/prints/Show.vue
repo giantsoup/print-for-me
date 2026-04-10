@@ -2,7 +2,16 @@
 import PrintRequestStateActions from '@/components/luminous/PrintRequestStateActions.vue';
 import StatusBadge from '@/components/luminous/StatusBadge.vue';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
-import { formatDateOnly, formatDateTime, formatFileSize, type PrintRequestActionKey } from '@/lib/prints';
+import {
+    formatDateOnly,
+    formatDateTime,
+    formatFileSize,
+    isoDateToMaskedDisplay,
+    maskedDateToIso,
+    maskDateInput,
+    stripNonDigits,
+    type PrintRequestActionKey,
+} from '@/lib/prints';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ChevronDown, ChevronUp, Download, ExternalLink, LoaderCircle, Mail, RefreshCcw, SquarePen, Trash2, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -47,6 +56,7 @@ interface Props {
         source_preview_fetched_at?: string | null;
         source_preview_failed_at?: string | null;
         instructions?: string | null;
+        needed_by_date?: string | null;
         files: FileItem[];
         created_at: string;
         deleted_at?: string | null;
@@ -83,8 +93,9 @@ const isResendingCompletedNotice = ref(false);
 const isSendingCompletedNoticePreview = ref(false);
 const pickedFiles = ref<File[]>([]);
 
-const form = useForm<{ source_url: string | null; instructions: string | null; files: File[]; remove_file_ids: number[] }>({
+const form = useForm<{ source_url: string | null; needed_by_date: string; instructions: string | null; files: File[]; remove_file_ids: number[] }>({
     source_url: props.printRequest.source_url || '',
+    needed_by_date: isoDateToMaskedDisplay(props.printRequest.needed_by_date),
     instructions: props.printRequest.instructions || '',
     files: [],
     remove_file_ids: [],
@@ -129,13 +140,34 @@ const hasFilesAfter = computed(() => finalCount.value > 0);
 const withinCount = computed(() => finalCount.value <= props.constraints.maxFiles);
 const withinTotal = computed(() => finalSize.value <= props.constraints.maxTotalBytes);
 const hasSource = computed(() => hasUrlAfter.value || hasFilesAfter.value);
-const canSave = computed(() => isEditing.value && props.can.update && withinCount.value && withinTotal.value && hasSource.value && !form.processing);
+const canEditNeededByDate = computed(() => props.printRequest.status === 'pending');
+const neededByDateDigits = computed(() => stripNonDigits(form.needed_by_date).length);
+const neededByDateIso = computed(() => maskedDateToIso(form.needed_by_date.trim()));
+const neededByDateClientError = computed(() => {
+    if (!canEditNeededByDate.value || form.needed_by_date.trim() === '') {
+        return null;
+    }
+
+    if (neededByDateDigits.value < 8) {
+        return 'Finish the needed-by date as MM/DD/YYYY.';
+    }
+
+    if (!neededByDateIso.value) {
+        return 'Enter a real calendar date as MM/DD/YYYY.';
+    }
+
+    return null;
+});
+const canSave = computed(
+    () => isEditing.value && props.can.update && withinCount.value && withinTotal.value && hasSource.value && !neededByDateClientError.value && !form.processing,
+);
 const fileSignature = computed(() => props.printRequest.files.map((file) => `${file.id}:${file.original_name}`).join('|'));
 let sourceDescriptionResizeObserver: ResizeObserver | null = null;
 
 watch(
     () => [
         props.printRequest.source_url,
+        props.printRequest.needed_by_date,
         props.printRequest.instructions,
         fileSignature.value,
         props.printRequest.source_preview_fetched_at,
@@ -179,6 +211,15 @@ function onPickFiles(event: Event) {
     const list = input.files ? Array.from(input.files) : [];
     pickedFiles.value = list;
     form.files = list;
+}
+
+function onNeededByDateInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const maskedValue = maskDateInput(input.value);
+
+    form.needed_by_date = maskedValue;
+    input.value = maskedValue;
+    form.clearErrors('needed_by_date');
 }
 
 function toggleRemove(id: number, checked: boolean) {
@@ -297,6 +338,7 @@ function sendCompletedNoticePreview() {
 function resetFormState() {
     const defaults = {
         source_url: props.printRequest.source_url || '',
+        needed_by_date: isoDateToMaskedDisplay(props.printRequest.needed_by_date),
         instructions: props.printRequest.instructions || '',
         files: [],
         remove_file_ids: [],
@@ -535,6 +577,43 @@ function syncSourceDescriptionOverflow() {
                         </div>
 
                         <div>
+                            <label v-if="isEditing && canEditNeededByDate" for="needed_by_date" class="field-label">Needed By</label>
+                            <p v-else class="field-label">Needed By</p>
+
+                            <div v-if="isEditing && canEditNeededByDate" class="space-y-2">
+                                <input
+                                    id="needed_by_date"
+                                    :value="form.needed_by_date"
+                                    type="text"
+                                    inputmode="numeric"
+                                    maxlength="10"
+                                    placeholder="MM/DD/YYYY"
+                                    class="luminous-input"
+                                    @input="onNeededByDateInput"
+                                />
+                                <p class="text-muted-soft text-sm leading-6">
+                                    Optional. Use this when the request is connected to an event, deadline, or pickup date.
+                                </p>
+                                <p v-if="neededByDateClientError || form.errors.needed_by_date" class="text-sm text-rose-300">
+                                    {{ neededByDateClientError || form.errors.needed_by_date }}
+                                </p>
+                            </div>
+
+                            <div v-else class="rounded-[1.45rem] border border-white/6 bg-white/[0.035] px-4 py-4">
+                                <p class="text-sm leading-7 text-white/85">
+                                    {{ props.printRequest.needed_by_date ? formatDateOnly(props.printRequest.needed_by_date) : 'Flexible timing' }}
+                                </p>
+                                <p class="mt-2 text-sm leading-6 text-white/45">
+                                    {{
+                                        isEditing && !canEditNeededByDate
+                                            ? 'Needed-by date is locked once the request leaves pending.'
+                                            : 'Optional scheduling detail supplied by the requester.'
+                                    }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div>
                             <label v-if="isEditing" for="instructions" class="field-label">Request Details</label>
                             <p v-else class="field-label">Request Details</p>
 
@@ -672,6 +751,15 @@ function syncSourceDescriptionOverflow() {
                             <p class="mt-2 text-lg font-semibold tracking-tight text-white">{{ formatDateOnly(props.printRequest.created_at) }}</p>
                             <p class="mt-1 text-sm text-white/58">{{ formatDateTime(props.printRequest.created_at) }}</p>
                         </div>
+                        <div class="rounded-[1.35rem] bg-white/[0.04] px-4 py-4">
+                            <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/45 uppercase">Needed By</p>
+                            <p class="mt-2 text-lg font-semibold tracking-tight text-white">
+                                {{ props.printRequest.needed_by_date ? formatDateOnly(props.printRequest.needed_by_date) : 'Flexible timing' }}
+                            </p>
+                            <p class="mt-1 text-sm text-white/58">
+                                {{ props.printRequest.needed_by_date ? 'Date-only scheduling note' : 'No deadline was added to this request.' }}
+                            </p>
+                        </div>
                     </div>
                 </article>
 
@@ -759,6 +847,7 @@ function syncSourceDescriptionOverflow() {
                         <p v-if="!withinCount">This update exceeds the {{ props.constraints.maxFiles }} file limit.</p>
                         <p v-if="!withinTotal">This update would exceed the 50 MB total limit.</p>
                         <p v-if="!hasSource">Keep a source link or at least one file on the request.</p>
+                        <p v-if="neededByDateClientError">{{ neededByDateClientError }}</p>
                     </div>
                 </article>
 
@@ -811,7 +900,9 @@ function syncSourceDescriptionOverflow() {
                         </button>
                     </div>
 
-                    <p class="text-muted-soft mt-4 text-sm leading-6">Pending requests can be edited. Later changes are limited to admins.</p>
+                    <p class="text-muted-soft mt-4 text-sm leading-6">
+                        Pending requests can be edited. Later changes are limited to admins, and needed-by dates lock once work leaves pending.
+                    </p>
                 </article>
             </aside>
         </div>

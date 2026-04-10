@@ -12,6 +12,7 @@ use App\Notifications\PendingRequestCanceledByUserNotification;
 use App\Services\PrintRequests\DeleteStoredAssets;
 use App\Services\SourcePreviews\SourcePreviewDomainManager;
 use App\Support\FetchPrintRequestSourcePreview;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
@@ -21,6 +22,10 @@ use Inertia\Inertia;
 
 class PrintRequestController extends Controller
 {
+    private const string URGENCY_DUE_SOON = 'due_soon';
+
+    private const string URGENCY_NO_DUE_DATE = 'no_due_date';
+
     public function __construct(
         public SourcePreviewDomainManager $sourcePreviewDomains,
         public DeleteStoredAssets $deleteStoredAssets,
@@ -30,27 +35,39 @@ class PrintRequestController extends Controller
     {
         $user = $request->user();
         $isAdmin = (bool) ($user->is_admin ?? false);
-        $status = (string) $request->query('status', '');
+        $status = $this->normalizedStatusFilter((string) $request->query('status', ''));
+        $urgency = $this->normalizedUrgencyFilter((string) $request->query('urgency', ''), $isAdmin, $status);
         $baseQuery = PrintRequest::query();
 
         if (! $isAdmin) {
             $baseQuery->where('user_id', $user->id);
         }
 
-        $statusCounts = ['all' => (clone $baseQuery)->count()];
+        $statusCountsQuery = clone $baseQuery;
+
+        if ($urgency !== '') {
+            $this->applyUrgencyFilter($statusCountsQuery, $urgency);
+        }
+
+        $statusCounts = ['all' => (clone $statusCountsQuery)->count()];
 
         foreach (PrintRequestStatus::all() as $value) {
-            $statusCounts[$value] = (clone $baseQuery)->where('status', $value)->count();
+            $statusCounts[$value] = (clone $statusCountsQuery)->where('status', $value)->count();
         }
 
         $query = (clone $baseQuery)
             ->with(['files', 'user:id,name,email'])
-            ->withCount('files')
-            ->latest();
+            ->withCount('files');
 
-        if (in_array($status, PrintRequestStatus::all(), true)) {
+        if ($status !== '') {
             $query->where('status', $status);
         }
+
+        if ($urgency !== '') {
+            $this->applyUrgencyFilter($query, $urgency);
+        }
+
+        $this->applyIndexOrdering($query, $isAdmin, $status);
 
         $data = $query->paginate(20)
             ->through(function (PrintRequest $printRequest) use ($isAdmin) {
@@ -59,7 +76,10 @@ class PrintRequestController extends Controller
                     'availableStatusActions' => $printRequest->availableStatusActions($isAdmin),
                 ];
             })
-            ->withQueryString();
+            ->appends(array_filter([
+                'status' => $status,
+                'urgency' => $urgency,
+            ]));
 
         if ($request->wantsJson()) {
             return response()->json($data);
@@ -70,9 +90,11 @@ class PrintRequestController extends Controller
             'isAdmin' => $isAdmin,
             'filters' => [
                 'status' => $status,
+                'urgency' => $urgency,
             ],
             'statuses' => PrintRequestStatus::all(),
             'statusCounts' => $statusCounts,
+            'urgencyCounts' => $isAdmin ? $this->urgencyCounts(clone $baseQuery, $status) : null,
         ]);
     }
 
@@ -172,6 +194,7 @@ class PrintRequestController extends Controller
         $printRequest->status = PrintRequestStatus::PENDING;
         $printRequest->source_url = $sourceUrl;
         $printRequest->instructions = $request->input('instructions');
+        $printRequest->needed_by_date = $request->input('needed_by_date');
         $printRequest->save();
 
         $this->attachFiles($printRequest, $request->file('files', []));
@@ -200,6 +223,7 @@ class PrintRequestController extends Controller
         $print_request->fill([
             'source_url' => $sourceUrl,
             'instructions' => $request->input('instructions', $print_request->instructions),
+            'needed_by_date' => $request->input('needed_by_date', $print_request->needed_by_date?->format('Y-m-d')),
         ]);
 
         if ($sourceChanged) {
@@ -389,5 +413,84 @@ class PrintRequestController extends Controller
         $trimmed = trim($value);
 
         return $trimmed !== '' ? $trimmed : null;
+    }
+
+    private function normalizedStatusFilter(string $value): string
+    {
+        return in_array($value, PrintRequestStatus::all(), true) ? $value : '';
+    }
+
+    private function normalizedUrgencyFilter(string $value, bool $isAdmin, string $status): string
+    {
+        if (! $isAdmin || $status === PrintRequestStatus::COMPLETE) {
+            return '';
+        }
+
+        return in_array($value, [self::URGENCY_DUE_SOON, self::URGENCY_NO_DUE_DATE], true) ? $value : '';
+    }
+
+    private function applyUrgencyFilter(Builder $query, string $urgency): void
+    {
+        if ($urgency === self::URGENCY_DUE_SOON) {
+            $query
+                ->whereIn('status', PrintRequestStatus::active())
+                ->whereNotNull('needed_by_date')
+                ->whereDate('needed_by_date', '<=', today()->addDays(7));
+
+            return;
+        }
+
+        if ($urgency === self::URGENCY_NO_DUE_DATE) {
+            $query
+                ->whereIn('status', PrintRequestStatus::active())
+                ->whereNull('needed_by_date');
+        }
+    }
+
+    private function urgencyCounts(Builder $baseQuery, string $status): array
+    {
+        if ($status !== '') {
+            $baseQuery->where('status', $status);
+        }
+
+        $allCount = (clone $baseQuery)->count();
+        $dueSoonQuery = clone $baseQuery;
+        $noDueDateQuery = clone $baseQuery;
+
+        $this->applyUrgencyFilter($dueSoonQuery, self::URGENCY_DUE_SOON);
+        $this->applyUrgencyFilter($noDueDateQuery, self::URGENCY_NO_DUE_DATE);
+
+        return [
+            'all' => $allCount,
+            self::URGENCY_DUE_SOON => $dueSoonQuery->count(),
+            self::URGENCY_NO_DUE_DATE => $noDueDateQuery->count(),
+        ];
+    }
+
+    private function applyIndexOrdering(Builder $query, bool $isAdmin, string $status): void
+    {
+        if (! $isAdmin || $status === PrintRequestStatus::COMPLETE) {
+            $query->latest();
+
+            return;
+        }
+
+        $activeStatuses = PrintRequestStatus::active();
+        $placeholders = implode(', ', array_fill(0, count($activeStatuses), '?'));
+
+        $query
+            ->orderByRaw(
+                "case when status in ($placeholders) then 0 else 1 end",
+                $activeStatuses,
+            )
+            ->orderByRaw(
+                "case when status in ($placeholders) and needed_by_date is not null then 0 when status in ($placeholders) then 1 else 2 end",
+                [...$activeStatuses, ...$activeStatuses],
+            )
+            ->orderByRaw(
+                "case when status in ($placeholders) and needed_by_date is not null then needed_by_date end asc",
+                $activeStatuses,
+            )
+            ->orderByDesc('created_at');
     }
 }
