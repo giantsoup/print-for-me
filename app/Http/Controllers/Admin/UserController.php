@@ -194,11 +194,7 @@ class UserController extends Controller
         $user->fill($request->validated());
 
         if ($user->isDirty('email')) {
-            MagicLoginToken::query()
-                ->where('email', $originalEmail)
-                ->whereNull('used_at')
-                ->where('expires_at', '>', now())
-                ->update(['expires_at' => now()]);
+            MagicLoginToken::invalidateUnusedForEmail($originalEmail);
 
             $user->forceFill([
                 'email_verified_at' => null,

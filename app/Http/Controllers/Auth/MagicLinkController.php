@@ -73,10 +73,7 @@ class MagicLinkController extends Controller
         }
 
         // Soft-circuit: expire any prior unused, unexpired tokens for this email
-        MagicLoginToken::where('email', $email)
-            ->whereNull('used_at')
-            ->where('expires_at', '>', now())
-            ->update(['expires_at' => now()]);
+        MagicLoginToken::invalidateUnusedForEmail($email);
 
         // Generate token
         $raw = bin2hex(random_bytes(32));
@@ -112,7 +109,7 @@ class MagicLinkController extends Controller
             ]);
 
             // Signed URL validation with small tolerance
-            $tolerance = 30; // seconds
+            $tolerance = MagicLoginToken::EXPIRY_TOLERANCE_SECONDS;
             // In tests, do not enforce signature by default to keep tests simple, unless:
             //  - The request is actually signed (has a 'signature' parameter), or
             //  - Opted in via config('auth.enforce_signed_magic_in_tests') or X-Enforce-Signed-Magic header.
@@ -170,7 +167,17 @@ class MagicLinkController extends Controller
             }
 
             // Mark token used
-            $token->forceFill(['used_at' => now()])->save();
+            $claimed = MagicLoginToken::query()
+                ->whereKey($token->getKey())
+                ->whereNull('used_at')
+                ->where('expires_at', '>', now()->subSeconds($tolerance))
+                ->update(['used_at' => now()]);
+
+            if ($claimed !== 1) {
+                throw ValidationException::withMessages([
+                    'token' => 'This magic link is invalid or has expired.',
+                ]);
+            }
 
             // Login user and update timestamps
             if (! $user->email_verified_at) {

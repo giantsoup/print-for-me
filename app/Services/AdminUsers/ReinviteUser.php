@@ -21,11 +21,7 @@ class ReinviteUser
             ])->save();
         }
 
-        MagicLoginToken::query()
-            ->where('email', $subject->email)
-            ->whereNull('used_at')
-            ->where('expires_at', '>', now())
-            ->update(['expires_at' => now()]);
+        MagicLoginToken::invalidateUnusedForEmail($subject->email);
 
         $raw = bin2hex(random_bytes(32));
         $hash = hash('sha256', $raw);

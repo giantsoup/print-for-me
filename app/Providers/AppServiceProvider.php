@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Friendly, invite-only magic link limiter used by the send endpoint.
         RateLimiter::for('magic.send', function (Request $request) {
-            $email = (string) $request->input('email');
+            $email = strtolower(trim((string) $request->input('email')));
             $ip = (string) $request->ip();
             $key = $email.'|'.$ip;
 
