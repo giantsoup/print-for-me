@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Console\Scheduling\Schedule;
+use Symfony\Component\Yaml\Yaml;
 
 test('local private filesystem permissions stay group-shareable for background workers', function () {
     $localDisk = config('filesystems.disks.local');
@@ -27,22 +28,59 @@ test('workflow php versions stay aligned with composer requirements', function (
     }
 });
 
-test('node tooling stays aligned to the Node 24 line', function () {
+test('node and npm tooling stay aligned across local pins dependencies and workflows', function () {
     $package = json_decode(
         file_get_contents(base_path('package.json')),
         true,
         flags: JSON_THROW_ON_ERROR,
     );
 
-    expect(trim(file_get_contents(base_path('.nvmrc'))))->toBe('24');
-    expect(trim(file_get_contents(base_path('.node-version'))))->toBe('24');
-    expect($package['engines']['node'])->toBe('^24.14.0');
+    $lock = json_decode(
+        file_get_contents(base_path('package-lock.json')),
+        true,
+        flags: JSON_THROW_ON_ERROR,
+    );
+    $nodeVersion = trim(file_get_contents(base_path('.node-version')));
+    $nodeMajor = explode('.', $nodeVersion)[0];
+    $npmVersion = substr($package['packageManager'], strlen('npm@'));
+
+    expect($nodeVersion)->toMatch('/^26\.\d+\.\d+$/')
+        ->and(trim(file_get_contents(base_path('.nvmrc'))))->toBe($nodeVersion)
+        ->and($package['engines']['node'])->toBe('^'.$nodeVersion)
+        ->and($package['packageManager'])->toMatch('/^npm@12\.\d+\.\d+$/')
+        ->and($package['engines']['npm'])->toBe('^'.$npmVersion)
+        ->and($package['devDependencies']['@types/node'])->toStartWith('^'.$nodeMajor.'.')
+        ->and($lock['packages']['']['engines'])->toBe($package['engines'])
+        ->and($lock['packages']['node_modules/@types/node']['version'])->toStartWith($nodeMajor.'.');
 
     foreach ([
         '.github/workflows/tests.yml',
+        '.github/workflows/lint.yml',
         '.github/workflows/deploy.yml',
     ] as $workflow) {
-        expect(file_get_contents(base_path($workflow)))->toContain("node-version: '24'");
+        $configuration = Yaml::parseFile(base_path($workflow));
+        $nodeJobs = 0;
+
+        foreach ($configuration['jobs'] as $job) {
+            $steps = collect($job['steps']);
+            $setupNode = $steps->first(fn (array $step): bool => str_starts_with($step['uses'] ?? '', 'actions/setup-node@'));
+
+            if ($setupNode === null) {
+                continue;
+            }
+
+            $nodeJobs++;
+            $npmInstallation = $steps->search(fn (array $step): bool => str_contains($step['run'] ?? '', 'npm install --global')
+                && str_contains($step['run'], "require('./package.json').packageManager"));
+            $dependencyInstallation = $steps->search(fn (array $step): bool => str_contains($step['run'] ?? '', 'npm ci'));
+
+            expect($setupNode['with']['node-version-file'] ?? null)->toBe('.node-version')
+                ->and($npmInstallation)->toBeInt()
+                ->and($dependencyInstallation)->toBeInt()
+                ->and($npmInstallation)->toBeLessThan($dependencyInstallation);
+        }
+
+        expect($nodeJobs)->toBeGreaterThan(0);
     }
 });
 
