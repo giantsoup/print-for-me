@@ -7,8 +7,8 @@ import {
     formatDateTime,
     formatFileSize,
     isoDateToMaskedDisplay,
-    maskedDateToIso,
     maskDateInput,
+    maskedDateToIso,
     stripNonDigits,
     type PrintRequestActionKey,
 } from '@/lib/prints';
@@ -159,7 +159,14 @@ const neededByDateClientError = computed(() => {
     return null;
 });
 const canSave = computed(
-    () => isEditing.value && props.can.update && withinCount.value && withinTotal.value && hasSource.value && !neededByDateClientError.value && !form.processing,
+    () =>
+        isEditing.value &&
+        props.can.update &&
+        withinCount.value &&
+        withinTotal.value &&
+        hasSource.value &&
+        !neededByDateClientError.value &&
+        !form.processing,
 );
 const fileSignature = computed(() => props.printRequest.files.map((file) => `${file.id}:${file.original_name}`).join('|'));
 let sourceDescriptionResizeObserver: ResizeObserver | null = null;
