@@ -229,11 +229,7 @@ function adminUrgencyClass(item: PrintRequestItem) {
                             {{ item.instructions || item.source_url || 'No extra notes were added to this request.' }}
                         </p>
 
-                        <p
-                            v-if="props.isAdmin"
-                            class="mt-4 text-sm font-medium"
-                            :class="adminUrgencyClass(item)"
-                        >
+                        <p v-if="props.isAdmin" class="mt-4 text-sm font-medium" :class="adminUrgencyClass(item)">
                             {{ adminUrgencyLabel(item) }}
                         </p>
 

@@ -32,8 +32,11 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version-file: '.node-version'
           cache: npm
+
+      - name: Use project npm version
+        run: npm install --global "$(node -p "require('./package.json').packageManager")"
 
       - name: Install Node Dependencies
         run: npm ci

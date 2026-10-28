@@ -173,9 +173,5 @@ function resolveDateValue(value?: string | null) {
 function isValidCalendarDate(year: number, month: number, day: number) {
     const candidate = new Date(year, month - 1, day);
 
-    return (
-        candidate.getFullYear() === year
-        && candidate.getMonth() === month - 1
-        && candidate.getDate() === day
-    );
+    return candidate.getFullYear() === year && candidate.getMonth() === month - 1 && candidate.getDate() === day;
 }
