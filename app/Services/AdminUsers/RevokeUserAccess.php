@@ -16,11 +16,7 @@ class RevokeUserAccess
     public function __invoke(User $actor, User $subject): void
     {
         DB::transaction(function () use ($actor, $subject): void {
-            MagicLoginToken::query()
-                ->where('email', $subject->email)
-                ->whereNull('used_at')
-                ->where('expires_at', '>', now())
-                ->update(['expires_at' => now()]);
+            MagicLoginToken::invalidateUnusedForEmail($subject->email);
 
             $subject->forceFill([
                 'access_revoked_at' => now(),

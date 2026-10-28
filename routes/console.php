@@ -29,6 +29,8 @@ Artisan::command('auth:invite {email}', function (string $email) {
     $user->whitelisted_at = now();
     $user->save();
 
+    MagicLoginToken::invalidateUnusedForEmail($email);
+
     $raw = bin2hex(random_bytes(32));
     $hash = hash('sha256', $raw);
 
