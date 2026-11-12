@@ -193,6 +193,7 @@ class DatabaseSeeder extends Seeder
 
                 $this->logInfo('DatabaseSeeder complete.');
             });
+            $this->call(PrintQueueSeeder::class);
         } catch (Throwable $e) {
             $this->logError('Database seeding failed.', ['exception' => $e]);
             throw $e; // rethrow so artisan signals failure

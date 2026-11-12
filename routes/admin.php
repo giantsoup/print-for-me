@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\InviteController;
+use App\Http\Controllers\Admin\PrintQueueController;
+use App\Http\Controllers\Admin\PrintQueueItemStateController;
+use App\Http\Controllers\Admin\PrintQueuePlateController;
+use App\Http\Controllers\Admin\PrintQueuePlateStatusController;
 use App\Http\Controllers\Admin\PrintRequestSourcePreviewController;
 use App\Http\Controllers\Admin\PrintRequestStatusController;
 use App\Http\Controllers\Admin\SourcePreviewDomainController;
@@ -50,4 +54,23 @@ Route::group(['middleware' => ['auth', 'absolute', 'session_version', 'admin']],
         ->name('admin.source-preview-domains.attempt');
     Route::post('admin/source-preview-domains/{source_preview_domain}/attempt-url', [SourcePreviewDomainController::class, 'attemptUrl'])
         ->name('admin.source-preview-domains.attempt-url');
+    Route::get('admin/queue', [PrintQueueController::class, 'index'])->name('admin.print-queue.index');
+    Route::get('admin/queue/create', [PrintQueueController::class, 'create'])->name('admin.print-queue.create');
+    Route::post('admin/queue', [PrintQueueController::class, 'store'])->name('admin.print-queue.store');
+    Route::get('admin/queue/{print_queue_item}', [PrintQueueController::class, 'show'])->name('admin.print-queue.show');
+    Route::patch('admin/queue/{print_queue_item}', [PrintQueueController::class, 'update'])->name('admin.print-queue.update');
+    Route::delete('admin/queue/{print_queue_item}', [PrintQueueController::class, 'destroy'])->name('admin.print-queue.destroy');
+    Route::patch('admin/queue/{print_queue_item}/move', [PrintQueueItemStateController::class, 'move'])->name('admin.print-queue.move');
+    Route::patch('admin/queue/{print_queue_item}/complete', [PrintQueueItemStateController::class, 'complete'])->name('admin.print-queue.complete');
+    Route::patch('admin/queue/{print_queue_item}/reopen', [PrintQueueItemStateController::class, 'reopen'])->name('admin.print-queue.reopen');
+    Route::post('admin/queue/{print_queue_item}/plates', [PrintQueuePlateController::class, 'store'])->name('admin.print-queue.plates.store');
+    Route::patch('admin/queue/{print_queue_item}/plates/{plate}', [PrintQueuePlateController::class, 'update'])->scopeBindings()->name('admin.print-queue.plates.update');
+    Route::delete('admin/queue/{print_queue_item}/plates/{plate}', [PrintQueuePlateController::class, 'destroy'])->scopeBindings()->name('admin.print-queue.plates.destroy');
+    Route::patch('admin/queue/{print_queue_item}/plates/{plate}/move', [PrintQueuePlateController::class, 'move'])->scopeBindings()->name('admin.print-queue.plates.move');
+    Route::patch('admin/queue/{print_queue_item}/plates/{plate}/start', [PrintQueuePlateStatusController::class, 'start'])->scopeBindings()->name('admin.print-queue.plates.start');
+    Route::patch('admin/queue/{print_queue_item}/plates/{plate}/finish', [PrintQueuePlateStatusController::class, 'finish'])->scopeBindings()->name('admin.print-queue.plates.finish');
+    Route::patch('admin/queue/{print_queue_item}/plates/{plate}/fail', [PrintQueuePlateStatusController::class, 'fail'])->scopeBindings()->name('admin.print-queue.plates.fail');
+    Route::patch('admin/queue/{print_queue_item}/plates/{plate}/retry', [PrintQueuePlateStatusController::class, 'retry'])->scopeBindings()->name('admin.print-queue.plates.retry');
+    Route::patch('admin/queue/{print_queue_item}/plates/{plate}/requeue', [PrintQueuePlateStatusController::class, 'requeue'])->scopeBindings()->name('admin.print-queue.plates.requeue');
+    Route::patch('admin/queue/{print_queue_item}/plates/{plate}/reopen', [PrintQueuePlateStatusController::class, 'reopen'])->scopeBindings()->name('admin.print-queue.plates.reopen');
 });

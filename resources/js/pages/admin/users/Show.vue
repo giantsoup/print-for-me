@@ -599,7 +599,8 @@ function accessTone(value: string) {
                                     <DialogTitle>Permanently purge this account?</DialogTitle>
                                     <DialogDescription>
                                         This removes the account, all related print requests, all attached files, and all active magic-login links.
-                                        This cannot be undone.
+                                        Completed queue items are deleted. Active queue items and their plates stay in place, with requester names and
+                                        item notes cleared and request-generated titles replaced. This cannot be undone.
                                     </DialogDescription>
                                 </DialogHeader>
 

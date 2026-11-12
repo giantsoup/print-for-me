@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import BrandMark from '@/components/luminous/BrandMark.vue';
 import { Link, usePage } from '@inertiajs/vue3';
-import { FolderOpen, LayoutGrid, PlusSquare, Settings2, UserRound, Users } from 'lucide-vue-next';
+import { FolderOpen, LayoutGrid, ListOrdered, PlusSquare, Settings2, UserRound, Users } from 'lucide-vue-next';
 import { computed, useSlots } from 'vue';
 
-type NavKey = 'dashboard' | 'new' | 'requests' | 'users' | 'settings';
+type NavKey = 'dashboard' | 'queue' | 'new' | 'requests' | 'users' | 'settings';
 
 interface Props {
     title?: string;
@@ -33,6 +33,7 @@ const desktopNav = computed(() => {
     if (isAdmin.value) {
         return [
             { key: 'dashboard', label: 'Dashboard', href: route('dashboard') },
+            { key: 'queue', label: 'Queue', href: route('admin.print-queue.index') },
             { key: 'requests', label: 'Requests', href: route('print-requests.index') },
             { key: 'users', label: 'Users', href: route('admin.users.index') },
             { key: 'settings', label: 'Settings', href: route('profile.edit') },
@@ -50,7 +51,8 @@ const desktopNav = computed(() => {
 const dockNav = computed(() => {
     if (isAdmin.value) {
         return [
-            { key: 'dashboard', label: 'Dashboard', href: route('dashboard'), icon: LayoutGrid },
+            { key: 'dashboard', label: 'Home', href: route('dashboard'), icon: LayoutGrid },
+            { key: 'queue', label: 'Queue', href: route('admin.print-queue.index'), icon: ListOrdered },
             { key: 'requests', label: 'Requests', href: route('print-requests.index'), icon: FolderOpen },
             { key: 'users', label: 'Users', href: route('admin.users.index'), icon: Users },
             { key: 'settings', label: 'Settings', href: route('profile.edit'), icon: Settings2 },
@@ -65,6 +67,8 @@ const dockNav = computed(() => {
 });
 
 const containerClass = computed(() => (props.wide ? 'max-w-[88rem]' : 'max-w-6xl'));
+const dockContainerClass = computed(() => (dockNav.value.length > 4 ? 'gap-1 px-1.5' : 'gap-2 px-2'));
+const dockItemClass = computed(() => (dockNav.value.length > 4 ? 'min-w-0 flex-auto px-1 tracking-[0.06em]' : 'flex-1 px-2 tracking-[0.16em]'));
 </script>
 
 <template>
@@ -147,17 +151,21 @@ const containerClass = computed(() => (props.wide ? 'max-w-[88rem]' : 'max-w-6xl
             </main>
 
             <nav v-if="props.showDock" class="fixed inset-x-3 bottom-3 z-30 lg:hidden">
-                <div class="dock-surface mx-auto flex max-w-sm items-stretch justify-between gap-2 rounded-[1.6rem] border border-white/10 px-2 py-2">
+                <div
+                    class="dock-surface mx-auto flex max-w-sm items-stretch justify-between rounded-[1.6rem] border border-white/10 py-2"
+                    :class="dockContainerClass"
+                >
                     <Link
                         v-for="item in dockNav"
                         :key="item.key"
                         :href="item.href"
-                        class="flex min-h-12 flex-1 flex-col items-center justify-center gap-1 rounded-[1.1rem] px-2 py-2 text-[0.62rem] font-semibold tracking-[0.16em] text-white/45 uppercase"
-                        :class="
+                        class="flex min-h-12 flex-col items-center justify-center gap-1 rounded-[1.1rem] py-2 text-[0.62rem] font-semibold text-white/45 uppercase"
+                        :class="[
+                            dockItemClass,
                             item.key === props.activeNav
                                 ? 'bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(161,255,194,0.12)]'
-                                : 'hover:bg-white/[0.04] hover:text-white/80'
-                        "
+                                : 'hover:bg-white/[0.04] hover:text-white/80',
+                        ]"
                     >
                         <component :is="item.icon" class="h-4 w-4" />
                         <span>{{ item.label }}</span>

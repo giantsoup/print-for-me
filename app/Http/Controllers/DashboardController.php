@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Enums\PrintRequestStatus;
 use App\Models\PrintRequest;
+use App\Services\PrintQueue\PrintQueueOverview;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, PrintQueueOverview $queue): Response
     {
         $user = $request->user();
         $isAdmin = (bool) ($user->is_admin ?? false);
@@ -92,6 +93,7 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'isAdmin' => $isAdmin,
+            'queue' => $isAdmin ? $queue->dashboard() : null,
             'statusCounts' => $statusCounts,
             'recentRequests' => $recentRequests,
             'recentActivity' => $recentActivity,

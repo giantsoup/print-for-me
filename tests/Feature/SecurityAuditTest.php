@@ -1,7 +1,9 @@
 <?php
 
+use App\Enums\PrintQueuePlateStatus;
 use App\Enums\PrintRequestStatus;
 use App\Models\MagicLoginToken;
+use App\Models\PrintQueueItem;
 use App\Models\PrintRequest;
 use App\Models\SourcePreviewDomain;
 use App\Models\User;
@@ -178,6 +180,8 @@ it('blocks unprivileged actors from every administrative action without side eff
     $subject = User::factory()->create(['whitelisted_at' => now()]);
     $printRequest = PrintRequest::create(['user_id' => $subject->id, 'status' => PrintRequestStatus::PENDING]);
     $domain = SourcePreviewDomain::factory()->create();
+    $queueItem = PrintQueueItem::factory()->withPlates(1)->create();
+    $plate = $queueItem->plates->first();
     if ($actor === 'member') {
         $this->actingAs($member)->withSession(['sv' => $member->currentSessionVersion()]);
     }
@@ -199,11 +203,31 @@ it('blocks unprivileged actors from every administrative action without side eff
         ['PATCH', 'admin.source-preview-domains.update', [$domain]],
         ['POST', 'admin.source-preview-domains.attempt', [$domain]],
         ['POST', 'admin.source-preview-domains.attempt-url', [$domain]],
+        ['GET', 'admin.print-queue.index', []],
+        ['GET', 'admin.print-queue.create', []],
+        ['POST', 'admin.print-queue.store', []],
+        ['GET', 'admin.print-queue.show', [$queueItem]],
+        ['PATCH', 'admin.print-queue.update', [$queueItem]],
+        ['DELETE', 'admin.print-queue.destroy', [$queueItem]],
+        ['PATCH', 'admin.print-queue.move', [$queueItem]],
+        ['PATCH', 'admin.print-queue.complete', [$queueItem]],
+        ['PATCH', 'admin.print-queue.reopen', [$queueItem]],
+        ['POST', 'admin.print-queue.plates.store', [$queueItem]],
+        ['PATCH', 'admin.print-queue.plates.update', [$queueItem, $plate]],
+        ['DELETE', 'admin.print-queue.plates.destroy', [$queueItem, $plate]],
+        ['PATCH', 'admin.print-queue.plates.move', [$queueItem, $plate]],
+        ['PATCH', 'admin.print-queue.plates.start', [$queueItem, $plate]],
+        ['PATCH', 'admin.print-queue.plates.finish', [$queueItem, $plate]],
+        ['PATCH', 'admin.print-queue.plates.fail', [$queueItem, $plate]],
+        ['PATCH', 'admin.print-queue.plates.retry', [$queueItem, $plate]],
+        ['PATCH', 'admin.print-queue.plates.requeue', [$queueItem, $plate]],
+        ['PATCH', 'admin.print-queue.plates.reopen', [$queueItem, $plate]],
     ];
 
     foreach ($actions as [$method, $name, $parameters]) {
         $this->json($method, route($name, $parameters), [
             'name' => 'Unauthorized update', 'email' => 'unauthorized@example.com',
+            'title' => 'Blocked', 'direction' => 'top', 'plates' => [['name' => 'x']],
             'confirm_email' => $subject->email, 'confirm_purge' => true, 'policy' => 'allow', 'url' => 'https://example.com/model',
         ])->assertStatus($actor === 'member' ? 403 : 401);
     }
@@ -213,6 +237,9 @@ it('blocks unprivileged actors from every administrative action without side eff
         ->and($printRequest->fresh()->status)->toBe(PrintRequestStatus::PENDING);
     $this->assertDatabaseCount('users', 2);
     $this->assertDatabaseCount('admin_user_events', 0);
+    expect($plate->fresh()->status)->toBe(PrintQueuePlateStatus::Queued);
+    $this->assertDatabaseCount('print_queue_items', 1);
+    $this->assertDatabaseCount('print_queue_plates', 1);
     $this->assertDatabaseCount('magic_login_tokens', 0);
     Notification::assertNothingSent();
     Http::assertNothingSent();
