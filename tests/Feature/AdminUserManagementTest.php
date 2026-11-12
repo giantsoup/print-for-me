@@ -4,6 +4,7 @@ use App\Enums\PrintRequestStatus;
 use App\Http\Middleware\EnforceAbsoluteSession;
 use App\Models\AdminUserEvent;
 use App\Models\MagicLoginToken;
+use App\Models\PrintQueueItem;
 use App\Models\PrintRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginLinkNotification;
@@ -466,6 +467,46 @@ it('permanently purges a deleted user and their related data while preserving th
     $event = AdminUserEvent::where('event', 'user_purged')->latest()->first();
     expect($event)->not->toBeNull()
         ->and($event?->metadata['subject']['email'] ?? null)->toBe('purge@example.com');
+});
+
+it('scrubs active queue items and deletes completed ones when purging a requester', function () {
+    $admin = adminUser();
+    $subject = User::factory()->create();
+    $request = PrintRequest::factory()->for($subject, 'user')->create([
+        'source_preview' => ['title' => 'Private source title'],
+        'instructions' => 'Private instructions',
+    ]);
+    $before = PrintQueueItem::factory()->withPlates(1)->create();
+    $active = PrintQueueItem::factory()->linkedTo($request)->withPlates(2)->create([
+        'title' => 'Private source title',
+        'notes' => $request->instructions,
+    ]);
+    $printingPlate = $active->plates[0];
+    $printingPlate->forceFill(['status' => 'printing', 'printer_slot' => 1])->save();
+    $completed = PrintQueueItem::factory()->linkedTo($request)->completed()->withPlates(1)->create();
+    $completedPlateId = $completed->plates[0]->id;
+    $after = PrintQueueItem::factory()->withPlates(1)->create();
+
+    actingAs($admin);
+    delete(route('admin.users.destroy', $subject))->assertRedirect();
+    delete(route('admin.users.purge', ['user' => $subject->id]), [
+        'confirm_email' => $subject->email,
+        'confirm_purge' => true,
+    ])->assertRedirect(route('admin.users.index'));
+
+    assertDatabaseMissing('print_requests', ['id' => $request->id]);
+    assertDatabaseMissing('print_queue_items', ['id' => $completed->id]);
+    assertDatabaseMissing('print_queue_plates', ['id' => $completedPlateId]);
+    expect($active->fresh())
+        ->print_request_id->toBeNull()
+        ->for_whom->toBeNull()
+        ->notes->toBeNull()
+        ->title->toBe('Untitled print')
+        ->position->toBe(2)
+        ->and($active->plates()->count())->toBe(2)
+        ->and($printingPlate->fresh()->status->value)->toBe('printing')
+        ->and($printingPlate->fresh()->printer_slot)->toBe(1)
+        ->and([$before->fresh()->position, $after->fresh()->position])->toBe([1, 3]);
 });
 
 it('lets admins manage deleted and active requests from the user workspace flow', function () {

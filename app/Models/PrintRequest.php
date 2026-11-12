@@ -45,6 +45,11 @@ class PrintRequest extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function queueItems(): HasMany
+    {
+        return $this->hasMany(PrintQueueItem::class);
+    }
+
     public function files(): HasMany
     {
         return $this->hasMany(PrintRequestFile::class);

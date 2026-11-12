@@ -5,10 +5,12 @@ use App\Models\PrintRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginLinkNotification;
 use App\Notifications\PrintRequestSoftDeletedPurgeWarningNotification;
+use App\Services\PrintQueue\DetachPrintRequestFromQueue;
 use App\Services\PrintRequests\DeleteStoredAssets;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -175,9 +177,12 @@ Artisan::command('prints:purge-soft-deleted', function () {
                     $filesMissing = $missingBefore;
                 }
 
-                $pr->files()->delete();
-                $pr->completionPhotos()->delete();
-                $pr->forceDelete();
+                DB::transaction(function () use ($pr): void {
+                    app(DetachPrintRequestFromQueue::class)->handle($pr);
+                    $pr->files()->delete();
+                    $pr->completionPhotos()->delete();
+                    $pr->forceDelete();
+                });
             }
         });
 

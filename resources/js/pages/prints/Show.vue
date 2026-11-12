@@ -13,7 +13,20 @@ import {
     type PrintRequestActionKey,
 } from '@/lib/prints';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, ChevronDown, ChevronUp, Download, ExternalLink, LoaderCircle, Mail, RefreshCcw, SquarePen, Trash2, X } from 'lucide-vue-next';
+import {
+    ArrowLeft,
+    ChevronDown,
+    ChevronUp,
+    Download,
+    ExternalLink,
+    ListOrdered,
+    LoaderCircle,
+    Mail,
+    RefreshCcw,
+    SquarePen,
+    Trash2,
+    X,
+} from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface FileItem {
@@ -66,6 +79,7 @@ interface Props {
         } | null;
     };
     completionPhotos: CompletionPhoto[];
+    queueItem: { id: number; position: number | null; completed_at: string | null } | null;
     sourcePreviewPolicy?: 'allow' | 'block' | null;
     can: {
         update: boolean;
@@ -789,6 +803,33 @@ function syncSourceDescriptionOverflow() {
                             :actions="props.availableStatusActions"
                             :completion-photo-constraints="props.completionPhotoConstraints"
                         />
+                    </div>
+
+                    <div
+                        v-if="props.queueItem || (!props.printRequest.deleted_at && props.printRequest.status !== 'complete')"
+                        class="mt-6 rounded-[1.35rem] border border-primary/12 bg-primary/[0.05] px-4 py-4"
+                    >
+                        <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Print Queue</p>
+                        <template v-if="props.queueItem">
+                            <p class="mt-2 text-sm leading-6 text-white/72">
+                                {{
+                                    props.queueItem.completed_at ? 'Printed through the queue.' : 'In the queue at #' + props.queueItem.position + '.'
+                                }}
+                            </p>
+                            <Link
+                                :href="route('admin.print-queue.show', props.queueItem.id)"
+                                class="pill-button pill-button-secondary mt-4 w-full justify-center"
+                                ><ListOrdered class="h-4 w-4" /> Open queue item</Link
+                            >
+                        </template>
+                        <template v-else>
+                            <p class="mt-2 text-sm leading-6 text-white/72">Plan this request's plates in the print queue.</p>
+                            <Link
+                                :href="route('admin.print-queue.create', { print_request: props.printRequest.id })"
+                                class="pill-button pill-button-secondary mt-4 w-full justify-center"
+                                ><ListOrdered class="h-4 w-4" /> Add to queue</Link
+                            >
+                        </template>
                     </div>
 
                     <div

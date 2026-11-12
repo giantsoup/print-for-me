@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import PrintQueueSlotCard from '@/components/luminous/PrintQueueSlotCard.vue';
 import StatusBadge from '@/components/luminous/StatusBadge.vue';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { formatDateTime, formatRelative } from '@/lib/prints';
-import { Head, Link } from '@inertiajs/vue3';
-import { ArrowRight, Clock3, FolderOpen, Layers3, ScanSearch, Sparkles, UserPlus2 } from 'lucide-vue-next';
+import { remainingLabel, type QueueSlot, type QueueTotals } from '@/lib/queue';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { ArrowRight, Clock3, FolderOpen, Layers3, ListOrdered, ScanSearch, Sparkles, UserPlus2 } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface DashboardRequest {
@@ -34,6 +36,7 @@ interface ActivityItem {
 
 interface Props {
     isAdmin: boolean;
+    queue: { nowPrinting: QueueSlot | null; upNext: QueueSlot | null; totals: QueueTotals } | null;
     statusCounts: Record<string, number>;
     recentRequests: DashboardRequest[];
     recentActivity: ActivityItem[];
@@ -52,6 +55,9 @@ function summarizeRequest(requestItem: DashboardRequest): string {
 
     return `${summary.slice(0, 117).trimEnd()}...`;
 }
+
+const page = usePage();
+const flashStatus = computed(() => page.props.flash?.status);
 
 const metricCards = computed(() => {
     if (props.isAdmin) {
@@ -100,6 +106,28 @@ const metricCards = computed(() => {
             </Link>
         </template>
 
+        <div v-if="flashStatus" class="mb-6 rounded-[1.45rem] border border-primary/12 bg-primary/10 px-5 py-4 text-sm text-primary">
+            {{ flashStatus }}
+        </div>
+
+        <section v-if="props.isAdmin && props.queue" class="mb-5 grid gap-3 lg:mb-6 lg:grid-cols-2 lg:gap-4">
+            <PrintQueueSlotCard
+                :kind="props.queue.nowPrinting ? 'now' : 'next'"
+                v-bind="{ slot: props.queue.nowPrinting ?? props.queue.upNext }"
+                :printer-busy="props.queue.nowPrinting !== null"
+            />
+            <PrintQueueSlotCard
+                :kind="props.queue.nowPrinting ? 'next' : 'now'"
+                v-bind="{ slot: props.queue.nowPrinting ? props.queue.upNext : null }"
+                :printer-busy="props.queue.nowPrinting !== null"
+            />
+        </section>
+        <Link
+            v-if="props.isAdmin && props.queue"
+            :href="route('admin.print-queue.index')"
+            class="mb-5 block text-sm font-medium text-white/65 hover:text-white"
+            >Open queue · {{ remainingLabel(props.queue.totals.remaining_minutes, props.queue.totals.unestimated_plates) }}</Link
+        >
         <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <article v-for="card in metricCards" :key="card.label" class="luminous-panel px-4 py-4 text-center sm:px-5 sm:py-5">
                 <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/42 uppercase">{{ card.label }}</p>
@@ -184,6 +212,9 @@ const metricCards = computed(() => {
                     <FolderOpen class="h-5 w-5 text-secondary" />
                 </div>
                 <div class="mt-4 grid gap-3 sm:mt-6">
+                    <Link :href="route('admin.print-queue.index')" class="pill-button pill-button-secondary w-full justify-between"
+                        >Print queue <ListOrdered class="h-4 w-4"
+                    /></Link>
                     <Link :href="route('print-requests.index')" class="pill-button pill-button-secondary w-full justify-between">
                         Review requests
                         <ArrowRight class="h-4 w-4" />

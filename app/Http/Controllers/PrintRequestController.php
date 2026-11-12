@@ -6,15 +6,20 @@ use App\Enums\PrintRequestStatus;
 use App\Http\Requests\Admin\CompletePrintRequestRequest;
 use App\Http\Requests\StorePrintRequestRequest;
 use App\Http\Requests\UpdatePrintRequestRequest;
+use App\Models\PrintQueueItem;
 use App\Models\PrintRequest;
 use App\Notifications\NewPrintRequestNotification;
 use App\Notifications\PendingRequestCanceledByUserNotification;
+use App\Services\PrintQueue\DetachPrintRequestFromQueue;
 use App\Services\PrintRequests\DeleteStoredAssets;
 use App\Services\SourcePreviews\SourcePreviewDomainManager;
 use App\Support\FetchPrintRequestSourcePreview;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -29,6 +34,7 @@ class PrintRequestController extends Controller
     public function __construct(
         public SourcePreviewDomainManager $sourcePreviewDomains,
         public DeleteStoredAssets $deleteStoredAssets,
+        private DetachPrintRequestFromQueue $detachPrintRequestFromQueue,
     ) {}
 
     public function index(Request $request)
@@ -160,6 +166,7 @@ class PrintRequestController extends Controller
         $user = $request->user();
 
         return Inertia::render('prints/Show', [
+            'queueItem' => $user?->is_admin ? $this->queueItem($print_request) : null,
             'printRequest' => $print_request,
             'completionPhotos' => $completionPhotos,
             'sourcePreviewPolicy' => $print_request->source_url
@@ -297,7 +304,7 @@ class PrintRequestController extends Controller
         return back()->with('status', 'Print request restored.');
     }
 
-    public function forceDestroy(Request $request, $id)
+    public function forceDestroy(Request $request, int $id): JsonResponse|RedirectResponse
     {
         // Find including soft-deleted rows
         $print_request = PrintRequest::withTrashed()->findOrFail($id);
@@ -307,16 +314,27 @@ class PrintRequestController extends Controller
 
         $this->deleteStoredAssets->handle($print_request);
 
-        $print_request->files()->delete();
-        $print_request->completionPhotos()->delete();
-
-        $print_request->forceDelete();
+        DB::transaction(function () use ($print_request): void {
+            $this->detachPrintRequestFromQueue->handle($print_request);
+            $print_request->files()->delete();
+            $print_request->completionPhotos()->delete();
+            $print_request->forceDelete();
+        });
 
         if ($request->wantsJson()) {
             return response()->json(['status' => 'force-deleted']);
         }
 
         return redirect()->route('print-requests.index')->with('status', 'Print request permanently deleted.');
+    }
+
+    private function queueItem(PrintRequest $printRequest): ?PrintQueueItem
+    {
+        return $printRequest->queueItems()
+            ->orderByRaw('completed_at IS NOT NULL')
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->first(['id', 'position', 'completed_at']);
     }
 
     private function attachFiles(PrintRequest $printRequest, array $files): void

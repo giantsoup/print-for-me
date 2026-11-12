@@ -2,6 +2,7 @@
 
 use App\Enums\PrintRequestStatus;
 use App\Models\MagicLoginToken;
+use App\Models\PrintQueueItem;
 use App\Models\PrintRequest;
 use App\Models\User;
 use App\Notifications\PrintRequestSoftDeletedPurgeWarningNotification;
@@ -54,6 +55,42 @@ it('purges files for completed requests older than 90 days', function () {
     expect(Storage::disk('local')->exists($photoPath))->toBeFalse();
     expect($pr->files()->count())->toBe(0);
     expect($pr->completionPhotos()->count())->toBe(0);
+});
+
+it('scrubs active queue items and deletes completed ones during request retention purges', function () {
+    $request = PrintRequest::factory()->create(['instructions' => 'Private instructions']);
+    $active = PrintQueueItem::factory()->linkedTo($request)->withPlates(2)->create([
+        'title' => 'Request #'.$request->id,
+        'notes' => $request->instructions,
+    ]);
+    $plate = $active->plates[0];
+    $plate->forceFill(['status' => 'printing', 'printer_slot' => 1])->save();
+    $completed = PrintQueueItem::factory()->linkedTo($request)->completed()->withPlates(1)->create();
+    $completedPlateId = $completed->plates[0]->id;
+    $other = PrintQueueItem::factory()->withPlates(1)->create(['position' => 4]);
+    $recentRequest = PrintRequest::factory()->create();
+    $recentItem = PrintQueueItem::factory()->linkedTo($recentRequest)->create(['notes' => 'Keep this']);
+    $request->delete();
+    $request->forceFill(['deleted_at' => now()->subDays(95)])->save();
+    $recentRequest->delete();
+
+    artisan('prints:purge-soft-deleted')->assertExitCode(0);
+
+    assertDatabaseMissing('print_requests', ['id' => $request->id]);
+    assertDatabaseMissing('print_queue_items', ['id' => $completed->id]);
+    assertDatabaseMissing('print_queue_plates', ['id' => $completedPlateId]);
+    expect($active->fresh())
+        ->print_request_id->toBeNull()
+        ->for_whom->toBeNull()
+        ->notes->toBeNull()
+        ->title->toBe('Untitled print')
+        ->position->toBe(1)
+        ->and($active->plates()->count())->toBe(2)
+        ->and($plate->fresh()->status->value)->toBe('printing')
+        ->and($plate->fresh()->printer_slot)->toBe(1)
+        ->and($other->fresh()->position)->toBe(2)
+        ->and($recentItem->fresh()->print_request_id)->toBe($recentRequest->id)
+        ->and($recentItem->fresh()->notes)->toBe('Keep this');
 });
 
 it('permanently deletes soft-deleted requests older than 90 days and their files', function () {

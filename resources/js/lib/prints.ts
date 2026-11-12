@@ -175,3 +175,18 @@ function isValidCalendarDate(year: number, month: number, day: number) {
 
     return candidate.getFullYear() === year && candidate.getMonth() === month - 1 && candidate.getDate() === day;
 }
+
+export function neededByUrgency(value?: string | null): { label: string; tone: string } {
+    const days = differenceInCalendarDaysFromToday(value);
+    if (days === null) {
+        return { label: 'No due date', tone: 'text-white/42' };
+    }
+    const date = formatDateOnly(value);
+    if (days < 0) {
+        return { label: 'Overdue · ' + date, tone: 'text-rose-300' };
+    }
+    if (days <= 7) {
+        return { label: 'Due soon · ' + date, tone: 'text-secondary' };
+    }
+    return { label: 'Needed by ' + date, tone: 'text-white/58' };
+}

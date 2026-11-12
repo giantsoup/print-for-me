@@ -1,13 +1,46 @@
 <?php
 
+use App\Http\Middleware\EnforceAbsoluteSession;
+use App\Models\PrintQueueItem;
 use App\Models\PrintRequest;
 use App\Models\PrintRequestFile;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('guests are redirected to the login page', function () {
     $response = $this->get('/dashboard');
     $response->assertRedirect('/login');
+});
+
+it('builds the dashboard queue without reading completed queue items', function () {
+    $this->withoutMiddleware(EnforceAbsoluteSession::class);
+    $admin = User::factory()->create(['is_admin' => true]);
+    $active = PrintQueueItem::factory()->withPlates(2)->create();
+    $active->plates[0]->update(['estimated_minutes' => 60]);
+    $active->plates[1]->update(['estimated_minutes' => null]);
+    PrintQueueItem::factory()->completed()->withPlates(1)->create();
+
+    DB::enableQueryLog();
+    try {
+        $this->actingAs($admin)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+            ->where('queue.upNext.item.id', $active->id)
+            ->where('queue.totals.active_items', 1)
+            ->where('queue.totals.remaining_plates', 2)
+            ->where('queue.totals.remaining_minutes', 60)
+            ->where('queue.totals.unestimated_plates', 1)
+            ->missing('queue.items')->missing('queue.doneItems'));
+        $queries = collect(DB::getQueryLog())->pluck('query')
+            ->filter(fn (string $query): bool => str_contains($query, 'print_queue_items'));
+    } finally {
+        DB::disableQueryLog();
+        DB::flushQueryLog();
+    }
+
+    expect($queries)->not->toBeEmpty();
+    foreach ($queries as $query) {
+        expect($query)->not->toContain('"completed_at" is not null');
+    }
 });
 
 test('authenticated users can visit the dashboard', function () {
@@ -82,6 +115,15 @@ test('dashboard only shows the signed in user queue summary and activity', funct
             ->where('recentActivity.1.title', 'Request submitted')
             ->where('recentActivity.1.request_id', $pendingRequest->id)
         );
+});
+
+it('shows the next queued plate and totals only to admins', function () {
+    $this->withoutMiddleware([EnforceAbsoluteSession::class]);
+    $item = PrintQueueItem::factory()->withPlates(2)->create();
+    $item->plates[0]->update(['status' => 'failed']);
+    $admin = User::factory()->create(['is_admin' => true]);
+    $this->actingAs($admin)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('queue.upNext.plate.id', $item->plates[1]->id)->where('queue.nowPrinting', null)->where('queue.totals.active_items', 1));
+    $this->actingAs(User::factory()->create())->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('queue', null));
 });
 
 test('users promoted with the make admin command receive admin dashboard props', function () {
