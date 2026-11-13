@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin\PrintQueue;
 
+use App\Models\PrintQueueItem;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 class StorePrintQueueItemRequest extends UpdatePrintQueueItemRequest
@@ -11,7 +12,7 @@ class StorePrintQueueItemRequest extends UpdatePrintQueueItemRequest
     {
         return [...parent::rules(),
             'add_to_top' => ['sometimes', 'boolean'],
-            'plates' => ['required', 'array', 'list', 'min:1', 'max:50'],
+            'plates' => ['required', 'array', 'list', 'min:1', 'max:'.PrintQueueItem::MAX_PLATES],
             'plates.*.name' => ['required', 'string', 'max:120'],
             'plates.*.estimated_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
             'plates.*.filament' => ['nullable', 'string', 'max:160'],
@@ -27,7 +28,7 @@ class StorePrintQueueItemRequest extends UpdatePrintQueueItemRequest
             'plates.array' => 'Add plates as a list.',
             'plates.list' => 'Add plates as a list.',
             'plates.min' => 'Add at least one plate.',
-            'plates.max' => 'Add up to 50 plates.',
+            'plates.max' => 'Add up to '.PrintQueueItem::MAX_PLATES.' plates.',
             'plates.*.name.required' => 'Name every plate.',
             'plates.*.name.string' => 'Enter a plate name as text.',
             'plates.*.name.max' => 'Keep plate names to 120 characters.',

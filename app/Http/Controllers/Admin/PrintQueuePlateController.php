@@ -29,7 +29,10 @@ class PrintQueuePlateController extends Controller
             if (! $item->isActive()) {
                 throw ValidationException::withMessages(['plate' => 'Reopen this item before adding plates.']);
             }
-            $item->plates()->create($request->validated() + ['position' => (int) $item->plates()->max('position') + 1]);
+            if ($item->plates()->count() >= PrintQueueItem::MAX_PLATES) {
+                throw ValidationException::withMessages(['plate' => 'An item can have up to '.PrintQueueItem::MAX_PLATES.' plates.']);
+            }
+            $item->plates()->make($request->validated())->forceFill(['position' => (int) $item->plates()->max('position') + 1])->save();
         });
 
         return $this->respond($request, $print_queue_item, 'Plate added.');

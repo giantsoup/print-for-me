@@ -8,6 +8,8 @@ use App\Models\PrintQueueItem;
 use App\Models\PrintQueuePlate;
 use App\Models\PrintRequest;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PrintQueueOverview
 {
@@ -17,12 +19,13 @@ class PrintQueueOverview
      *     upNext: ?array,
      *     items: array,
      *     doneItems: array,
+     *     doneCount: int,
      *     totals: array{active_items: int, remaining_plates: int, remaining_minutes: int, unestimated_plates: int}
      * }
      */
     public function build(): array
     {
-        $items = PrintQueueItem::query()->active()->with(['plates', 'printRequest.user:id,name'])->orderBy('position')->orderBy('id')->get();
+        $items = PrintQueueItem::query()->active()->with(['plates', ...$this->requesterRelation()])->orderBy('position')->orderBy('id')->get();
         $printerBusy = PrintQueuePlate::query()->where('status', PrintQueuePlateStatus::Printing->value)->exists();
         $nowPrinting = null;
         $upNext = null;
@@ -40,7 +43,7 @@ class PrintQueueOverview
             }
             $presented[] = $this->presentItem($item, printerBusy: $printerBusy);
         }
-        $done = PrintQueueItem::query()->completed()->with('printRequest.user:id,name')->withCount('plates');
+        $done = PrintQueueItem::query()->completed()->with($this->requesterRelation())->withCount('plates');
         foreach (PrintQueuePlateStatus::cases() as $status) {
             $done->withCount(['plates as '.$status->value.'_count' => fn (Builder $query): Builder => $query->where('status', $status->value)]);
         }
@@ -57,6 +60,7 @@ class PrintQueueOverview
             'upNext' => $upNext,
             'items' => $presented,
             'doneItems' => $doneItems,
+            'doneCount' => PrintQueueItem::query()->completed()->count(),
             'totals' => [
                 'active_items' => count($presented),
                 'remaining_plates' => array_sum(array_map(fn (array $item): int => $item['plate_counts']['total'] - $item['plate_counts']['done'], $presented)),
@@ -70,6 +74,7 @@ class PrintQueueOverview
      * @return array{
      *     nowPrinting: ?array,
      *     upNext: ?array,
+     *     awaitingCompletion: array{count: int, requests: list<array{id: int, user_name: ?string, item_id: int, item_title: string}>},
      *     totals: array{active_items: int, remaining_plates: int, remaining_minutes: int, unestimated_plates: int}
      * }
      */
@@ -86,7 +91,28 @@ class PrintQueueOverview
             ->selectRaw('COUNT(*) as remaining_plates, SUM(estimated_minutes) as remaining_minutes, COUNT(*) - COUNT(estimated_minutes) as unestimated_plates')
             ->first();
 
+        $awaitingCompletion = PrintRequest::query()->where('status', '!=', PrintRequestStatus::COMPLETE)
+            ->whereHas('queueItems', fn (Builder $query): Builder => $query->completed())
+            ->whereDoesntHave('queueItems', fn (Builder $query): Builder => $query->active());
+        $awaitingCount = (clone $awaitingCompletion)->count();
+        $awaitingRequests = $awaitingCompletion->with([
+            ...$this->userRelation(),
+            'queueItems' => fn (HasMany $query): HasMany => $query
+                ->select(['id', 'print_request_id', 'title'])->reorder()->latest('completed_at')->latest('id')->limit(1),
+        ])->latest('updated_at')->latest('id')->limit(3)->get()
+            ->map(function (PrintRequest $request): array {
+                $item = $request->queueItems->first();
+
+                return [
+                    'id' => $request->id,
+                    'user_name' => $request->user?->name,
+                    'item_id' => $item->id,
+                    'item_title' => $item->title,
+                ];
+            })->all();
+
         return [
+            'awaitingCompletion' => ['count' => $awaitingCount, 'requests' => $awaitingRequests],
             'nowPrinting' => $printing !== null ? $this->presentSlot($printing, $printerBusy) : null,
             'upNext' => $next !== null ? $this->presentSlot($next, $printerBusy) : null,
             'totals' => [
@@ -129,7 +155,7 @@ class PrintQueueOverview
     public function presentItem(PrintQueueItem $item, bool $withPlates = true, ?bool $printerBusy = null): array
     {
         $printerBusy ??= PrintQueuePlate::query()->where('status', PrintQueuePlateStatus::Printing->value)->exists();
-        $item->loadMissing('printRequest.user:id,name');
+        $item->loadMissing($this->requesterRelation());
         if ($withPlates) {
             $item->loadMissing('plates');
         }
@@ -222,6 +248,18 @@ class PrintQueueOverview
         ];
     }
 
+    /** @return array<string, \Closure> */
+    public function requesterRelation(): array
+    {
+        return ['printRequest.user' => fn (BelongsTo $query): BelongsTo => $query->withTrashed()->select(['id', 'name'])];
+    }
+
+    /** @return array<string, \Closure> */
+    public function userRelation(): array
+    {
+        return ['user' => fn (BelongsTo $query): BelongsTo => $query->withTrashed()->select(['id', 'name'])];
+    }
+
     /** @return list<array{id: int, label: string, user_name: ?string}> */
     public function linkableRequests(?PrintQueueItem $except = null, ?PrintRequest $include = null): array
     {
@@ -231,9 +269,9 @@ class PrintQueueOverview
                 if ($except !== null) {
                     $query->whereKeyNot($except->id);
                 }
-            })->with('user:id,name')->latest()->orderByDesc('id')->limit(100)->get();
+            })->with($this->userRelation())->latest()->orderByDesc('id')->limit(100)->get();
         if ($except?->print_request_id && ! $requests->contains('id', $except->print_request_id)) {
-            $current = $except->printRequest()->with('user:id,name')->first();
+            $current = $except->printRequest()->with($this->userRelation())->first();
             if ($current !== null) {
                 $requests->prepend($current);
             }
@@ -244,7 +282,7 @@ class PrintQueueOverview
 
         return $requests->map(fn (PrintRequest $request): array => [
             'id' => $request->id,
-            'label' => 'Request #'.$request->id.' · '.$request->user?->name.' · '.ucfirst($request->status),
+            'label' => implode(' · ', array_filter(['Request #'.$request->id, $request->user?->name, ucfirst($request->status)])),
             'user_name' => $request->user?->name,
         ])->all();
     }

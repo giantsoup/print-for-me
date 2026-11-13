@@ -5,7 +5,7 @@ import { Link, router } from '@inertiajs/vue3';
 import { ArrowRight, Check, CircleX, LoaderCircle, Play, Undo2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
-const props = defineProps<{ kind: 'now' | 'next'; slot: QueueSlot | null; printerBusy: boolean }>();
+const props = defineProps<{ kind: 'now' | 'next'; entry: QueueSlot | null; printerBusy: boolean }>();
 const activeAction = ref<PlateActionKey | null>(null);
 const errors = ref<Record<string, string>>({});
 const actions = computed(() =>
@@ -24,13 +24,13 @@ const actions = computed(() =>
 );
 
 function runAction(action: PlateActionKey): void {
-    if (!props.slot || activeAction.value !== null) {
+    if (!props.entry || activeAction.value !== null) {
         return;
     }
     activeAction.value = action;
     errors.value = {};
     router.patch(
-        route('admin.print-queue.plates.' + action, { print_queue_item: props.slot.item.id, plate: props.slot.plate.id }),
+        route('admin.print-queue.plates.' + action, { print_queue_item: props.entry.item.id, plate: props.entry.plate.id }),
         {},
         {
             preserveScroll: true,
@@ -50,16 +50,16 @@ function runAction(action: PlateActionKey): void {
         <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">
             {{ props.kind === 'now' ? 'Now printing' : 'Up next' }}
         </p>
-        <template v-if="props.slot">
-            <h2 class="mt-2 text-xl font-semibold tracking-tight text-white sm:mt-3 sm:font-display sm:text-2xl">{{ props.slot.plate.name }}</h2>
-            <p class="text-muted-soft text-sm">{{ props.slot.item.title }}</p>
+        <template v-if="props.entry">
+            <h2 class="mt-2 text-xl font-semibold tracking-tight text-white sm:mt-3 sm:font-display sm:text-2xl">{{ props.entry.plate.name }}</h2>
+            <p class="text-muted-soft text-sm">{{ props.entry.item.title }}</p>
             <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[0.68rem] tracking-[0.16em] text-white/42 uppercase">
-                <span v-if="props.slot.item.for_whom">For {{ props.slot.item.for_whom }}</span>
-                <span>{{ props.slot.plate.estimated_minutes === null ? 'Unestimated' : formatMinutes(props.slot.plate.estimated_minutes) }}</span>
-                <span v-if="props.kind === 'now'">Started {{ formatRelative(props.slot.plate.started_at) }}</span>
+                <span v-if="props.entry.item.for_whom">For {{ props.entry.item.for_whom }}</span>
+                <span>{{ props.entry.plate.estimated_minutes === null ? 'Unestimated' : formatMinutes(props.entry.plate.estimated_minutes) }}</span>
+                <span v-if="props.kind === 'now'">Started {{ formatRelative(props.entry.plate.started_at) }}</span>
             </div>
-            <p class="mt-3 text-sm font-medium" :class="neededByUrgency(props.slot.item.needed_by_date).tone">
-                {{ neededByUrgency(props.slot.item.needed_by_date).label }}
+            <p class="mt-3 text-sm font-medium" :class="neededByUrgency(props.entry.item.needed_by_date).tone">
+                {{ neededByUrgency(props.entry.item.needed_by_date).label }}
             </p>
             <div class="mt-4 grid gap-2 sm:flex sm:flex-wrap">
                 <template v-if="props.kind === 'now' || !props.printerBusy">
@@ -78,7 +78,7 @@ function runAction(action: PlateActionKey): void {
                     </button>
                 </template>
                 <p v-else class="text-muted-soft text-sm">Finish the current plate first.</p>
-                <Link :href="route('admin.print-queue.show', props.slot.item.id)" class="pill-button pill-button-secondary w-full justify-between"
+                <Link :href="route('admin.print-queue.show', props.entry.item.id)" class="pill-button pill-button-secondary w-full justify-between"
                     >Open item <ArrowRight class="h-4 w-4"
                 /></Link>
             </div>

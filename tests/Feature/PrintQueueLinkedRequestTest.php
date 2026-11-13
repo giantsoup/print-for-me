@@ -77,3 +77,39 @@ it('distinguishes manual completion from finishing all plates in the flash', fun
     expect($item->fresh()->completed_at)->not->toBeNull()
         ->and($item->plates[0]->fresh()->status->value)->toBe('queued');
 })->with([false, true]);
+
+it('moves a request accepted after the first start to printing when the item completes', function () {
+    Notification::fake();
+    $request = PrintRequest::factory()->create(['status' => 'pending']);
+    $item = PrintQueueItem::factory()->linkedTo($request)->withPlates(1)->create();
+    $plate = $item->plates[0];
+    $this->patch(route('admin.print-queue.plates.start', [$item, $plate]))
+        ->assertSessionHasNoErrors()->assertSessionHas('status', fn (string $message): bool => str_contains($message, 'still pending'));
+    $request->forceFill(['status' => 'accepted'])->save();
+    $this->patch(route('admin.print-queue.plates.finish', [$item, $plate]))
+        ->assertSessionHasNoErrors()->assertSessionHas('status', fn (string $message): bool => str_contains($message, 'Open request #'.$request->id));
+    expect($request->fresh()->status)->toBe('printing');
+    Notification::assertNothingSent();
+});
+
+it('keeps a pending request pending on manual completion and explains the next step', function () {
+    Notification::fake();
+    $request = PrintRequest::factory()->create(['status' => 'pending']);
+    $item = PrintQueueItem::factory()->linkedTo($request)->withPlates(1)->create();
+    $this->patch(route('admin.print-queue.complete', $item))
+        ->assertSessionHasNoErrors()->assertSessionHas('status', fn (string $message): bool => str_contains($message, 'still pending') && str_contains($message, 'then mark it complete'));
+    expect($request->fresh()->status)->toBe('pending');
+    Notification::assertNothingSent();
+});
+
+it('uses soft-deleted requester names in completion notes', function () {
+    Notification::fake();
+    $request = PrintRequest::factory()->create(['status' => 'accepted']);
+    $user = $request->user;
+    $user->delete();
+    $item = PrintQueueItem::factory()->linkedTo($request)->withPlates(1)->create();
+    $this->patch(route('admin.print-queue.complete', $item))
+        ->assertSessionHasNoErrors()->assertSessionHas('status', fn (string $message): bool => str_contains($message, 'notify '.$user->name));
+    expect($request->fresh()->status)->toBe('printing');
+    Notification::assertNothingSent();
+});

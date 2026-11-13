@@ -3,7 +3,7 @@ import PrintQueueSlotCard from '@/components/luminous/PrintQueueSlotCard.vue';
 import StatusBadge from '@/components/luminous/StatusBadge.vue';
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { formatDateTime, formatRelative } from '@/lib/prints';
-import { remainingLabel, type QueueSlot, type QueueTotals } from '@/lib/queue';
+import { remainingLabel, type QueueAwaitingCompletion, type QueueSlot, type QueueTotals } from '@/lib/queue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ArrowRight, Clock3, FolderOpen, Layers3, ListOrdered, ScanSearch, Sparkles, UserPlus2 } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -36,7 +36,7 @@ interface ActivityItem {
 
 interface Props {
     isAdmin: boolean;
-    queue: { nowPrinting: QueueSlot | null; upNext: QueueSlot | null; totals: QueueTotals } | null;
+    queue: { nowPrinting: QueueSlot | null; upNext: QueueSlot | null; totals: QueueTotals; awaitingCompletion: QueueAwaitingCompletion } | null;
     statusCounts: Record<string, number>;
     recentRequests: DashboardRequest[];
     recentActivity: ActivityItem[];
@@ -113,15 +113,36 @@ const metricCards = computed(() => {
         <section v-if="props.isAdmin && props.queue" class="mb-5 grid gap-3 lg:mb-6 lg:grid-cols-2 lg:gap-4">
             <PrintQueueSlotCard
                 :kind="props.queue.nowPrinting ? 'now' : 'next'"
-                v-bind="{ slot: props.queue.nowPrinting ?? props.queue.upNext }"
+                :entry="props.queue.nowPrinting ?? props.queue.upNext"
                 :printer-busy="props.queue.nowPrinting !== null"
             />
             <PrintQueueSlotCard
                 :kind="props.queue.nowPrinting ? 'next' : 'now'"
-                v-bind="{ slot: props.queue.nowPrinting ? props.queue.upNext : null }"
+                :entry="props.queue.nowPrinting ? props.queue.upNext : null"
                 :printer-busy="props.queue.nowPrinting !== null"
             />
         </section>
+        <div
+            v-if="props.isAdmin && props.queue && props.queue.awaitingCompletion.count > 0"
+            class="mb-5 rounded-[1.35rem] border border-primary/12 bg-primary/[0.05] px-4 py-4 lg:mb-6"
+        >
+            <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Ready to complete</p>
+            <p class="mt-2 text-sm leading-6 text-white/72">These prints are done. Mark each request complete to notify the requester.</p>
+            <div class="mt-4 grid gap-3">
+                <Link
+                    v-for="request in props.queue.awaitingCompletion.requests"
+                    :key="request.id"
+                    :href="route('print-requests.show', request.id)"
+                    class="pill-button pill-button-secondary w-full justify-between"
+                >
+                    <span>Request #{{ request.id }}{{ request.user_name ? ' · ' + request.user_name : '' }}</span>
+                    <ArrowRight class="h-4 w-4" />
+                </Link>
+            </div>
+            <p v-if="props.queue.awaitingCompletion.count > props.queue.awaitingCompletion.requests.length" class="text-muted-soft mt-3 text-sm">
+                + {{ props.queue.awaitingCompletion.count - props.queue.awaitingCompletion.requests.length }} more waiting to be completed.
+            </p>
+        </div>
         <Link
             v-if="props.isAdmin && props.queue"
             :href="route('admin.print-queue.index')"

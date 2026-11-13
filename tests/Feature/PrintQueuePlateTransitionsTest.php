@@ -112,7 +112,7 @@ it('uses readable plate transition flashes', function (string $initial, string $
 it('capitalizes unavailable actions and uses lowercase status', function () {
     $item = PrintQueueItem::factory()->withPlates(1)->create();
     $plate = $item->plates[0];
-    $plate->update(['status' => 'done']);
+    $plate->forceFill(['status' => 'done'])->save();
 
     $this->patchJson(route('admin.print-queue.plates.start', [$item, $plate]))
         ->assertUnprocessable()->assertJsonPath('errors.status.0', 'Start is not available for a done plate.');
@@ -170,7 +170,7 @@ it('blocks starts and additions on completed items', function () {
 it('auto-completes the last finished plate but not when failed plates remain', function (bool $failed) {
     $item = PrintQueueItem::factory()->withPlates(2)->create();
     $other = PrintQueueItem::factory()->withPlates(1)->create();
-    $item->plates[0]->update(['status' => $failed ? 'failed' : 'done']);
+    $item->plates[0]->forceFill(['status' => $failed ? 'failed' : 'done'])->save();
     $plate = $item->plates[1];
     $plate->forceFill(['status' => 'printing', 'printer_slot' => 1, 'started_at' => now()])->save();
     $this->patchJson(route('admin.print-queue.plates.finish', [$item, $plate]))->assertOk();
@@ -179,7 +179,7 @@ it('auto-completes the last finished plate but not when failed plates remain', f
 
 it('protects the last plate and auto-completes when deleting unfinished leftovers', function () {
     $item = PrintQueueItem::factory()->withPlates(2)->create();
-    $item->plates[0]->update(['status' => 'done']);
+    $item->plates[0]->forceFill(['status' => 'done'])->save();
     $this->deleteJson(route('admin.print-queue.plates.destroy', [$item, $item->plates[1]]))->assertOk();
     expect($item->fresh()->completed_at)->not->toBeNull();
     $this->deleteJson(route('admin.print-queue.plates.destroy', [$item, $item->plates[0]]))->assertJsonValidationErrors('plate');
@@ -201,4 +201,15 @@ it('adds and edits plate metadata without changing protected state', function ()
     $this->patchJson(route('admin.print-queue.plates.update', [$item, $plate]), ['name' => 'Renamed', 'estimated_minutes' => 65, 'filament' => 'PETG', 'notes' => 'Slow'])->assertOk();
     expect($plate->fresh()->name)->toBe('Renamed')->and($plate->fresh()->notes)->toBe('Slow');
     $this->patchJson(route('admin.print-queue.plates.update', [$item, $plate]), ['name' => '', 'estimated_minutes' => 10081])->assertJsonValidationErrors(['name', 'estimated_minutes']);
+});
+
+it('caps added plates at the item limit', function () {
+    $full = PrintQueueItem::factory()->withPlates(50)->create();
+    $this->postJson(route('admin.print-queue.plates.store', $full), ['name' => 'Extra'])
+        ->assertUnprocessable()->assertJsonValidationErrors(['plate' => 'An item can have up to 50 plates.']);
+    expect($full->plates()->count())->toBe(50);
+
+    $item = PrintQueueItem::factory()->withPlates(49)->create();
+    $this->postJson(route('admin.print-queue.plates.store', $item), ['name' => 'Extra'])->assertOk();
+    expect($item->plates()->count())->toBe(50);
 });

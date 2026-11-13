@@ -12,6 +12,7 @@ const props = defineProps<{
     upNext: QueueSlot | null;
     items: QueueItem[];
     doneItems: QueueItem[];
+    doneCount: number;
     totals: QueueTotals;
 }>();
 const page = usePage();
@@ -72,8 +73,8 @@ function move(id: number, direction: MoveDirection): void {
             {{ flashStatus }}
         </div>
         <section class="grid gap-3 lg:grid-cols-2">
-            <PrintQueueSlotCard kind="now" v-bind="{ slot: props.nowPrinting }" :printer-busy="props.nowPrinting !== null" />
-            <PrintQueueSlotCard kind="next" v-bind="{ slot: props.upNext }" :printer-busy="props.nowPrinting !== null" />
+            <PrintQueueSlotCard kind="now" :entry="props.nowPrinting" :printer-busy="props.nowPrinting !== null" />
+            <PrintQueueSlotCard kind="next" :entry="props.upNext" :printer-busy="props.nowPrinting !== null" />
         </section>
         <section class="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
             <article v-for="total in totals" :key="total.label" class="luminous-panel px-3 py-3 text-center sm:px-5 sm:py-4">
@@ -155,7 +156,7 @@ function move(id: number, direction: MoveDirection): void {
                 @click="isDoneOpen = !isDoneOpen"
             >
                 <div class="space-y-1">
-                    <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/42 uppercase">Done · {{ props.doneItems.length }}</p>
+                    <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-white/42 uppercase">Done · {{ props.doneCount }}</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <span
@@ -180,6 +181,9 @@ function move(id: number, direction: MoveDirection): void {
                         >Request #{{ item.linked_request.id }} still needs completing</Link
                     >
                 </article>
+                <p v-if="props.doneCount > props.doneItems.length" class="text-muted-soft text-sm">
+                    Showing the latest {{ props.doneItems.length }}.
+                </p>
                 <p v-if="!props.doneItems.length" class="text-muted-soft text-sm">No completed items yet.</p>
             </div>
         </section>

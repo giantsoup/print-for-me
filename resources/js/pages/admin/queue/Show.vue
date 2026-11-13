@@ -13,6 +13,7 @@ import {
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { isoDateToMaskedDisplay, maskDateInput, maskedDateToIso, neededByUrgency, stripNonDigits } from '@/lib/prints';
 import {
+    autofillForWhom,
     formatMinutes,
     joinMinutes,
     plateStatusLabel,
@@ -97,10 +98,14 @@ watch(
         }
     },
 );
+const nameFor = (id: number | null | undefined): string | null =>
+    props.linkableRequests.find((request) => request.id === id)?.user_name ??
+    (id === props.item.linked_request?.id ? props.item.linked_request?.user_name : null) ??
+    null;
 watch(
     () => form.print_request_id,
-    (id) => {
-        if (!form.for_whom.trim()) form.for_whom = props.linkableRequests.find((request) => request.id === id)?.user_name ?? '';
+    (id, previousId) => {
+        form.for_whom = autofillForWhom(form.for_whom, nameFor(previousId), nameFor(id));
     },
 );
 function onDateInput(event: Event): void {
@@ -274,10 +279,10 @@ function runItem(action: ItemOperation): void {
                                         class="h-4 w-4"
                                     />{{ actionMap[action].label }}
                                 </button>
-                                <div class="grid grid-cols-4 gap-2">
+                                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
                                     <button
                                         type="button"
-                                        class="pill-button pill-button-secondary min-w-0 flex-col px-3 disabled:cursor-not-allowed disabled:opacity-45 sm:flex-row"
+                                        class="pill-button pill-button-secondary min-w-0 px-3 disabled:cursor-not-allowed disabled:opacity-45"
                                         :disabled="plateForm.processing"
                                         @click="beginEdit(plate)"
                                     >
@@ -285,7 +290,7 @@ function runItem(action: ItemOperation): void {
                                     </button>
                                     <button
                                         type="button"
-                                        class="pill-button pill-button-secondary min-w-0 flex-col px-3 disabled:cursor-not-allowed disabled:opacity-45 sm:flex-row"
+                                        class="pill-button pill-button-secondary min-w-0 px-3 disabled:cursor-not-allowed disabled:opacity-45"
                                         :disabled="index === 0 || pendingPlateAction !== null"
                                         @click="runPlate(plate, 'up')"
                                     >
@@ -294,7 +299,7 @@ function runItem(action: ItemOperation): void {
                                     </button>
                                     <button
                                         type="button"
-                                        class="pill-button pill-button-secondary min-w-0 flex-col px-3 disabled:cursor-not-allowed disabled:opacity-45 sm:flex-row"
+                                        class="pill-button pill-button-secondary min-w-0 px-3 disabled:cursor-not-allowed disabled:opacity-45"
                                         :disabled="index === plates.length - 1 || pendingPlateAction !== null"
                                         @click="runPlate(plate, 'down')"
                                     >
@@ -303,7 +308,7 @@ function runItem(action: ItemOperation): void {
                                     </button>
                                     <button
                                         type="button"
-                                        class="pill-button pill-button-secondary min-w-0 flex-col px-3 disabled:cursor-not-allowed disabled:opacity-45 sm:flex-row"
+                                        class="pill-button pill-button-secondary min-w-0 px-3 disabled:cursor-not-allowed disabled:opacity-45"
                                         :disabled="pendingPlateAction !== null"
                                         @click="runPlate(plate, 'destroy')"
                                     >
@@ -375,40 +380,44 @@ function runItem(action: ItemOperation): void {
                         </form>
                     </article>
                 </div>
-                <form v-if="!props.item.completed_at" class="mt-5 grid gap-4" @submit.prevent="addPlate">
-                    <label class="grid gap-2"
-                        ><span class="field-label">Name</span><input v-model="addForm.name" class="luminous-input" maxlength="120" required /><span
-                            v-if="addForm.errors.name"
-                            class="text-sm text-rose-300"
-                            >{{ addForm.errors.name }}</span
-                        ></label
-                    >
-                    <div class="grid grid-cols-2 gap-3">
+                <div v-if="!props.item.completed_at" class="mt-5 border-t border-white/8 pt-5">
+                    <p class="text-[0.68rem] font-semibold tracking-[0.18em] text-primary/75 uppercase">Add a plate</p>
+                    <form class="mt-4 grid gap-4" @submit.prevent="addPlate">
                         <label class="grid gap-2"
-                            ><span class="field-label">Hours</span
-                            ><input v-model="addForm.hours" type="text" inputmode="numeric" pattern="[0-9]*" class="luminous-input" /></label
-                        ><label class="grid gap-2"
-                            ><span class="field-label">Min</span
-                            ><input v-model="addForm.minutes" type="text" inputmode="numeric" pattern="[0-9]*" class="luminous-input"
-                        /></label>
-                    </div>
-                    <p v-if="addErrors.estimated_minutes" class="text-sm text-rose-300">{{ addErrors.estimated_minutes }}</p>
-                    <label class="grid gap-2"
-                        ><span class="field-label">Filament</span><input v-model="addForm.filament" class="luminous-input" maxlength="160" /><span
-                            v-if="addForm.errors.filament"
-                            class="text-sm text-rose-300"
-                            >{{ addForm.errors.filament }}</span
-                        ></label
-                    >
-                    <p v-if="addErrors.plate" class="text-sm text-rose-300">{{ addErrors.plate }}</p>
-                    <button
-                        type="submit"
-                        class="pill-button pill-button-secondary w-full disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
-                        :disabled="addForm.processing || !addForm.name.trim()"
-                    >
-                        <LoaderCircle v-if="addForm.processing" class="h-4 w-4 animate-spin" /><Plus v-else class="h-4 w-4" />Add plate
-                    </button>
-                </form>
+                            ><span class="field-label">Name</span
+                            ><input v-model="addForm.name" class="luminous-input" maxlength="120" required /><span
+                                v-if="addForm.errors.name"
+                                class="text-sm text-rose-300"
+                                >{{ addForm.errors.name }}</span
+                            ></label
+                        >
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="grid gap-2"
+                                ><span class="field-label">Hours</span
+                                ><input v-model="addForm.hours" type="text" inputmode="numeric" pattern="[0-9]*" class="luminous-input" /></label
+                            ><label class="grid gap-2"
+                                ><span class="field-label">Min</span
+                                ><input v-model="addForm.minutes" type="text" inputmode="numeric" pattern="[0-9]*" class="luminous-input"
+                            /></label>
+                        </div>
+                        <p v-if="addErrors.estimated_minutes" class="text-sm text-rose-300">{{ addErrors.estimated_minutes }}</p>
+                        <label class="grid gap-2"
+                            ><span class="field-label">Filament</span><input v-model="addForm.filament" class="luminous-input" maxlength="160" /><span
+                                v-if="addForm.errors.filament"
+                                class="text-sm text-rose-300"
+                                >{{ addForm.errors.filament }}</span
+                            ></label
+                        >
+                        <p v-if="addErrors.plate" class="text-sm text-rose-300">{{ addErrors.plate }}</p>
+                        <button
+                            type="submit"
+                            class="pill-button pill-button-secondary w-full disabled:cursor-not-allowed disabled:opacity-45 sm:w-auto"
+                            :disabled="addForm.processing || !addForm.name.trim()"
+                        >
+                            <LoaderCircle v-if="addForm.processing" class="h-4 w-4 animate-spin" /><Plus v-else class="h-4 w-4" />Add plate
+                        </button>
+                    </form>
+                </div>
                 <p v-else class="text-muted-soft mt-5 text-sm">Reopen this item to add plates.</p>
             </article>
             <aside class="min-w-0 space-y-3">

@@ -13,13 +13,13 @@ test('guests are redirected to the login page', function () {
     $response->assertRedirect('/login');
 });
 
-it('builds the dashboard queue without reading completed queue items', function () {
+it('builds the dashboard queue without loading completed queue items', function () {
     $this->withoutMiddleware(EnforceAbsoluteSession::class);
     $admin = User::factory()->create(['is_admin' => true]);
     $active = PrintQueueItem::factory()->withPlates(2)->create();
     $active->plates[0]->update(['estimated_minutes' => 60]);
     $active->plates[1]->update(['estimated_minutes' => null]);
-    PrintQueueItem::factory()->completed()->withPlates(1)->create();
+    PrintQueueItem::factory()->linkedTo(PrintRequest::factory()->create(['status' => 'printing']))->completed()->withPlates(1)->create();
 
     DB::enableQueryLog();
     try {
@@ -39,7 +39,10 @@ it('builds the dashboard queue without reading completed queue items', function 
 
     expect($queries)->not->toBeEmpty();
     foreach ($queries as $query) {
-        expect($query)->not->toContain('"completed_at" is not null');
+        if (str_contains($query, '"completed_at" is not null')) {
+            expect($query)->toMatch('/^select .* from "print_requests"/');
+        }
+        expect($query)->not->toStartWith('select * from "print_queue_items" where "completed_at" is not null');
     }
 });
 
@@ -120,7 +123,7 @@ test('dashboard only shows the signed in user queue summary and activity', funct
 it('shows the next queued plate and totals only to admins', function () {
     $this->withoutMiddleware([EnforceAbsoluteSession::class]);
     $item = PrintQueueItem::factory()->withPlates(2)->create();
-    $item->plates[0]->update(['status' => 'failed']);
+    $item->plates[0]->forceFill(['status' => 'failed'])->save();
     $admin = User::factory()->create(['is_admin' => true]);
     $this->actingAs($admin)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('queue.upNext.plate.id', $item->plates[1]->id)->where('queue.nowPrinting', null)->where('queue.totals.active_items', 1));
     $this->actingAs(User::factory()->create())->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('queue', null));
@@ -149,4 +152,50 @@ test('users promoted with the make admin command receive admin dashboard props',
             ->where('auth.user.email', 'member@example.com')
             ->where('auth.user.is_admin', true)
         );
+});
+
+it('lists requests whose queue work is finished but are not complete', function () {
+    $this->withoutMiddleware(EnforceAbsoluteSession::class);
+    $request = PrintRequest::factory()->create(['status' => 'printing']);
+    $done = PrintQueueItem::factory()->linkedTo($request)->completed()->withPlates(1)->create();
+    $reprint = PrintRequest::factory()->create(['status' => 'printing']);
+    PrintQueueItem::factory()->linkedTo($reprint)->completed()->withPlates(1)->create();
+    PrintQueueItem::factory()->linkedTo($reprint)->withPlates(1)->create();
+    $complete = PrintRequest::factory()->create(['status' => 'complete']);
+    PrintQueueItem::factory()->linkedTo($complete)->completed()->withPlates(1)->create();
+    $trashed = PrintRequest::factory()->create(['status' => 'printing']);
+    PrintQueueItem::factory()->linkedTo($trashed)->completed()->withPlates(1)->create();
+    $trashed->delete();
+    PrintRequest::factory()->create(['status' => 'printing']);
+
+    $this->actingAs(User::factory()->create(['is_admin' => true]))->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('queue.awaitingCompletion.count', 1)->has('queue.awaitingCompletion.requests', 1)
+            ->where('queue.awaitingCompletion.requests.0.id', $request->id)
+            ->where('queue.awaitingCompletion.requests.0.item_id', $done->id)
+            ->where('queue.awaitingCompletion.requests.0.item_title', $done->title));
+});
+
+it('caps completion reminders at three requests and uses the latest completed item', function () {
+    $this->withoutMiddleware(EnforceAbsoluteSession::class);
+    $old = PrintRequest::factory()->create(['status' => 'pending', 'updated_at' => now()->subMonth()]);
+    PrintQueueItem::factory()->linkedTo($old)->completed()->withPlates(1)->create();
+    $request = PrintRequest::factory()->create(['status' => 'accepted', 'updated_at' => now()]);
+    $user = $request->user;
+    $user->delete();
+    PrintQueueItem::factory()->linkedTo($request)->completed()->withPlates(1)->create(['completed_at' => now()->subDays(2)]);
+    $latest = PrintQueueItem::factory()->linkedTo($request)->completed()->withPlates(1)->create(['completed_at' => now()]);
+    PrintQueueItem::factory()->linkedTo($request)->completed()->withPlates(1)->create(['completed_at' => now()->subDay()]);
+    foreach ([1, 2] as $days) {
+        $other = PrintRequest::factory()->create(['status' => 'printing', 'updated_at' => now()->subDays($days)]);
+        PrintQueueItem::factory()->linkedTo($other)->completed()->withPlates(1)->create();
+    }
+
+    $this->actingAs(User::factory()->create(['is_admin' => true]))->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('queue.awaitingCompletion.count', 4)->has('queue.awaitingCompletion.requests', 3)
+            ->where('queue.awaitingCompletion.requests.0.id', $request->id)
+            ->where('queue.awaitingCompletion.requests.0.user_name', $user->name)
+            ->where('queue.awaitingCompletion.requests.0.item_id', $latest->id)
+            ->where('queue.awaitingCompletion.requests', fn ($requests): bool => ! collect($requests)->contains('id', $old->id)));
 });

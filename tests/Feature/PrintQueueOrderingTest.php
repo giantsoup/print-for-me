@@ -46,3 +46,11 @@ it('moves plates both ways and renumbers after deletion', function () {
     expect($item->plates()->pluck('position')->all())->toBe([1, 2]);
     $this->patchJson(route('admin.print-queue.plates.move', [$item, $plates[1]]), ['direction' => 'top'])->assertJsonValidationErrors('direction');
 });
+
+it('refuses to move a completed item', function () {
+    $done = PrintQueueItem::factory()->completed()->withPlates(1)->create();
+    $active = PrintQueueItem::factory()->withPlates(1)->create();
+    $this->patchJson(route('admin.print-queue.move', $done), ['direction' => 'top'])
+        ->assertUnprocessable()->assertJsonValidationErrors(['item' => 'Reopen this item before moving it.']);
+    expect($done->fresh()->position)->toBeNull()->and($active->fresh()->position)->toBe(1);
+});

@@ -3,6 +3,7 @@
 use App\Enums\PrintQueuePlateStatus;
 use App\Http\Middleware\EnforceAbsoluteSession;
 use App\Models\PrintQueueItem;
+use App\Models\PrintQueuePlate;
 use App\Models\PrintRequest;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -26,7 +27,7 @@ it('indexes needed by dates for queue planning', function () {
 it('shows ordered items with remaining estimates and latest completed items', function () {
     $second = PrintQueueItem::factory()->withPlates(3)->create(['position' => 2]);
     $first = PrintQueueItem::factory()->withPlates(1)->create(['position' => 1]);
-    $second->plates[0]->update(['status' => PrintQueuePlateStatus::Done, 'estimated_minutes' => 900]);
+    $second->plates[0]->forceFill(['status' => PrintQueuePlateStatus::Done, 'estimated_minutes' => 900])->save();
     $second->plates[1]->update(['estimated_minutes' => 120]);
     $second->plates[2]->update(['estimated_minutes' => null]);
     $first->plates[0]->update(['estimated_minutes' => 30]);
@@ -41,7 +42,7 @@ it('prefills a linkable request and ignores completed or deleted requests', func
     $this->get(route('admin.print-queue.create', ['print_request' => $request->id]))->assertInertia(fn (Assert $page) => $page->where('prefill.title', 'Request #'.$request->id));
     $request->update(['status' => 'complete']);
     $this->get(route('admin.print-queue.create', ['print_request' => $request->id]))->assertInertia(fn (Assert $page) => $page->where('prefill', null));
-    $request->update(['status' => 'pending']);
+    $request->forceFill(['status' => 'pending'])->save();
     $request->delete();
     $this->get(route('admin.print-queue.create', ['print_request' => $request->id]))->assertInertia(fn (Assert $page) => $page->where('prefill', null));
 });
@@ -227,11 +228,44 @@ it('keeps an older current request in the edit selector', function () {
 it('limits done rows to the latest ten without loading plates', function () {
     $old = PrintQueueItem::factory()->completed()->withPlates(1)->create(['completed_at' => now()->subMonth()]);
     PrintQueueItem::factory()->count(10)->completed()->withPlates(1)->create();
-    $this->get(route('admin.print-queue.index'))->assertInertia(fn (Assert $page) => $page->component('admin/queue/Index', false)->has('doneItems', 10)->where('doneItems', fn ($items): bool => ! collect($items)->contains('id', $old->id) && ! array_key_exists('plates', (array) collect($items)->first())));
+    $this->get(route('admin.print-queue.index'))->assertInertia(fn (Assert $page) => $page->component('admin/queue/Index', false)->has('doneItems', 10)->where('doneCount', 11)->where('doneItems', fn ($items): bool => ! collect($items)->contains('id', $old->id) && ! array_key_exists('plates', (array) collect($items)->first())));
 });
 
 it('prefills older linkable requests outside the hundred latest options', function () {
     $request = PrintRequest::factory()->create(['created_at' => now()->subYear()]);
     PrintRequest::factory()->count(101)->create();
     $this->get(route('admin.print-queue.create', ['print_request' => $request->id]))->assertInertia(fn (Assert $page) => $page->component('admin/queue/Create', false)->where('prefill.print_request_id', $request->id)->where('linkableRequests', fn ($requests): bool => collect($requests)->contains('id', $request->id)));
+});
+
+it('keeps queue lifecycle fields out of mass assignment', function () {
+    $plate = PrintQueuePlate::make(['name' => 'x', 'status' => 'printing', 'position' => 4, 'started_at' => now(), 'finished_at' => now(), 'printer_slot' => 1]);
+    expect($plate->getAttributes())->not->toHaveKeys(['status', 'position', 'started_at', 'finished_at', 'printer_slot']);
+    $item = PrintQueueItem::make(['title' => 'x', 'position' => 3, 'completed_at' => now()]);
+    expect($item->getAttributes())->not->toHaveKeys(['position', 'completed_at']);
+});
+
+it('labels and prefills requests from soft-deleted requesters', function () {
+    $user = User::factory()->create();
+    $request = PrintRequest::factory()->for($user)->create(['status' => 'pending']);
+    $user->delete();
+
+    $this->get(route('admin.print-queue.create', ['print_request' => $request->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('prefill.for_whom', $user->name)
+            ->where('linkableRequests.0.label', 'Request #'.$request->id.' · '.$user->name.' · Pending')
+            ->where('linkableRequests.0.user_name', $user->name));
+
+    $this->postJson(route('admin.print-queue.store'), [
+        'title' => 'Print', 'print_request_id' => $request->id, 'for_whom' => '', 'plates' => [['name' => 'Plate']],
+    ])->assertCreated()->assertJsonPath('for_whom', $user->name)->assertJsonPath('linked_request.user_name', $user->name);
+    $item = PrintQueueItem::query()->first();
+    $this->get(route('admin.print-queue.index'))->assertInertia(fn (Assert $page) => $page->where('items.0.linked_request.user_name', $user->name));
+    $this->get(route('admin.print-queue.show', $item))->assertInertia(fn (Assert $page) => $page->where('item.linked_request.user_name', $user->name));
+});
+
+it('omits empty label segments', function () {
+    $user = User::factory()->create(['name' => '']);
+    $request = PrintRequest::factory()->for($user)->create(['status' => 'pending']);
+    $this->get(route('admin.print-queue.create'))->assertInertia(fn (Assert $page) => $page
+        ->where('linkableRequests.0.label', 'Request #'.$request->id.' · Pending'));
 });
