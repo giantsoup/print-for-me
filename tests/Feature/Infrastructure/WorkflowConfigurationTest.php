@@ -130,3 +130,17 @@ test('scheduled maintenance commands do not depend on horizon', function () {
         ->toContain('prints:purge-soft-deleted')
         ->not->toContain('horizon:snapshot');
 });
+
+test('staging is tested while only main deploys to Linode', function (): void {
+    foreach (['tests', 'lint'] as $workflow) {
+        $configuration = Yaml::parseFile(base_path('.github/workflows/'.$workflow.'.yml'));
+        $triggers = $configuration['on'] ?? $configuration[true];
+        foreach (['push', 'pull_request'] as $event) {
+            expect($triggers[$event]['branches'])->toContain('staging', 'main');
+        }
+    }
+
+    $configuration = Yaml::parseFile(base_path('.github/workflows/deploy.yml'));
+    $triggers = $configuration['on'] ?? $configuration[true];
+    expect($triggers['push']['branches'])->toBe(['main'])->not->toContain('staging');
+});

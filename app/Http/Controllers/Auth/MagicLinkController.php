@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MagicLoginToken;
 use App\Models\User;
 use App\Notifications\MagicLoginLinkNotification;
+use App\Services\Auth\IssueMagicLoginLink;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -72,27 +73,7 @@ class MagicLinkController extends Controller
             ]);
         }
 
-        // Soft-circuit: expire any prior unused, unexpired tokens for this email
-        MagicLoginToken::invalidateUnusedForEmail($email);
-
-        // Generate token
-        $raw = bin2hex(random_bytes(32));
-        $hash = hash('sha256', $raw);
-
-        MagicLoginToken::create([
-            'email' => $email,
-            'token_hash' => $hash,
-            'expires_at' => now()->addMinutes(10),
-            'ip' => (string) $request->ip(),
-            'user_agent' => (string) $request->userAgent(),
-        ]);
-
-        // Build signed URL with parameters
-        $loginUrl = URL::temporarySignedRoute(
-            'magic.login',
-            now()->addMinutes(10),
-            ['email' => $email, 'token' => $raw]
-        );
+        $loginUrl = app(IssueMagicLoginLink::class)($email, (string) $request->ip(), (string) $request->userAgent());
 
         // Notify user via email (logged locally)
         $user->notify(new MagicLoginLinkNotification($loginUrl));

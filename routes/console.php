@@ -5,6 +5,7 @@ use App\Models\PrintRequest;
 use App\Models\User;
 use App\Notifications\MagicLoginLinkNotification;
 use App\Notifications\PrintRequestSoftDeletedPurgeWarningNotification;
+use App\Services\Auth\IssueMagicLoginLink;
 use App\Services\PrintQueue\DetachPrintRequestFromQueue;
 use App\Services\PrintRequests\DeleteStoredAssets;
 use Illuminate\Foundation\Inspiring;
@@ -13,7 +14,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 Artisan::command('inspire', function () {
@@ -31,23 +31,7 @@ Artisan::command('auth:invite {email}', function (string $email) {
     $user->whitelisted_at = now();
     $user->save();
 
-    MagicLoginToken::invalidateUnusedForEmail($email);
-
-    $raw = bin2hex(random_bytes(32));
-    $hash = hash('sha256', $raw);
-
-    MagicLoginToken::create([
-        'email' => $email,
-        'token_hash' => $hash,
-        'expires_at' => now()->addMinutes(10),
-        'ip' => 'cli',
-        'user_agent' => 'cli',
-    ]);
-
-    $loginUrl = URL::temporarySignedRoute('magic.login', now()->addMinutes(10), [
-        'email' => $email,
-        'token' => $raw,
-    ]);
+    $loginUrl = app(IssueMagicLoginLink::class)($email, 'cli', 'cli');
 
     $user->notify(new MagicLoginLinkNotification($loginUrl));
 
@@ -55,6 +39,31 @@ Artisan::command('auth:invite {email}', function (string $email) {
     $this->line('Magic login link (10 minutes):');
     $this->line($loginUrl);
 })->purpose('Invite a user by email, whitelist them, and send a magic login link.');
+
+Artisan::command('auth:login-link {email} {--force : Allow issuing when a real mailer is configured}', function (string $email, IssueMagicLoginLink $issueMagicLoginLink): int {
+    $email = strtolower(trim($email));
+
+    if (! in_array(config('mail.default'), ['log', 'array'], true) && ! $this->option('force')) {
+        $this->error('Refusing: a real mailer is configured. Use auth:invite to email a link, or pass --force for break-glass access.');
+
+        return 1;
+    }
+
+    $user = User::withTrashed()->where('email', $email)->first();
+
+    if (! $user || ! $user->canReceiveMagicLinks()) {
+        $this->error('No active, invited account matches that email. Nothing was issued.');
+
+        return 1;
+    }
+
+    $loginUrl = $issueMagicLoginLink($email, 'cli', 'cli:auth:login-link');
+
+    $this->line('One-time sign-in link (expires in '.IssueMagicLoginLink::EXPIRY_MINUTES.' minutes, single use; issuing another link cancels this one):');
+    $this->line($loginUrl);
+
+    return 0;
+})->purpose('Print a one-time magic sign-in link for an existing active user without sending email.');
 
 Artisan::command('auth:make-admin {email} {--name=}', function (string $email) {
     $email = strtolower(trim($email));
