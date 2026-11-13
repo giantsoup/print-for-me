@@ -63,7 +63,7 @@ try {
     $tokens=$null; $parseErrors=$null
     $ast=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'services.ps1'),[ref]$tokens,[ref]$parseErrors)
     $functionDefinitions=@()
-    foreach ($functionName in @('Get-ServiceTaskXml','Test-OwnedProcess','Get-ServiceArguments','Stop-OwnedService','Assert-ServiceTask','Stop-OwnedPhpProcess','Get-OwnedProcesses','Get-DrainingProcesses','Invoke-ServiceLoop')) {
+    foreach ($functionName in @('Get-ServiceTaskXml','Test-OwnedProcess','Get-ServiceArguments','Stop-OwnedService','Test-SupervisorCommandLine','Assert-ServiceTask','Stop-OwnedPhpProcess','Get-OwnedProcesses','Get-DrainingProcesses','Invoke-ServiceLoop')) {
         $definition=$ast.Find({param($node) $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $functionName},$true)
         $functionDefinitions += $definition.Extent.Text
     }
@@ -185,7 +185,8 @@ try {
             $fixture.Processes[1001]=[pscustomobject]@{ProcessId=1001; ExecutablePath=$php.ToUpperInvariant(); CommandLine=$artisan + ' schedule:work'; CreationDate=$creation}
             $fixture.Processes[1002]=[pscustomobject]@{ProcessId=1002; ExecutablePath=$php.ToUpperInvariant(); CommandLine=$artisan + ' schedule:run'; CreationDate=$creation}
             $fixture.Processes[1003]=[pscustomobject]@{ProcessId=1003; ExecutablePath=$php; CommandLine='"C:\unrelated\artisan" schedule:run'; CreationDate=$creation}
-            $supervisor=[pscustomobject]@{ProcessId=1004; ExecutablePath=(Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'); CommandLine='powershell.exe -File "' + $serviceFunctions.ToUpperInvariant() + '" Run -Role scheduler'; CreationDate=$creation}
+            $supervisorPath=if ($drainMode -eq 'complete') { '"' + $serviceFunctions.ToUpperInvariant() + '"' } else { $serviceFunctions.ToUpperInvariant() }
+            $supervisor=[pscustomobject]@{ProcessId=1004; ExecutablePath=(Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'); CommandLine='powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ' + $supervisorPath + ' Run -Role scheduler'; CreationDate=$creation}
             function Assert-ServicePort { }
             function Assert-ServiceTask { param($Task) }
             function Invoke-Artisan {

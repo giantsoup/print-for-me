@@ -58,6 +58,12 @@ function Assert-ServiceTask {
         $Task.Actions[0].Arguments -notmatch ('Run -Role ' + $Role + '$')) { throw 'Task is not owned by this checkout/user/role.' }
 }
 
+function Test-SupervisorCommandLine {
+    param([string]$CommandLine)
+    $pattern = '(?i)\s-File\s+"?' + [regex]::Escape($PSCommandPath) + '"?\s+Run\s+-Role\s+' + [regex]::Escape($Role) + '(\s|$)'
+    return [bool]($CommandLine -match $pattern)
+}
+
 function Stop-OwnedService {
     param($Task)
     Assert-ServicePort
@@ -69,7 +75,7 @@ function Stop-OwnedService {
     if ($Task) { Stop-ScheduledTask -InputObject $Task }
     foreach ($process in @(Get-CimInstance Win32_Process -Filter "Name='powershell.exe'")) {
         if ($process.ProcessId -ne $PID -and $process.ExecutablePath -eq (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') -and
-            $process.CommandLine -and $process.CommandLine.IndexOf(('"' + $PSCommandPath + '"'), [StringComparison]::OrdinalIgnoreCase) -ge 0 -and $process.CommandLine -match ('\sRun\s+-Role\s+' + $Role + '(\s|$)')) {
+            $process.CommandLine -and (Test-SupervisorCommandLine $process.CommandLine)) {
             $current = Get-CimInstance Win32_Process -Filter "ProcessId=$($process.ProcessId)"
             if ($current -and $current.ExecutablePath -eq $process.ExecutablePath -and $current.CommandLine -ceq $process.CommandLine -and $current.CreationDate -eq $process.CreationDate) { Stop-Process -Id $process.ProcessId -Force }
         }
