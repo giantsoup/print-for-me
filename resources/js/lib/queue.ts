@@ -44,6 +44,10 @@ export interface QueueTotals {
     remaining_minutes: number;
     unestimated_plates: number;
 }
+export interface QueueAwaitingCompletion {
+    count: number;
+    requests: { id: number; user_name: string | null; item_id: number; item_title: string }[];
+}
 export interface LinkableRequest {
     id: number;
     label: string;
@@ -76,4 +80,11 @@ export function joinMinutes(hours: string, minutes: string): number | null {
 }
 export function remainingLabel(minutes: number, unestimated: number): string {
     return formatMinutes(minutes) + ' left' + (unestimated > 0 ? ' + ' + unestimated + ' unestimated' : '');
+}
+
+export function autofillForWhom(current: string, previousName: string | null | undefined, nextName: string | null | undefined): string {
+    if (current.trim() === '' || current === (previousName ?? '')) {
+        return nextName ?? '';
+    }
+    return current;
 }

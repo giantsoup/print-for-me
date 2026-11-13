@@ -13,6 +13,13 @@ class PrintQueueItem extends Model
 {
     use HasFactory;
 
+    /** The maximum number of plates in a queue item. */
+    public const MAX_PLATES = 50;
+
+    /**
+     * Lifecycle fields (position, completed_at) are set only through forceFill
+     * in the queue services.
+     */
     protected $fillable = [
         'print_request_id',
         'title',
@@ -20,8 +27,6 @@ class PrintQueueItem extends Model
         'needed_by_date',
         'filament',
         'notes',
-        'position',
-        'completed_at',
     ];
 
     protected function casts(): array

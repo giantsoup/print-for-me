@@ -35,7 +35,7 @@ class PrintQueueController extends Controller
     {
         $linked = PrintRequest::query()->where('status', '!=', PrintRequestStatus::COMPLETE)
             ->whereDoesntHave('queueItems', fn (Builder $query): Builder => $query->active())
-            ->with('user:id,name')->find($request->integer('print_request'));
+            ->with($this->overview->userRelation())->find($request->integer('print_request'));
         $linkable = $this->overview->linkableRequests(include: $linked);
         $prefill = $linked ? [
             'print_request_id' => $linked->id,
@@ -53,9 +53,10 @@ class PrintQueueController extends Controller
         $item = DB::transaction(function () use ($request): PrintQueueItem {
             $data = $request->validated();
             $attributes = $this->itemAttributes(Arr::except($data, ['plates', 'add_to_top']));
-            $item = PrintQueueItem::query()->create($attributes + ['position' => $this->ordering->append()]);
+            $item = PrintQueueItem::query()->make($attributes)->forceFill(['position' => $this->ordering->append()]);
+            $item->save();
             foreach (array_values($data['plates']) as $index => $plate) {
-                $item->plates()->create($plate + ['position' => $index + 1]);
+                $item->plates()->make($plate)->forceFill(['position' => $index + 1])->save();
             }
             if ($request->boolean('add_to_top')) {
                 $this->ordering->insertAtTop($item);
@@ -117,7 +118,7 @@ class PrintQueueController extends Controller
     private function itemAttributes(array $data): array
     {
         if (blank($data['for_whom'] ?? null) && filled($data['print_request_id'] ?? null)) {
-            $data['for_whom'] = PrintRequest::query()->with('user:id,name')->find($data['print_request_id'])?->user?->name;
+            $data['for_whom'] = PrintRequest::query()->with($this->overview->userRelation())->find($data['print_request_id'])?->user?->name;
         }
 
         return $data;

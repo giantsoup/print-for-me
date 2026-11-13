@@ -11,6 +11,7 @@ use App\Services\PrintQueue\ReorderPrintQueue;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class PrintQueueItemStateController extends Controller
 {
@@ -18,6 +19,9 @@ class PrintQueueItemStateController extends Controller
 
     public function move(MovePrintQueueItemRequest $request, PrintQueueItem $print_queue_item): JsonResponse|RedirectResponse
     {
+        if (! $print_queue_item->isActive()) {
+            throw ValidationException::withMessages(['item' => 'Reopen this item before moving it.']);
+        }
         $this->ordering->move($print_queue_item, $request->validated('direction'));
 
         return $this->respond($request, $print_queue_item, 'Queue order updated.');

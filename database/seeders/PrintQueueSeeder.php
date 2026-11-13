@@ -15,7 +15,7 @@ class PrintQueueSeeder extends Seeder
             foreach ($helmet->plates as $plate) {
                 $plate->update(['estimated_minutes' => fake()->numberBetween(120, 360)]);
             }
-            $helmet->plates->first()->update(['status' => PrintQueuePlateStatus::Done, 'started_at' => now(), 'finished_at' => now()]);
+            $helmet->plates->first()->forceFill(['status' => PrintQueuePlateStatus::Done, 'started_at' => now(), 'finished_at' => now()])->save();
         }
         if (! PrintQueueItem::query()->where('title', 'Phone stand')->exists()) {
             PrintQueueItem::factory()->withPlates(1)->create(['title' => 'Phone stand']);

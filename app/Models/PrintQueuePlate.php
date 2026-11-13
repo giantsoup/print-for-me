@@ -11,15 +11,15 @@ class PrintQueuePlate extends Model
 {
     use HasFactory;
 
+    /**
+     * Lifecycle fields (position, status, started_at, finished_at, printer_slot)
+     * are set only through forceFill in the queue services.
+     */
     protected $fillable = [
         'name',
-        'position',
-        'status',
         'estimated_minutes',
         'filament',
         'notes',
-        'started_at',
-        'finished_at',
     ];
 
     protected function casts(): array

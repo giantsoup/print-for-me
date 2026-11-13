@@ -26,3 +26,13 @@ it('exposes the latest linked item to admins only and prefers active items', fun
 it('shows no queue link for unlinked requests', function () {
     $this->get(route('print-requests.show', PrintRequest::factory()->create()))->assertInertia(fn (Assert $page) => $page->where('queueItem', null));
 });
+
+it('offers a prefilled reprint for a request whose only queue item is completed', function () {
+    $request = PrintRequest::factory()->create(['status' => 'printing']);
+    $done = PrintQueueItem::factory()->linkedTo($request)->completed()->withPlates(1)->create();
+
+    $this->get(route('print-requests.show', $request))->assertInertia(fn (Assert $page) => $page
+        ->where('queueItem.id', $done->id)->where('queueItem.completed_at', fn ($completedAt): bool => $completedAt !== null));
+    $this->get(route('admin.print-queue.create', ['print_request' => $request->id]))->assertInertia(fn (Assert $page) => $page
+        ->where('prefill.print_request_id', $request->id));
+});

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import LuminousAppLayout from '@/layouts/LuminousAppLayout.vue';
 import { formatDateOnly, isoDateToMaskedDisplay, maskDateInput, maskedDateToIso, stripNonDigits } from '@/lib/prints';
-import { formatMinutes, joinMinutes, type LinkableRequest } from '@/lib/queue';
+import { autofillForWhom, formatMinutes, joinMinutes, type LinkableRequest } from '@/lib/queue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { LoaderCircle, Minus, Plus } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
@@ -42,10 +42,11 @@ const canSubmit = computed(
         !neededByDateClientError.value &&
         !form.processing,
 );
+const nameFor = (id: number | null | undefined): string | null => props.linkableRequests.find((request) => request.id === id)?.user_name ?? null;
 watch(
     () => form.print_request_id,
-    (id) => {
-        if (!form.for_whom.trim()) form.for_whom = props.linkableRequests.find((request) => request.id === id)?.user_name ?? '';
+    (id, previousId) => {
+        form.for_whom = autofillForWhom(form.for_whom, nameFor(previousId), nameFor(id));
     },
 );
 function setPlateCount(value: number): void {

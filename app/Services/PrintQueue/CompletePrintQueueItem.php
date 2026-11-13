@@ -30,12 +30,12 @@ class CompletePrintQueueItem
             if ($item->plates()->where('status', PrintQueuePlateStatus::Printing->value)->exists()) {
                 throw ValidationException::withMessages(['plate' => 'Finish or requeue the printing plate first.']);
             }
-            $item->update(['completed_at' => $item->completed_at ?? now(), 'position' => null]);
+            $item->forceFill(['completed_at' => $item->completed_at ?? now(), 'position' => null])->save();
             $this->ordering->renumber();
 
             $message = $automatically ? 'All plates done.' : 'Item marked done.';
 
-            return trim($message.' '.($this->sync->completionNote($item) ?? ''));
+            return trim($message.' '.($this->sync->onItemCompleted($item) ?? ''));
         });
     }
 
@@ -48,7 +48,7 @@ class CompletePrintQueueItem
                     ->where('print_request_id', $item->print_request_id)->whereKeyNot($item->id)->exists()) {
                     throw ValidationException::withMessages(['item' => 'Another active item is already linked to this request.']);
                 }
-                $item->update(['completed_at' => null, 'position' => $this->ordering->append()]);
+                $item->forceFill(['completed_at' => null, 'position' => $this->ordering->append()])->save();
             }
             $this->ordering->renumber();
 

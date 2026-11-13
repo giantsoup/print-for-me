@@ -71,7 +71,7 @@ JS);
 
 it('tracks the pending move direction and keeps errors with the moved row', function () {
     runQueueUiScript(<<<'JS'
-const page = loadQueuePage('Index', { items: [], doneItems: [], totals: {}, nowPrinting: null, upNext: null });
+const page = loadQueuePage('Index', { items: [], doneItems: [], doneCount: 0, totals: {}, nowPrinting: null, upNext: null });
 page.move(7, 'down');
 assert.equal(page.isMoving(7, 'down'), true);
 assert.equal(page.isMoving(7, 'up'), false);
@@ -119,17 +119,21 @@ it('places action feedback beside its controls and follows mobile family convent
     $index = queueUiSource('pages/admin/queue/Index.vue');
     $row = substr($index, strpos($index, 'v-for="(item, index) in props.items"'));
     expect($row)->toContain('moveError?.itemId === item.id', 'moveError.message', 'isMoving(item.id, action.direction)', 'disabled:cursor-not-allowed', 'disabled:opacity-45');
+    expect($index)->toContain('Done · {{ props.doneCount }}', 'Showing the latest');
     expect($index)->toContain('duration-200', "isDoneOpen ? 'Hide' : 'Show'", 'text-white/42 uppercase');
 
     $show = queueUiSource('pages/admin/queue/Show.vue');
     $tile = substr($show, strpos($show, 'v-for="(plate, index) in plates"'), strpos($show, '<form v-if="editingPlateId') - strpos($show, 'v-for="(plate, index) in plates"'));
-    expect($tile)->toContain('grid grid-cols-4 gap-2', 'px-3', 'plateActionError?.plateId === plate.id', 'plateActionError.message', "isPlatePending(plate.id, 'up')", "isPlatePending(plate.id, 'down')", "isPlatePending(plate.id, 'destroy')");
+    expect($tile)->toContain('grid grid-cols-2 gap-2 sm:grid-cols-4', 'px-3', 'plateActionError?.plateId === plate.id', 'plateActionError.message', "isPlatePending(plate.id, 'up')", "isPlatePending(plate.id, 'down')", "isPlatePending(plate.id, 'destroy')");
+    expect($tile)->not->toContain('flex-col px-3');
     $dialog = substr($show, strpos($show, '<DialogContent>'), strpos($show, '</DialogContent>') - strpos($show, '<DialogContent>'));
     expect($dialog)->toContain("itemActionError?.action === 'destroy'", 'itemActionError.message');
     expect($show)->toContain('Finish or requeue the printing plate first.', 'inline-flex items-center gap-2');
 
     $create = queueUiSource('pages/admin/queue/Create.vue');
     expect($create)->toContain('min-h-12', '@blur="commitPlateCount"', 'text-right text-sm font-semibold text-white', 'disabled:opacity-45');
+    expect($create)->toContain('autofillForWhom(form.for_whom');
+    expect($show)->toContain('autofillForWhom(form.for_whom');
     expect($create)->not->toContain('luminous-input mt-3', 'luminous-textarea mt-3');
     expect($create)->toMatch('/<label[^>]*for="add_to_top"[^>]*>[\s\S]*?Add to top[\s\S]*?<input[^>]*id="add_to_top"/');
 });
@@ -154,6 +158,7 @@ it('keeps the admin desktop and five-item dock in the decided order', function (
 
 it('renders the queue list with shared cards and visible reorder actions', function () {
     $source = queueUiSource('pages/admin/queue/Index.vue');
+    expect($source)->not->toContain('{ slot:');
     expect($source)->toContain('active-nav="queue"', 'PrintQueueSlotCard', "label: 'Up'", "label: 'Down'", "label: 'Top'", 'grid grid-cols-3 gap-2', 'border border-primary/12 bg-primary/10 px-5 py-4 text-sm text-primary', 'luminous-panel px-5 py-10 text-center', 'preserveScroll: true', 'remainingLabel', 'neededByUrgency', 'isDoneOpen = ref(false)');
     expect(strpos($source, 'kind="now"'))->toBeLessThan(strpos($source, 'kind="next"'));
     expect($source)->toMatch('/<Link[^>]+class="inline-flex min-h-11 items-center"[\s\S]*?>Request #/');
@@ -171,7 +176,8 @@ it('keeps detail editing, confirmations, errors, and lifecycle controls', functi
     $source = queueUiSource('pages/admin/queue/Show.vue');
     expect($source)->toContain('active-nav="queue"', 'DialogContent', 'DialogTrigger as-child', 'confirm(', ':tone="plateStatusTone(plate.status)"', ':label="plateStatusLabel(plate.status)"', 'form.processing || !form.isDirty', 'plateForm.processing || !plateForm.isDirty', 'Reopen this item to add plates.', 'preserveScroll: true', 'placeholder="MM/DD/YYYY"', 'Mark the request complete to notify');
     expect($source)->not->toContain('type="date"');
-    expect($source)->toContain('props.printerBusy && props.printingPlate');
+    expect($source)->toContain('props.printerBusy && props.printingPlate', 'border-t border-white/8 pt-5');
+    expect(strpos($source, '>Add a plate</p>'))->not->toBeFalse()->toBeLessThan(strpos($source, '@submit.prevent="addPlate"'));
     expect(strpos($source, '>Plates</p>'))->toBeLessThan(strpos($source, '>Summary</p>'));
     expect(strpos($source, 'Mark the request complete to notify'))->toBeLessThan(strpos($source, 'v-for="(plate, index) in plates"'));
     expect($source)->toContain('class="inline-flex min-h-11 items-center"');
@@ -192,7 +198,10 @@ it('puts the admin queue cards before dashboard metrics without changing the mem
     $metric = strpos($source, 'v-for="card in metricCards"');
     expect($region)->not->toBeFalse()->toBeLessThan($metric);
     expect(substr($source, $region, $metric - $region))->toContain('PrintQueueSlotCard', "props.queue.nowPrinting ? 'now' : 'next'", 'Open queue');
-    expect($source)->toContain('Print queue', 'ListOrdered', 'page.props.flash?.status');
+    expect($source)->toContain('Print queue', 'ListOrdered', 'page.props.flash?.status', 'awaitingCompletion.count > 0', 'Ready to complete')->not->toContain('{ slot:');
+    $callout = strpos($source, 'Ready to complete');
+    expect($callout)->toBeGreaterThan(strrpos(substr($source, 0, $metric), '<PrintQueueSlotCard'))->toBeLessThan($metric);
+    expect($callout)->toBeLessThan(strpos($source, '>Open queue'));
     $flash = strpos($source, 'rounded-[1.45rem] border border-primary/12 bg-primary/10 px-5 py-4 text-sm text-primary');
     expect($flash)->not->toBeFalse()->toBeLessThan($region);
 });
@@ -203,11 +212,15 @@ it('gates request queue links inside the admin workflow and preserves badge defa
     $queue = strpos($source, '>Print Queue</p>');
     expect($admin)->not->toBeFalse()->toBeLessThan($queue);
     expect($queue)->toBeLessThan(strpos($source, '>Delivery Check</p>'));
-    expect($source)->toContain('admin.print-queue.create', 'Add to queue', 'admin.print-queue.show', 'Printed through the queue.', "props.printRequest.status !== 'complete'");
+    expect($source)->toContain('admin.print-queue.create', 'Add to queue', 'Queue again', 'admin.print-queue.show', 'Printed through the queue.', "props.printRequest.status !== 'complete'");
+    $block = substr($source, $queue, strpos($source, '>Delivery Check</p>') - $queue);
+    expect($block)->toContain('grid gap-3 sm:grid-cols-2');
+    expect(strpos($block, 'admin.print-queue.create'))->toBeGreaterThan(strpos($block, 'Printed through the queue.'));
     expect(queueUiSource('components/luminous/StatusBadge.vue'))->toContain('tone?: string', 'label?: string', 'props.tone ?? statusTone(props.status)', 'props.label ?? statusLabel(props.status)');
 });
 
 it('shares printer controls with pending and error handling', function () {
+    expect(queueUiSource('components/luminous/PrintQueueSlotCard.vue'))->toContain('entry: QueueSlot | null')->not->toContain('slot: QueueSlot');
     expect(queueUiSource('components/luminous/PrintQueueSlotCard.vue'))->toContain('disabled:cursor-not-allowed disabled:opacity-45', 'role="alert"', 'luminous-panel px-4 py-4 sm:px-5 sm:py-5', 'Printer is idle.', 'Nothing queued. Add an item to fill the queue.', 'Finish the current plate first.', 'preserveScroll: true', 'onError:', 'onFinish:', 'errors.status', 'LoaderCircle', 'Open item');
 });
 
@@ -222,8 +235,14 @@ it('explains the queue data kept after a user purge', function () {
 it('executes queue duration and due-date helpers', function () {
     $script = <<<'JS'
 import assert from 'node:assert/strict';
-import { formatMinutes, splitMinutes, joinMinutes, remainingLabel, plateStatusLabel, plateStatusTone } from './resources/js/lib/queue.ts';
+import { autofillForWhom, formatMinutes, splitMinutes, joinMinutes, remainingLabel, plateStatusLabel, plateStatusTone } from './resources/js/lib/queue.ts';
 import { neededByUrgency } from './resources/js/lib/prints.ts';
+assert.equal(autofillForWhom('', null, 'Alex'), 'Alex');
+assert.equal(autofillForWhom('Alex', 'Alex', 'Blair'), 'Blair');
+assert.equal(autofillForWhom('Grandma', 'Alex', 'Blair'), 'Grandma');
+assert.equal(autofillForWhom('Alex', 'Alex', null), '');
+assert.equal(autofillForWhom('   ', undefined, 'Alex'), 'Alex');
+assert.equal(autofillForWhom('Grandma', 'Alex', null), 'Grandma');
 assert.equal(formatMinutes(45), '45m');
 assert.equal(formatMinutes(133), '2h 13m');
 assert.equal(formatMinutes(1620), '1d 3h');

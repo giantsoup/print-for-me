@@ -23,6 +23,7 @@ import {
     LoaderCircle,
     Mail,
     RefreshCcw,
+    RotateCcw,
     SquarePen,
     Trash2,
     X,
@@ -816,7 +817,23 @@ function syncSourceDescriptionOverflow() {
                                     props.queueItem.completed_at ? 'Printed through the queue.' : 'In the queue at #' + props.queueItem.position + '.'
                                 }}
                             </p>
+                            <div
+                                v-if="props.queueItem.completed_at && !props.printRequest.deleted_at && props.printRequest.status !== 'complete'"
+                                class="mt-4 grid gap-3 sm:grid-cols-2"
+                            >
+                                <Link
+                                    :href="route('admin.print-queue.show', props.queueItem.id)"
+                                    class="pill-button pill-button-secondary w-full justify-center"
+                                    ><ListOrdered class="h-4 w-4" /> Open queue item</Link
+                                >
+                                <Link
+                                    :href="route('admin.print-queue.create', { print_request: props.printRequest.id })"
+                                    class="pill-button pill-button-secondary w-full justify-center"
+                                    ><RotateCcw class="h-4 w-4" /> Queue again</Link
+                                >
+                            </div>
                             <Link
+                                v-else
                                 :href="route('admin.print-queue.show', props.queueItem.id)"
                                 class="pill-button pill-button-secondary mt-4 w-full justify-center"
                                 ><ListOrdered class="h-4 w-4" /> Open queue item</Link
