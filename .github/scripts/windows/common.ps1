@@ -9,6 +9,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $script:WindowsScriptsRoot = $PSScriptRoot
 
+function Get-BackupBytes([string]$Directory) {
+    if (-not (Test-Path -LiteralPath $Directory)) { return [long]0 }
+    $files = @(Get-ChildItem -LiteralPath $Directory -File -Recurse -Force)
+    if ($files.Count -eq 0) { return [long]0 }
+    return [long](($files | Measure-Object -Property Length -Sum).Sum)
+}
+
 function Get-RepositoryRoot { return [IO.Path]::GetFullPath((Join-Path $script:WindowsScriptsRoot '../../..')) }
 function Get-ProductionRoot { return (Join-Path $env:USERPROFILE 'Production\print-for-me') }
 function Get-ProductionHome { return (Join-Path $env:LOCALAPPDATA 'PrintForMe\production') }
@@ -535,7 +542,7 @@ function Invoke-ProductionBackup {
     }
     Invoke-Checked (Get-HerdPhp) @($helper,'check',(Join-Path $folder 'database.sqlite')) (Get-ProductionEnv)
     Protect-PrivatePath $folder
-    $total = (Get-ChildItem -LiteralPath (Join-Path (Get-ProductionHome) 'backups') -File -Recurse -Force | Measure-Object Length -Sum).Sum
+    $total = Get-BackupBytes (Join-Path (Get-ProductionHome) 'backups')
     Write-Host "Backup: $folder; total retained bytes: $total"
     if ($total -gt 5GB) {
         $oldest = (Get-ChildItem -LiteralPath (Join-Path (Get-ProductionHome) 'backups') -Directory | Sort-Object Name | Select-Object -First 5 -ExpandProperty Name) -join ', '

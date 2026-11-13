@@ -40,7 +40,7 @@ try {
     $incomingTemplate = Invoke-Git @('show','origin/staging:.github/scripts/windows/production.env.example')
     $newKeys = @([regex]::Matches($incomingTemplate,'(?m)^([A-Z][A-Z0-9_]*)=') | ForEach-Object { $_.Groups[1].Value })
     Write-Host ('New env template keys: ' + (@($newKeys | Where-Object { $_ -notin $oldTemplate }) -join ', '))
-    $size = (Get-ChildItem -LiteralPath (Join-Path $info.home 'backups') -File -Recurse -Force | Measure-Object Length -Sum).Sum
+    $size = Get-BackupBytes (Join-Path $info.home 'backups')
     Write-Host "Retained backup bytes: $size"
     try { Test-HerdSite; Test-ProductionHttp } catch { Write-Warning "Current health: $($_.Exception.Message)" }
     if (-not $Yes) { Write-Host "Preview only; deploy this SHA with: & '$($PSCommandPath.Replace("'", "''"))' -Yes -ExpectedSha $incomingSha"; exit 0 }

@@ -120,3 +120,25 @@ it('snapshots a WAL database and refuses overwrites missing files and corrupt in
         rmdir($directory);
     }
 });
+
+it('migrates before clearing the database-backed cache during setup', function (): void {
+    $setup = file_get_contents(base_path('.github/scripts/windows/setup-production.ps1'));
+
+    expect(strpos($setup, "Invoke-Artisan @('migrate','--force')"))->toBeInt()
+        ->toBeLessThan(strpos($setup, "Invoke-Artisan @('optimize:clear')"));
+});
+
+it('reports zero retained backup bytes for an empty or missing backups directory', function (): void {
+    $directory = sys_get_temp_dir().DIRECTORY_SEPARATOR.'pfm-backup-bytes-'.bin2hex(random_bytes(6));
+    mkdir($directory);
+    $common = base_path('.github/scripts/windows/common.ps1');
+    $script = ". '{$common}'; Write-Output (Get-BackupBytes '{$directory}'); Write-Output (Get-BackupBytes '{$directory}\missing')";
+
+    $process = new Process(['powershell.exe', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', $script]);
+    $process->setTimeout(60);
+    $process->run();
+    rmdir($directory);
+
+    expect($process->getExitCode())->toBe(0)
+        ->and(preg_split('/\R/', trim($process->getOutput())))->toBe(['0', '0']);
+})->skip(PHP_OS_FAMILY !== 'Windows', 'Requires Windows PowerShell 5.1.');

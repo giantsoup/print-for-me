@@ -100,8 +100,8 @@ try {
     if (-not (Test-Path -LiteralPath $db)) { [IO.File]::WriteAllBytes($db, (New-Object byte[] 0)) }
     $wal = Invoke-NativeResult (Get-HerdPhp) @((Join-Path $PSScriptRoot 'sqlite-backup.php'),'wal',$db) $canonical
     if ($wal.ExitCode -ne 0 -or $wal.Output.Trim() -ne 'wal') { throw 'Could not enable SQLite WAL.' }
-    Invoke-Artisan @('optimize:clear')
     Invoke-Artisan @('migrate','--force')
+    Invoke-Artisan @('optimize:clear')
     Invoke-Artisan @('optimize')
     Assert-StorageLink
     Save-SetupCheckpoint 'database-cache'
